@@ -1,28 +1,8 @@
-REFATORAÇÃO UI — ETAPA 1
+Esta migration já foi aplicada diretamente no Supabase do Treino Tonon em 12/07/2026.
 
-Esta etapa separa do App.jsx três componentes visuais reutilizáveis:
+Copie a pasta supabase para a raiz do repositório, preservando o caminho:
 
-- Card de indicador
-- Seletor de treino no dashboard
-- Seletor de treino na execução
+supabase/migrations/20260712231244_security_search_path_and_duplicate_indexes.sql
 
-Ela não altera regra de negócio, Supabase, histórico nem banco de dados.
-
-COMO APLICAR
-
-1. Descompacte o pacote na raiz do repositório. Isso criará os três arquivos
-   dentro de src/components.
-2. No terminal aberto na pasta do repositório, execute:
-
-   git apply aplicar-refatoracao-ui-base.patch
-   npm run test:run
-   npm run typecheck
-   npm run build
-
-3. Se os três comandos terminarem sem erro:
-
-   git add src/App.jsx src/components aplicar-refatoracao-ui-base.patch
-   git commit -m "refactor: separar componentes visuais do app"
-   git push origin main
-
-O arquivo .patch pode ser apagado depois de o commit estar concluído.
+Não execute novamente no SQL Editor: o Supabase já registrou a migration.
+O arquivo existe para manter o GitHub alinhado com o banco de produção.
