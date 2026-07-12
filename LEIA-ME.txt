@@ -1,0 +1,13 @@
+PRÓXIMOS AJUSTES PÓS-AUDITORIA
+
+Coloque os dois arquivos deste pacote na raiz do repositório, preservando as pastas:
+
+1) .env.example
+   Modelo seguro das variáveis necessárias. Não preencha nem envie chaves reais.
+
+2) .github/dependabot.yml
+   Habilita avisos e pull requests semanais para atualizações de dependências
+   e GitHub Actions. Ele não altera a aplicação automaticamente.
+
+Depois, faça commit e push. A validação criada anteriormente irá conferir
+testes, tipos e build antes do deploy.
