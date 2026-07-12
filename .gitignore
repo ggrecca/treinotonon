@@ -1,0 +1,15 @@
+# Dependências e artefatos de build
+node_modules/
+dist/
+coverage/
+
+# Variáveis locais e credenciais
+.env
+.env.*
+!.env.example
+
+# Arquivos de ferramentas e sistema
+.vercel/
+.vite/
+*.log
+.DS_Store
