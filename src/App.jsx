@@ -23,6 +23,8 @@ const today = (value=new Date()) => {
   return new Date(date.getTime() - offset).toISOString().slice(0,10);
 };
 const APP_NAME = "Treino Tonon";
+const APP_VERSION = "1.0.0";
+const APP_RELEASE_LABEL = "Julho de 2026";
 const TYPES = ["NORMAL", "PROG", "CONJ", "REST PAUSE", "DROP SET"];
 const EXECUTION_METHODS = [
   {value:"NORMAL", label:"Normal", description:"Mesma meta em todas as séries."},
@@ -579,6 +581,19 @@ function cloneWorkoutItemsForAssignment(items){
     }
     return clone;
   });
+}
+
+function ProductFooter(){
+  const footerStyle = {
+    display:"grid", gap:3, margin:"18px 0 2px", padding:"14px 4px 0",
+    borderTop:"1px solid var(--color-border)", color:"var(--color-text-muted)", textAlign:"center"
+  };
+  const lineStyle = {margin:0, fontSize:10, fontWeight:700, lineHeight:1.45};
+  return <footer style={footerStyle} aria-label="Informações do aplicativo">
+    <p style={{...lineStyle, color:"var(--color-text-secondary)", fontWeight:900}}>Treino Tonon · Versão {APP_VERSION} · {APP_RELEASE_LABEL}</p>
+    <p style={lineStyle}>© 2026 Gustavo Grecca Garcia. Todos os direitos reservados.</p>
+    <p style={lineStyle}>Criado por Gustavo Grecca Garcia em parceria com ChatGPT.</p>
+  </footer>;
 }
 
 function App(){
@@ -2869,6 +2884,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
         <h3>Conta</h3>
         <div className="recordLine"><b>Modo local</b><span className="statusBadge">{statusText}</span></div>
         <p className="muted">Seus dados estão salvos neste navegador.</p>
+        <ProductFooter />
       </section>;
     }
     if(currentUser && !entry){
@@ -2876,11 +2892,12 @@ function exerciseCatalogToWorkoutItem(ex={}){
         <h3>Conta</h3>
         <div className="recordLine"><b>Nome da conta</b><span>{currentUser.name || "Usuário"}</span></div>
         <div className="recordLine"><b>Email da conta</b><span>{currentUser.email || "email não informado"}</span></div>
-        <div className="recordLine"><b>Tipo de conta</b><span>{currentUserRole === "coach" ? "Treinador" : "Aluno"}</span></div>
+        <div className="recordLine"><b>Tipo de conta</b><span>{currentUserRole === "coach" ? "Treinador e aluno" : "Aluno"}</span></div>
         <div className="recordLine"><b className="statusBadge">{statusText}</b><span>{dataMode === "cloud" ? "conta logada" : "neste navegador"}</span></div>
         <p className="muted">Ao sair, seus dados da nuvem não serão apagados.</p>
         <button type="button" className="danger" onClick={signOutAccount} disabled={authBusy}>Sair da conta</button>
         {authMessage && <p className="feedbackMessage">{authMessage}</p>}
+        <ProductFooter />
       </section>;
     }
     return <section className={`formCard accountCard ${entry ? "authCard" : ""}`}>
