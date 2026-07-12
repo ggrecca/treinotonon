@@ -1,0 +1,14 @@
+Arquivos principais alterados:
+- src/App.jsx
+- src/utils/repTargets.js
+- src/utils/__tests__/repTargets.test.js
+- src/services/dataService/cloudDataService.ts
+- src/services/dataService/localDataService.ts
+- src/services/dataService/types.ts
+- src/services/__tests__/workoutPayload.test.ts
+- src/services/__tests__/releaseIntegrity.test.ts
+- supabase/migrations/202607110003_session_settings_integrity.sql
+- package.json
+- package-lock.json
+- tsconfig.json
+- dist/* (regerado pelo build)

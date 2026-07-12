@@ -1,0 +1,28 @@
+-- Treino Tonon v10 uses a new Supabase project and a normalized schema.
+-- Do not apply the old v9 schema to the v10 database.
+--
+-- Apply these migrations in this order in a new v10 Supabase project:
+-- supabase/migrations/202607030001_v10_initial_schema.sql
+-- supabase/migrations/202607050001_add_source_workout_id.sql
+-- supabase/migrations/202607050002_body_records_student_body_patch.sql
+-- supabase/migrations/202607050003_body_records_measurements_and_bf.sql
+-- supabase/migrations/202607050004_body_records_rls_author_permissions.sql
+-- supabase/migrations/202607090001_exercise_library_catalog_fields.sql
+-- supabase/migrations/202607090002_exercise_library_equipment_list.sql
+-- supabase/migrations/202607100001_workout_metadata.sql
+-- supabase/migrations/202607100002_workout_exercises_conjugate_blocks.sql
+-- supabase/migrations/202607110001_save_workout_atomic.sql
+-- supabase/migrations/202607110002_conjugate_integrity_patch.sql
+--
+-- If the v10 database already has the initial migration applied, do not
+-- reapply the initial schema. Apply only migrations not applied yet,
+-- preserving the order above.
+--
+-- Do not apply these files to the v9 Supabase project.
+-- Never expose a service role key in the frontend.
+--
+-- body_records note:
+-- 202607050002 keeps compatibility columns still written by the app.
+-- 202607050003 adds cm/mm measurement fields, BF metadata and recorded_by.
+-- 202607050004 tightens RLS so students can view trainer-created records
+-- but cannot update/delete records created by another user.

@@ -1,0 +1,16 @@
+{
+  "name": "Treino Tonon",
+  "short_name": "Treino Tonon",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0B0C",
+  "theme_color": "#0B0B0C",
+  "icons": [
+    {
+      "src": "/assets/logo-transp.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

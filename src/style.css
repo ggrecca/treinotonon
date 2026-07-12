@@ -1,0 +1,3809 @@
+/* Treino Tonon v10.4K - consolidated visual system */
+
+:root{
+  --color-bg:#0f1115;
+  --color-bg-secondary:#171a20;
+  --color-surface:#14171d;
+  --color-card:#1b1f27;
+  --color-card-elevated:#222733;
+  --color-border:#303746;
+  --color-border-strong:#465065;
+  --color-text:#f7f8fb;
+  --color-text-secondary:#d5d9e2;
+  --color-text-muted:#969eac;
+  --color-primary:#3b82f6;
+  --color-primary-hover:#2563eb;
+  --color-success:#22c55e;
+  --color-warning:#f59e0b;
+  --color-danger:#ef4444;
+  --color-info:#38bdf8;
+  --color-complete:#16a34a;
+  --color-overlay:rgba(0,0,0,.62);
+  --shadow-card:0 18px 50px rgba(0,0,0,.24);
+  --shadow-soft:0 10px 28px rgba(0,0,0,.16);
+  --focus-ring:0 0 0 3px rgba(37,99,235,.36);
+  --radius-xs:8px;
+  --radius-sm:10px;
+  --radius-md:10px;
+  --radius-lg:14px;
+  --radius-xl:18px;
+  --header-height:66px;
+  --nav-height:86px;
+  --active-session-offset:calc(var(--header-height) + env(safe-area-inset-top) + 8px);
+  --blue:var(--color-primary);
+  --cyan:var(--color-info);
+  --green:var(--color-success);
+  --red:var(--color-danger);
+  --yellow:var(--color-warning);
+  --bg:var(--color-bg);
+  --card:var(--color-card);
+  --card2:var(--color-card-elevated);
+  --line:var(--color-border);
+  --text:var(--color-text);
+  --muted:var(--color-text-muted);
+  --surface:var(--color-surface);
+  --surface2:var(--color-card-elevated);
+  --softLine:var(--color-border);
+  --focus:rgba(37,99,235,.36);
+  color-scheme:dark;
+}
+
+body[data-theme="light"],
+.theme-light{
+  --color-bg:#f6f7f9;
+  --color-bg-secondary:#edf0f4;
+  --color-surface:#ffffff;
+  --color-card:#ffffff;
+  --color-card-elevated:#f4f6fa;
+  --color-border:#d9dee8;
+  --color-border-strong:#b9c2d1;
+  --color-text:#141923;
+  --color-text-secondary:#374151;
+  --color-text-muted:#6b7280;
+  --color-primary:#1d4ed8;
+  --color-primary-hover:#1e40af;
+  --color-success:#15803d;
+  --color-warning:#b45309;
+  --color-danger:#dc2626;
+  --color-info:#0369a1;
+  --color-complete:#16a34a;
+  --color-overlay:rgba(15,23,42,.45);
+  --shadow-card:0 18px 44px rgba(15,23,42,.10);
+  --shadow-soft:0 9px 24px rgba(15,23,42,.07);
+  --focus-ring:0 0 0 3px rgba(29,78,216,.20);
+  --blue:var(--color-primary);
+  --cyan:var(--color-info);
+  --green:var(--color-success);
+  --red:var(--color-danger);
+  --yellow:var(--color-warning);
+  --bg:var(--color-bg);
+  --card:var(--color-card);
+  --card2:var(--color-card-elevated);
+  --line:var(--color-border);
+  --text:var(--color-text);
+  --muted:var(--color-text-muted);
+  --surface:var(--color-surface);
+  --surface2:var(--color-card-elevated);
+  --softLine:var(--color-border);
+  --focus:rgba(29,78,216,.20);
+  color-scheme:light;
+}
+
+*{box-sizing:border-box}
+html{min-height:100%;background:var(--color-bg)}
+body{
+  margin:0;
+  min-height:100%;
+  background:var(--color-bg);
+  color:var(--color-text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+body[data-theme="dark"]{background:var(--color-bg)}
+button,input,select,textarea{font:inherit}
+button{
+  min-height:44px;
+  border:1px solid var(--color-primary);
+  border-radius:var(--radius-md);
+  background:var(--color-primary);
+  color:#fff;
+  font-weight:800;
+  padding:10px 14px;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  line-height:1.15;
+  transition:background .14s ease,border-color .14s ease,transform .12s ease,opacity .14s ease,box-shadow .14s ease;
+}
+button:hover{background:var(--color-primary-hover);border-color:var(--color-primary-hover)}
+button:active{transform:translateY(1px) scale(.99)}
+button:disabled{cursor:not-allowed;opacity:.48;transform:none}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible{
+  outline:0;
+  box-shadow:var(--focus-ring);
+  border-color:var(--color-primary);
+}
+button svg{width:18px;height:18px;flex:0 0 auto}
+h1,h2,h3,h4,p{margin-top:0}
+h2{font-size:24px;letter-spacing:0;margin-bottom:10px}
+h3{font-size:18px;margin-bottom:8px}
+h4{font-size:14px;margin-bottom:8px}
+.muted,
+.card p,
+.card small,
+.sessionCard small,
+.previewLine span,
+.contextStrip span,
+.emptyState span,
+.emptyHint,
+.libraryCard span,
+.libraryCard small,
+.setLine span small,
+.studentCard span,
+.studentCard small,
+.studentCard em,
+.dropRow small{
+  color:var(--color-text-muted);
+}
+
+.app{
+  width:100%;
+  max-width:640px;
+  min-height:100vh;
+  margin:0 auto;
+  padding:10px 16px calc(var(--nav-height) + 20px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 50% -18%, color-mix(in srgb,var(--color-primary) 20%,transparent), transparent 34%),
+    var(--color-bg);
+}
+.app.internalMode{
+  padding-bottom:calc(20px + env(safe-area-inset-bottom));
+  background:var(--color-bg);
+}
+.app.screen-exercicios{
+  background:var(--color-bg);
+}
+.authGate{
+  display:grid;
+  align-content:center;
+  min-height:100vh;
+  padding-bottom:28px;
+}
+
+.top{
+  position:sticky;
+  top:0;
+  z-index:30;
+  min-height:64px;
+  margin:-10px -16px 12px;
+  padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  background:color-mix(in srgb,var(--color-bg) 88%,transparent);
+  border-bottom:1px solid color-mix(in srgb,var(--color-border) 72%,transparent);
+  backdrop-filter:blur(16px);
+}
+.authGate .top{
+  position:static;
+  display:flex;
+  justify-content:center;
+  min-height:auto;
+  margin:0 0 18px;
+  padding:0;
+  border:0;
+  background:transparent;
+  text-align:center;
+}
+.brandBlock{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px;align-items:center;min-width:0}
+.brandBlock p{margin:2px 0 0;color:var(--color-text-muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brandText{display:grid;min-width:0}
+.brandText strong{font-size:18px;font-weight:950;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brandIdentity{display:flex;align-items:center;gap:8px;min-width:0}
+.brandIdentity strong{font-size:18px;font-weight:950;color:var(--color-text);white-space:nowrap}
+.internalMode .top{
+  grid-template-columns:auto minmax(0,1fr) auto;
+}
+.internalTitleBlock{
+  grid-template-columns:minmax(0,1fr);
+  gap:1px;
+}
+.internalTitleBlock strong{
+  color:var(--color-text);
+  font-size:18px;
+  font-weight:950;
+  line-height:1.15;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.topBackButton{
+  width:44px;
+  min-width:44px;
+  min-height:44px;
+  padding:0;
+  border-radius:50%;
+}
+.headerLogo{display:block;width:40px;min-width:40px;max-width:none;height:40px;object-fit:cover;object-position:left center;border-radius:12px}
+.loginLogo{display:block;width:min(240px,82%);height:auto;margin:0 auto 10px;object-fit:contain}
+.roleBadge,
+.statusBadge{
+  display:inline-flex;
+  width:max-content;
+  max-width:100%;
+  align-items:center;
+  border:1px solid color-mix(in srgb,var(--color-info) 38%,var(--color-border));
+  background:color-mix(in srgb,var(--color-info) 12%,var(--color-card));
+  color:color-mix(in srgb,var(--color-info) 55%,var(--color-text));
+  border-radius:999px;
+  padding:6px 10px;
+  font-size:12px;
+  font-weight:900;
+  white-space:nowrap;
+}
+
+.ghost,
+.switcher button,
+.modeSwitch,
+.setCheck,
+.accountTypeActions button,
+.backButton,
+.roleBadge{
+  background:var(--color-card-elevated);
+  border-color:var(--color-border);
+  color:var(--color-text);
+}
+.ghost:hover,
+.switcher button:hover,
+.backButton:hover,
+.accountTypeActions button:hover{
+  background:color-mix(in srgb,var(--color-card-elevated) 84%,var(--color-primary));
+  border-color:var(--color-border-strong);
+}
+.danger{
+  background:color-mix(in srgb,var(--color-danger) 18%,var(--color-card));
+  border-color:color-mix(in srgb,var(--color-danger) 50%,var(--color-border));
+  color:color-mix(in srgb,var(--color-danger) 24%,#fff);
+}
+.danger:hover{
+  background:color-mix(in srgb,var(--color-danger) 28%,var(--color-card));
+  border-color:var(--color-danger);
+}
+body[data-theme="light"] .danger,
+.theme-light .danger{
+  background:color-mix(in srgb,var(--color-danger) 88%,#111827);
+  border-color:color-mix(in srgb,var(--color-danger) 90%,#111827);
+  color:#fff;
+}
+body[data-theme="light"] .danger:hover,
+.theme-light .danger:hover{
+  background:color-mix(in srgb,var(--color-danger) 78%,#111827);
+  border-color:color-mix(in srgb,var(--color-danger) 82%,#111827);
+  color:#fff;
+}
+.small{min-height:36px;padding:8px 10px;font-size:12px;border-radius:var(--radius-sm)}
+.iconBtn{width:42px;min-width:42px;min-height:42px;padding:9px;border-radius:var(--radius-sm)}
+.activeSmall,
+.switcher .active,
+.segmentedControl .active,
+.accountTypeActions .active,
+.modeSwitch button.active,
+.nav .on{
+  background:var(--color-primary);
+  border-color:var(--color-primary);
+  color:#fff;
+}
+
+.modeSwitch{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:4px;
+  border-radius:var(--radius-lg);
+  padding:4px;
+}
+.modeSwitch button{min-height:36px;background:transparent;border-color:transparent;color:var(--color-text-muted)}
+.compactModeSwitch{width:166px;min-width:166px;height:46px;align-self:center}
+.compactModeSwitch button{height:36px;min-height:36px;padding:0 8px;white-space:nowrap}
+.internalModeSwitch{width:132px;min-width:132px;height:42px}
+.internalModeSwitch button{height:32px;min-height:32px;padding:0 5px;font-size:10.5px}
+
+.hero,
+.card,
+.chartCard,
+.formCard,
+.exerciseGroup,
+.sessionCard,
+.mini,
+.previewLine,
+.libraryCard,
+.modalCard,
+.studentCard,
+.coachPanel,
+.timerCard,
+.sessionControl{
+  background:var(--color-card);
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-soft);
+}
+.hero{padding:20px;margin:10px 0 12px}
+.hero h2{font-size:28px;margin-bottom:6px}
+.hero p{color:var(--color-text-muted);line-height:1.45}
+.trainerDashboardHero{background:var(--color-card)}
+.card,.chartCard,.formCard,.exerciseGroup{padding:14px;margin:10px 0}
+.card{min-height:104px}
+.card h3{font-size:24px;margin:7px 0 4px}
+.chartCard h3,.formCard h3,.exerciseGroup h3{letter-spacing:0}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+.compactGrid{margin:10px 0}
+.quickActions,
+.createActions,
+.actions,
+.finishActions,
+.accountActions,
+.accountTypeActions,
+.segmentedControl{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.quickActions{grid-template-columns:1.2fr 1fr 1fr;margin:12px 0}
+.quickActions button,.createActions button,.actions button,.finishActions button,.accountActions button{width:100%}
+.pageTitleRow{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin:4px 0 10px;
+}
+.pageTitle,
+.pageTitleRow h2{
+  margin:0;
+  color:var(--color-text);
+  font-size:24px;
+  font-weight:950;
+  line-height:1.08;
+  letter-spacing:0;
+}
+.pageTitle{
+  margin:4px 0 10px;
+}
+.pageTitleRow .pageTitle{
+  margin:0;
+}
+.titleActions{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+
+.formCard{display:grid;gap:12px}
+.accountForm{display:grid;gap:10px}
+.formGrid,
+.fields,
+.inlineEditGrid,
+.realHistoryMeta,
+.summaryGrid,
+.repTargetsGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.fields{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px}
+.fields.simplified{grid-template-columns:repeat(2,minmax(0,1fr))}
+input,
+select,
+textarea,
+.fields input,
+.fields textarea,
+.formCard input,
+.formCard select,
+.formCard textarea,
+.previewLine input,
+.previewLine select,
+.previewLine textarea,
+.chartCard select,
+.setLine input,
+.dropRow input{
+  width:100%;
+  min-height:44px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-bg-secondary);
+  color:var(--color-text);
+  padding:10px 12px;
+  font-size:16px;
+}
+textarea,.fields textarea,.formCard textarea,.previewLine textarea{min-height:78px;resize:vertical}
+input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
+.formCard label{color:var(--color-text-secondary);font-weight:800}
+.toggleLine{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  border:1px solid var(--color-border);
+  background:var(--color-card-elevated);
+  border-radius:var(--radius-md);
+  padding:10px 12px;
+  color:var(--color-text);
+  font-weight:800;
+}
+.toggleLine input{width:20px;min-width:20px;height:20px;min-height:20px;accent-color:var(--color-success)}
+.inlineField{display:grid;gap:6px}
+
+.authCard{
+  width:100%;
+  max-width:430px;
+  margin:0 auto;
+  padding:22px;
+  border-radius:var(--radius-xl);
+  box-shadow:var(--shadow-card);
+}
+.authCard h2{font-size:26px;text-align:center;margin-bottom:6px}
+.authCard > .muted{text-align:center}
+.accountCard .recordLine{background:var(--color-card-elevated);border-radius:var(--radius-md);padding:10px 12px}
+.accountTypeBox{display:grid;gap:10px}
+.passwordResetButton{width:100%}
+.authSegmentedControl{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:4px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-lg);
+  padding:4px;
+  background:var(--color-card-elevated);
+}
+.authSegmentedControl button{
+  min-height:40px;
+  border-color:transparent;
+  background:transparent;
+  color:var(--color-text-muted);
+}
+.authSegmentedControl button.active{
+  background:var(--color-primary);
+  border-color:var(--color-primary);
+  color:#fff;
+}
+.authRoleSegment{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.authRoleSegment button{
+  min-height:40px;
+}
+.passwordField{
+  position:relative;
+}
+.passwordField input{
+  padding-right:52px;
+}
+.passwordToggle{
+  position:absolute;
+  right:6px;
+  top:50%;
+  width:38px;
+  min-width:38px;
+  min-height:38px;
+  padding:0;
+  transform:translateY(-50%);
+}
+.passwordToggle:active{transform:translateY(calc(-50% + 1px)) scale(.99)}
+.primaryAuthAction button{width:100%}
+.passwordResetLink{
+  justify-self:end;
+  min-height:auto;
+  border:0;
+  background:transparent;
+  color:var(--color-text-muted);
+  padding:0;
+  font-size:12px;
+  font-weight:850;
+}
+.passwordResetLink:hover{
+  background:transparent;
+  color:var(--color-primary);
+  border-color:transparent;
+}
+
+.ring{
+  width:124px;
+  height:124px;
+  margin:18px auto;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  border:10px solid var(--color-primary);
+  color:var(--color-text);
+}
+.ring span{font-size:24px;font-weight:950}
+.switchBlock{display:grid;gap:8px;margin-top:12px}
+.switcher{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.switcher.scroll{display:flex;overflow:auto;padding-bottom:4px}
+.switcher.scroll button{white-space:nowrap}
+.switchLabel{color:var(--color-text-muted);font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.6px}
+.allFilter{width:100%}
+
+.coachPanel{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:14px;
+  margin:10px 0 12px;
+}
+.coachPanel small{
+  display:block;
+  color:var(--color-info);
+  text-transform:uppercase;
+  letter-spacing:.7px;
+  font-size:10px;
+  font-weight:950;
+}
+.coachPanel b{display:block;margin-top:3px;line-height:1.32}
+.coachPanel span{flex:0 0 auto}
+
+.timerCard{
+  display:grid;
+  grid-template-columns:1fr auto auto auto;
+  gap:8px;
+  align-items:center;
+  padding:12px;
+  margin:12px 0;
+}
+.timerDisplay{
+  display:block;
+  min-height:58px;
+  text-align:left;
+  background:var(--color-card-elevated);
+  border-color:var(--color-border);
+}
+.timerDisplay small,.timerDisplay em{display:block;color:var(--color-text-muted);font-size:12px;font-style:normal}
+.timerDisplay strong{display:block;font-size:30px;line-height:1.05;letter-spacing:0}
+.stickyTimer{position:sticky;top:var(--active-session-offset);z-index:18}
+.sessionControl{padding:14px;margin:12px 0}
+.activeSessionControl{
+  position:sticky;
+  top:var(--active-session-offset);
+  z-index:18;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.sessionLive{min-width:0;flex:1}
+.sessionTimerGrid{
+  display:grid;
+  grid-template-columns:minmax(96px,1fr) 78px auto;
+  gap:6px 8px;
+  align-items:center;
+  color:var(--color-text-secondary);
+  font-weight:800;
+}
+.timerLabel{font-size:12px;color:var(--color-text-muted)}
+.timerPill{
+  min-height:30px;
+  border-radius:999px;
+  padding:6px 10px;
+  background:var(--color-card-elevated);
+  border:1px solid var(--color-border);
+}
+.timerActions{display:flex;gap:6px}
+.timerActionsSpacer{display:block}
+.restInlineValue{color:var(--color-text)}
+.sessionActions{grid-template-columns:1fr}
+.restBox,.restDone{
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  padding:10px 12px;
+  text-align:center;
+  background:var(--color-card-elevated);
+}
+.restDone{
+  background:color-mix(in srgb,var(--color-success) 14%,var(--color-card));
+  border-color:color-mix(in srgb,var(--color-success) 45%,var(--color-border));
+  color:color-mix(in srgb,var(--color-success) 30%,#fff);
+  font-weight:900;
+}
+
+.workoutHead{display:flex;justify-content:space-between;align-items:center}
+.workoutHead h2{font-size:28px;margin:10px 0}
+.workoutHead div{font-size:20px;font-weight:950;color:var(--color-info)}
+.progressPill{
+  position:relative;
+  height:34px;
+  border-radius:999px;
+  overflow:hidden;
+  border:1px solid var(--color-border);
+  background:var(--color-card-elevated);
+  margin:0 0 12px;
+}
+.progressPill i{position:absolute;inset:0 auto 0 0;background:var(--color-complete);border-radius:999px}
+.progressPill span{position:relative;display:grid;place-items:center;height:100%;font-weight:950;color:var(--color-text)}
+.startWorkoutShortcut{width:100%;margin-bottom:12px}
+
+.exerciseGroup.conjugado{border-color:color-mix(in srgb,var(--color-info) 44%,var(--color-border))}
+.groupLabel{
+  display:inline-flex;
+  width:max-content;
+  border:1px solid color-mix(in srgb,var(--color-info) 45%,var(--color-border));
+  background:color-mix(in srgb,var(--color-info) 12%,var(--color-card));
+  color:color-mix(in srgb,var(--color-info) 45%,var(--color-text));
+  border-radius:999px;
+  padding:5px 9px;
+  margin-bottom:8px;
+  font-size:11px;
+  font-weight:950;
+}
+.exercise{
+  display:flex;
+  gap:12px;
+  padding:12px 0;
+  border-top:1px solid var(--color-border);
+}
+.exercise:first-of-type{border-top:0}
+.exercise.done{
+  margin:4px 0;
+  padding:12px;
+  border:1px solid color-mix(in srgb,var(--color-success) 38%,var(--color-border));
+  border-radius:var(--radius-lg);
+  background:color-mix(in srgb,var(--color-success) 10%,var(--color-card));
+}
+.exContent{flex:1;min-width:0}
+.exContent h3{margin:0 0 8px;font-size:18px}
+.badges{display:flex;flex-wrap:wrap;gap:6px}
+.badges span,
+.typeBadge{
+  display:inline-flex;
+  align-items:center;
+  width:max-content;
+  border:1px solid var(--color-border);
+  background:var(--color-card-elevated);
+  color:var(--color-text-secondary);
+  border-radius:999px;
+  padding:5px 8px;
+  font-size:11px;
+  font-weight:900;
+}
+.typeprog,.badges .prog{border-color:color-mix(in srgb,var(--color-primary) 42%,var(--color-border));color:color-mix(in srgb,var(--color-primary) 30%,var(--color-text))}
+.typeconj,.badges .conj{border-color:color-mix(in srgb,var(--color-info) 42%,var(--color-border));color:color-mix(in srgb,var(--color-info) 35%,var(--color-text))}
+.typerestpause,.badges .restpause{border-color:color-mix(in srgb,var(--color-warning) 44%,var(--color-border));color:color-mix(in srgb,var(--color-warning) 36%,var(--color-text))}
+.typedropset,.badges .dropset{border-color:color-mix(in srgb,var(--color-danger) 44%,var(--color-border));color:color-mix(in srgb,var(--color-danger) 30%,var(--color-text))}
+.lastExecution,
+.planHint,
+.emptyHint,
+.performedSets,
+.compactLine,
+.performedDetail,
+.realHistoryMeta span,
+.dropRow,
+.libraryItem{
+  background:var(--color-card-elevated);
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+}
+.lastExecution{display:flex;gap:8px;align-items:flex-start;margin-top:9px;padding:9px}
+.lastExecution b{display:block;font-size:12px}
+.lastExecution span{display:block;font-size:12px;line-height:1.35}
+.planHint,.emptyHint{padding:10px;margin:10px 0 0;line-height:1.4}
+.performedSets{display:grid;gap:10px;margin-top:12px;padding:12px}
+.performedHead{display:flex;justify-content:space-between;gap:10px}
+.performedHead b,.performedHead span{display:block}
+.performedHead span{font-size:12px;color:var(--color-text-muted)}
+.setLine{
+  display:grid;
+  grid-template-columns:40px minmax(118px,1fr) minmax(0,1fr) minmax(0,1fr) 42px;
+  gap:8px;
+  align-items:center;
+}
+.setLine span{font-weight:800;color:var(--color-text)}
+.setLine span small{display:block;font-weight:600;font-size:12px;line-height:1.3}
+.setInputField{display:grid;gap:3px;min-width:0}
+.setInputField > span{font-size:11px;color:var(--color-text-muted);font-weight:800}
+.setInputField input{width:100%;min-width:0;box-sizing:border-box}
+.setInputField.loadField{position:relative}
+.setInputField.loadField input{padding-right:28px}
+.setInputField.loadField em{position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--color-text-muted);font-size:12px;font-style:normal;font-weight:850;pointer-events:none}
+.setCheckLabel{display:none}
+.setCheck{display:grid;place-items:center;width:40px;min-width:40px;padding:0}
+.setCheck.on{background:color-mix(in srgb,var(--color-success) 15%,var(--color-card));border-color:var(--color-success);color:var(--color-success)}
+.dropRows{grid-column:3/5;display:grid;gap:8px}
+.dropRow{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:8px;align-items:center;padding:9px}
+.setActions{display:flex;gap:8px;flex-wrap:wrap}
+.historyDropGroup{display:grid;gap:4px;margin-top:6px}
+.reopenExercise{border-color:color-mix(in srgb,var(--color-info) 42%,var(--color-border))}
+
+.list{display:grid;gap:8px}
+.sessionCard,
+.previewLine{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:12px;
+}
+.sessionCard div{min-width:0;flex:1}
+.sessionCard strong,.previewLine b{display:block;color:var(--color-text)}
+.sessionCard p{margin:6px 0 0;color:var(--color-text-secondary)}
+.tappable{cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease,background .16s ease}
+.tappable:hover,.libraryCard.rich:hover,.studentCard:hover{
+  border-color:color-mix(in srgb,var(--color-primary) 35%,var(--color-border-strong));
+  box-shadow:var(--shadow-soft);
+}
+.tappable:active{transform:scale(.985)}
+.historySummaryLine{font-size:13px;line-height:1.35}
+.recordLine{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding:10px 0;
+  border-top:1px solid var(--color-border);
+}
+.recordLine:first-child{border-top:0}
+.recordLine b{font-size:14px;color:var(--color-text)}
+.recordLine span{color:var(--color-text-secondary);font-weight:800}
+.ranking b{display:flex;align-items:center;gap:7px}
+.rank{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:999px;background:var(--color-card-elevated);font-size:13px}
+.detailLine{padding:10px 0;border-top:1px solid var(--color-border)}
+.detailLine b,.detailLine span,.detailLine em{display:block}
+.detailLine span{color:var(--color-text-secondary);margin-top:4px}
+.detailLine em{color:var(--color-text-muted);font-style:normal;margin-top:4px}
+.performedDetail{padding:10px;margin-top:10px}
+.performedDetail b{display:block;margin-bottom:6px}
+.performedDetail span,.performedDetail em{display:block;font-size:13px;line-height:1.35}
+.performedDetail em{color:var(--color-text-muted);font-style:normal;margin-top:6px}
+.emptyState{
+  display:grid;
+  gap:9px;
+  border:1px solid color-mix(in srgb,var(--color-primary) 22%,var(--color-border));
+  border-radius:var(--radius-lg);
+  background:
+    linear-gradient(135deg,color-mix(in srgb,var(--color-primary) 8%,transparent),transparent 58%),
+    var(--color-card);
+  padding:18px;
+  margin:12px 0;
+  box-shadow:var(--shadow-soft);
+}
+.emptyState::before{
+  content:"";
+  width:34px;
+  height:4px;
+  border-radius:999px;
+  background:var(--color-primary);
+  opacity:.9;
+}
+.emptyState b{font-size:18px;line-height:1.2}
+.emptyState.slim{padding:14px}
+
+.calendarGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-top:10px}
+.day{
+  aspect-ratio:1/1;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-sm);
+  background:var(--color-card-elevated);
+  color:var(--color-text-muted);
+  font-weight:800;
+}
+.day.trained{background:var(--color-complete);border-color:var(--color-complete);color:#fff}
+.barLine{display:grid;gap:8px;padding:12px 0;border-top:1px solid var(--color-border)}
+.barLine:first-of-type{border-top:0}
+.barLine b,.barLine span{display:block}
+.barLine span{font-size:12px}
+.miniBar{height:10px;background:var(--color-card-elevated);border:1px solid var(--color-border);border-radius:999px;overflow:hidden}
+.miniBar i{display:block;height:100%;background:var(--color-primary);border-radius:999px}
+.verticalBars{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:8px;
+  align-items:end;
+  min-height:126px;
+  margin-top:10px;
+}
+.verticalBarItem{
+  display:grid;
+  grid-template-rows:auto 76px auto;
+  gap:5px;
+  min-width:0;
+  text-align:center;
+  color:var(--color-text-muted);
+  font-size:11px;
+  font-weight:900;
+}
+.verticalBarTrack{
+  display:flex;
+  align-items:end;
+  width:100%;
+  border:1px solid var(--color-border);
+  border-radius:999px;
+  overflow:hidden;
+  background:var(--color-card-elevated);
+}
+.verticalBarTrack i{
+  display:block;
+  width:100%;
+  background:var(--color-primary);
+  border-radius:999px 999px 0 0;
+}
+.verticalBarItem b{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--color-text-secondary);
+}
+
+.filterRow{display:flex;gap:8px;overflow:auto;padding-bottom:8px}
+.libraryList{display:grid;gap:8px;max-height:260px;overflow:auto}
+.libraryList.expanded{max-height:none;overflow:visible}
+.libraryItem{display:grid;text-align:left;justify-items:start}
+.libraryItem b,.libraryItem span,.libraryItem em{display:block}
+.libraryItem em{
+  margin-top:4px;
+  color:var(--color-text-muted);
+  font-size:11px;
+  font-style:normal;
+  font-weight:800;
+}
+.libraryHint,.repHint{color:var(--color-text-muted);font-size:12px;margin:0}
+.exerciseLibraryPanel{
+  gap:10px;
+  padding:12px;
+}
+.exerciseFilterGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.exerciseFilterGrid label{
+  display:grid;
+  gap:5px;
+  min-width:0;
+}
+.exerciseFilterGrid span{
+  color:var(--color-text-muted);
+  font-size:11px;
+  font-weight:900;
+}
+.compactFilters{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.compactHeader{
+  align-items:center;
+  gap:8px;
+}
+.workoutLibraryPicker{
+  max-height:420px;
+}
+.pickerItem{
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  justify-items:stretch;
+  gap:10px;
+  padding:10px;
+}
+.pickerItem button{
+  min-height:36px;
+  padding:8px 10px;
+}
+.libraryCard{padding:10px}
+.libraryCard b,.libraryCard span{display:block}
+.libraryCard.rich{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  border-radius:var(--radius-md);
+}
+.libraryCard.rich b{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  font-size:15px;
+  line-height:1.2;
+  white-space:nowrap;
+}
+.libraryCard.rich span{
+  margin-top:3px;
+  color:var(--color-text-secondary);
+  font-size:12px;
+  font-weight:800;
+}
+.libraryCard.rich small,.libraryCard.rich em{display:block;font-size:12px;margin-top:5px}
+.libraryCard.rich em{font-style:normal;color:var(--color-text-secondary);background:var(--color-card-elevated);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:7px}
+.libraryCard.rich .libraryNote{
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.exerciseLibraryDetail{
+  gap:10px;
+}
+.chipRow{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.compactChips{
+  margin-top:7px;
+}
+.libraryChip{
+  display:inline-flex;
+  align-items:center;
+  width:max-content;
+  max-width:100%;
+  min-height:24px;
+  padding:4px 8px;
+  border:1px solid var(--color-border);
+  border-radius:999px;
+  background:var(--color-card-elevated);
+  color:var(--color-text-secondary);
+  font-size:11px;
+  font-weight:900;
+  line-height:1.1;
+}
+.managerActions,.previewActions{display:flex;gap:6px;align-items:center;flex:0 0 auto}
+.baseManager{display:grid;gap:8px;margin-bottom:8px}
+.editablePreview{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+.previewMain{display:grid;gap:6px;min-width:0}
+.workoutListCard{align-items:center}
+.hiddenWorkouts{border-style:dashed;opacity:.9}
+.workoutEditorActions{grid-template-columns:repeat(3,minmax(0,1fr))}
+
+.studentGrid{display:grid;gap:10px}
+.studentCard{
+  display:grid;
+  gap:5px;
+  width:100%;
+  text-align:left;
+  padding:13px;
+  color:var(--color-text);
+}
+.studentCardTop{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.studentCard b,.studentCard span,.studentCard small,.studentCard em{display:block}
+.studentCard em{font-style:normal}
+.studentsScreen .studentSortRow{
+  display:flex;
+  justify-content:flex-end;
+  margin:6px 0 10px;
+}
+.studentsScreen .studentSortRow label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:var(--color-text-muted);
+  font-size:12px;
+  font-weight:800;
+}
+.studentsScreen .studentSortRow select{
+  min-height:34px;
+  padding:7px 10px;
+}
+.studentsScreen .compactStudentCard{
+  padding:11px 12px;
+  cursor:pointer;
+}
+.studentsScreen .compactStudentCard .studentCardTop span{
+  color:var(--color-text-secondary);
+  font-size:12px;
+  font-weight:900;
+}
+.studentsScreen .compactStudentCard button{
+  justify-self:end;
+  min-height:32px;
+  padding:7px 12px;
+}
+.studentsScreen .compactStudentProfile{
+  display:grid;
+  gap:10px;
+}
+.studentsScreen .studentDetailHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.studentsScreen .studentDetailHeader h2{
+  margin:0 0 2px;
+}
+.studentsScreen .studentAdminSummary{
+  margin:3px 0 0;
+  color:var(--color-text-muted);
+  font-size:12px;
+  line-height:1.35;
+}
+.studentsScreen .compactStudentSection{
+  background:var(--color-card-elevated);
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-lg);
+  padding:12px;
+  margin-top:0;
+}
+.studentsScreen .compactStudentSection h3{
+  margin:0;
+}
+.studentsScreen .studentMetricGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.studentsScreen .studentMetricGrid div{
+  display:grid;
+  gap:3px;
+  padding:8px;
+  border-radius:var(--radius-md);
+  background:var(--color-card);
+}
+.studentsScreen .studentMetricGrid b{
+  font-size:12px;
+  color:var(--color-text-muted);
+}
+.studentsScreen .studentMetricGrid span{
+  font-size:14px;
+  font-weight:900;
+  color:var(--color-text);
+}
+.studentsScreen .compactWorkoutRow{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto;
+}
+.studentsScreen .studentActionMenu{
+  position:relative;
+  justify-self:end;
+}
+.studentsScreen .studentActionMenu summary{
+  display:grid;
+  place-items:center;
+  width:38px;
+  height:38px;
+  border-radius:999px;
+  border:1px solid var(--color-border-strong);
+  background:var(--color-card-elevated);
+  box-shadow:0 4px 14px rgba(0,0,0,.10);
+  cursor:pointer;
+  color:var(--color-text);
+  font-size:22px;
+  font-weight:900;
+  line-height:1;
+  list-style:none;
+}
+.studentsScreen .studentActionMenu summary::-webkit-details-marker{display:none}
+.studentsScreen .studentActionMenu:not([open]) div{display:none}
+.studentsScreen .studentActionMenu[open] div{
+  position:absolute;
+  right:0;
+  z-index:4;
+  display:grid;
+  gap:6px;
+  min-width:160px;
+  padding:8px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card);
+  box-shadow:var(--shadow-soft);
+}
+.studentsScreen .studentActionMenu[open] summary,
+.studentsScreen .studentActionMenu summary:hover{
+  border-color:color-mix(in srgb,var(--color-primary) 45%,var(--color-border-strong));
+  background:color-mix(in srgb,var(--color-primary) 10%,var(--color-card-elevated));
+}
+.studentsScreen .studentActionMenu button{
+  width:100%;
+  min-height:32px;
+  justify-content:flex-start;
+}
+.workoutsScreen .studentSortRow{
+  display:flex;
+  justify-content:flex-end;
+  margin:4px 0 8px;
+}
+.workoutsScreen .studentSortRow label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:var(--color-text-secondary);
+  font-size:13px;
+  font-weight:800;
+}
+.workoutsScreen .studentSortRow select{
+  min-height:34px;
+  padding:7px 10px;
+}
+.workoutsScreen .archiveFilterRow{
+  margin:4px 0 8px;
+}
+.workoutsScreen .compactWorkoutSearch{
+  padding:0;
+  margin:6px 0 4px;
+  background:transparent;
+  border:0;
+  box-shadow:none;
+}
+.workoutsScreen .workoutModelsList{
+  display:grid;
+  gap:7px;
+  padding:0;
+  margin:6px 0;
+  background:transparent;
+  border:0;
+  box-shadow:none;
+}
+.workoutsScreen .workoutListCard{
+  position:relative;
+  overflow:visible;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:stretch;
+  min-height:0;
+  padding:10px 11px;
+  border-radius:var(--radius-md);
+  z-index:1;
+}
+.workoutsScreen .workoutListCard.actionMenuOpen{
+  z-index:30;
+}
+.workoutsScreen .workoutListCard strong{
+  font-size:15px;
+  line-height:1.18;
+}
+.workoutsScreen .workoutListCard small{
+  display:block;
+  margin-top:2px;
+  line-height:1.25;
+}
+.workoutsScreen .workoutListCard .managerActions{
+  max-width:none;
+  align-self:end;
+  justify-self:end;
+  display:flex;
+  flex-wrap:nowrap;
+  align-items:center;
+  gap:7px;
+}
+.workoutsScreen .workoutListCard .studentActionMenu{
+  position:relative;
+  top:auto;
+  right:auto;
+}
+.workoutsScreen .workoutListCard .managerActions .studentActionMenu{display:block}
+.workoutsScreen .workoutListCard .managerActions > button{margin-top:0}
+.workoutsScreen .workoutListCard .managerActions > button{
+  min-height:38px;
+  padding:0 14px;
+}
+.workoutsScreen .studentActionMenu{
+  position:relative;
+  justify-self:end;
+}
+.workoutsScreen .studentActionMenu summary{
+  display:grid;
+  place-items:center;
+  width:38px;
+  height:38px;
+  border-radius:var(--radius-sm);
+  border:1px solid var(--color-border-strong);
+  background:var(--color-card-elevated);
+  color:var(--color-text);
+  box-shadow:0 4px 14px rgba(0,0,0,.10);
+  font-size:22px;
+  font-weight:900;
+  line-height:1;
+  cursor:pointer;
+}
+.workoutsScreen .studentActionMenu summary::-webkit-details-marker{display:none}
+.workoutsScreen .studentActionMenu:not([open]) div{display:none}
+.workoutsScreen .studentActionMenu[open] div{
+  position:absolute;
+  right:0;
+  z-index:4;
+  display:grid;
+  gap:4px;
+  min-width:150px;
+  padding:6px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+  box-shadow:var(--shadow-lg);
+}
+.workoutsScreen .studentActionMenu[open] summary,
+.workoutsScreen .studentActionMenu summary:hover{
+  border-color:color-mix(in srgb,var(--color-primary) 45%,var(--color-border-strong));
+  background:color-mix(in srgb,var(--color-primary) 10%,var(--color-card-elevated));
+}
+.workoutsScreen .studentActionMenu button{
+  width:100%;
+  min-height:32px;
+  justify-content:flex-start;
+}
+.studentActionMenu.actionMenu{
+  position:relative;
+  justify-self:end;
+}
+.studentActionMenu.actionMenu .actionMenuTrigger{
+  display:grid;
+  place-items:center;
+  width:38px;
+  min-width:38px;
+  height:38px;
+  min-height:38px;
+  padding:0;
+  border-radius:var(--radius-sm);
+  border:1px solid var(--color-border-strong);
+  background:var(--color-card-elevated);
+  color:var(--color-text);
+  box-shadow:0 4px 14px rgba(0,0,0,.10);
+  font-size:22px;
+  font-weight:900;
+  line-height:1;
+}
+.studentActionMenu.actionMenu.open .actionMenuTrigger,
+.studentActionMenu.actionMenu .actionMenuTrigger:hover{
+  border-color:color-mix(in srgb,var(--color-primary) 45%,var(--color-border-strong));
+  background:color-mix(in srgb,var(--color-primary) 10%,var(--color-card-elevated));
+}
+.studentActionMenu.actionMenu .actionMenuPanel{
+  position:absolute;
+  right:0;
+  z-index:40;
+  display:grid !important;
+  gap:5px;
+  min-width:160px;
+  padding:7px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+  box-shadow:var(--shadow-lg);
+}
+.studentActionMenu.actionMenu .actionMenuPanel button{
+  width:100%;
+  min-height:32px;
+  justify-content:flex-start;
+}
+.fixedActionMenuPanel{
+  position:fixed;
+  z-index:9999;
+  display:grid !important;
+  gap:5px;
+  padding:7px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+  box-shadow:var(--shadow-lg);
+}
+.fixedActionMenuPanel button{
+  width:100%;
+  min-height:32px;
+  justify-content:flex-start;
+}
+.workoutsScreen .workoutDetailScreen{
+  display:grid;
+  gap:10px;
+}
+.workoutsScreen .workoutDetailHeader{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  margin:2px 0 0;
+}
+.workoutsScreen .workoutInfoCard,
+.workoutsScreen .workoutExercisesSection{
+  display:grid;
+  gap:10px;
+  padding:12px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card);
+  box-shadow:var(--shadow-soft);
+}
+.workoutsScreen .workoutInfoGrid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+}
+.workoutsScreen .workoutInfoGrid div{
+  display:grid;
+  gap:3px;
+  min-width:0;
+  padding:9px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-sm);
+  background:var(--color-card-elevated);
+}
+.workoutsScreen .workoutInfoGrid b{
+  color:var(--color-text-secondary);
+  font-size:11px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.45px;
+}
+.workoutsScreen .workoutInfoGrid span{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:var(--color-text);
+  font-size:14px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.workoutsScreen .workoutExercisesSection .sectionHeaderRow h3{
+  margin:0;
+}
+.workoutsScreen .workoutExercisesSection .sectionHeaderRow button{
+  min-height:38px;
+  padding:0 12px;
+}
+.workoutsScreen .workoutExerciseList{
+  display:grid;
+  gap:7px;
+}
+.workoutsScreen .workoutExerciseCard{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  padding:10px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+  cursor:pointer;
+}
+.workoutsScreen .workoutExerciseCard:hover{
+  border-color:color-mix(in srgb,var(--color-primary) 35%,var(--color-border-strong));
+}
+.workoutsScreen .workoutExerciseCard b{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:var(--color-text);
+  font-size:15px;
+  line-height:1.2;
+  white-space:nowrap;
+}
+.workoutsScreen .workoutExerciseCard span,
+.workoutsScreen .workoutExerciseCard small{
+  display:block;
+  margin-top:2px;
+  color:var(--color-text-secondary);
+  font-size:13px;
+  font-weight:800;
+  line-height:1.25;
+}
+.workoutsScreen .workoutExerciseCard small{
+  color:var(--color-primary);
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.35px;
+}
+.workoutsScreen .exerciseEditActions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:5px;
+  flex-wrap:wrap;
+}
+.workoutsScreen .editorSubsection{
+  display:grid;
+  gap:10px;
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid var(--color-border);
+}
+.workoutsScreen .editorSubsection h3{
+  margin:0;
+}
+.workoutsScreen .workoutExerciseEditScreen{
+  gap:10px;
+  padding:12px;
+}
+.workoutsScreen .workoutExerciseEditScreen h3{
+  margin:0;
+  color:var(--color-text-secondary);
+  font-size:16px;
+}
+.workoutsScreen .exerciseGroup .workoutExerciseList{
+  margin-top:2px;
+}
+.workoutsScreen .workoutEditorFinalActions{
+  margin:12px 0 4px;
+  padding-top:10px;
+  border-top:1px solid var(--color-border);
+}
+.workoutsScreen .workoutEditorFinalActions button{
+  width:100%;
+}
+.studentsScreen .dualActions{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.studentsScreen .dualActions button{
+  width:100%;
+}
+.clickableRecord{
+  width:100%;
+  text-align:left;
+  border:1px solid var(--color-border);
+  background:var(--color-card);
+  color:var(--color-text);
+}
+.clickableRecord:hover{
+  background:var(--color-card-elevated);
+  border-color:var(--color-border-strong);
+}
+.studentsScreen .inviteResult{
+  display:grid;
+  gap:10px;
+  padding:10px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+}
+.studentsScreen .inviteResult .recordLine span{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.activityDot{
+  width:10px;
+  height:10px;
+  border-radius:999px;
+  background:var(--color-text-muted);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--color-text-muted) 14%,transparent);
+}
+.activityDot.active{
+  background:var(--color-success);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--color-success) 18%,transparent);
+}
+.studentProfileHead,
+.detailHeader{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  margin-bottom:12px;
+}
+.detailHeader h2,.detailHeader p{margin:0}
+.detailHeader .backButton{white-space:nowrap}
+.studentSection{display:grid;gap:8px;border-top:1px solid var(--color-border);padding-top:12px;margin-top:4px}
+.studentActions{grid-template-columns:repeat(3,minmax(0,1fr))}
+.bodyToggleButton{width:max-content}
+.bodyRecordForm{padding:12px;background:var(--color-card-elevated);border:1px solid var(--color-border);border-radius:var(--radius-lg)}
+.bodyDetailRecord{align-items:flex-start}
+.bodyDetailRecord > div{display:grid;gap:4px;min-width:0}
+.bodyDetailRecord em{display:block;color:var(--color-text-muted);font-style:normal;font-size:12px;line-height:1.35}
+.bodyRecord{align-items:flex-start}
+.bodyRecord small{display:block;margin-top:4px}
+.skinfoldBox{display:grid;gap:10px;padding-top:12px;border-top:1px solid var(--color-border)}
+.bfPreview{margin:0;color:var(--color-text-muted);font-size:13px;line-height:1.4}
+
+.repTargetsPanel{display:grid;gap:10px}
+.repTargetsPanel:not(.open){margin-bottom:0}
+.repTargetsToggle{margin-top:4px}
+.repWarning{color:var(--color-warning);font-size:12px;margin:0}
+.dropSetLine{align-items:start}
+
+.modal{
+  position:fixed;
+  inset:0;
+  z-index:80;
+  display:flex;
+  align-items:end;
+  justify-content:center;
+  background:var(--color-overlay);
+  padding:16px 16px 0;
+}
+.modalCard{
+  width:100%;
+  max-width:640px;
+  max-height:82vh;
+  overflow:auto;
+  border-radius:var(--radius-xl) var(--radius-xl) 0 0;
+  padding:18px;
+  position:relative;
+}
+.close{position:absolute;right:12px;top:12px;width:40px;min-width:40px;padding:8px}
+
+.nav{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:40;
+  max-width:600px;
+  margin:0 auto;
+  display:flex;
+  justify-content:center;
+  gap:3px;
+  padding:8px 12px calc(8px + env(safe-area-inset-bottom));
+  min-height:78px;
+  background:color-mix(in srgb,var(--color-surface) 94%,transparent);
+  border:1px solid var(--color-border);
+  border-bottom:0;
+  border-radius:18px 18px 0 0;
+  box-shadow:0 -10px 26px rgba(0,0,0,.18);
+  backdrop-filter:blur(14px);
+}
+.nav button{
+  flex:1;
+  min-width:0;
+  min-height:58px;
+  padding:7px 4px;
+  border-radius:14px;
+  border-color:transparent;
+  background:transparent;
+  color:var(--color-text-muted);
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  font-size:11px;
+  font-weight:900;
+  line-height:1.05;
+  white-space:nowrap;
+}
+.nav button:hover{background:var(--color-card-elevated);border-color:var(--color-border)}
+.nav button svg{width:20px;height:20px}
+
+@media(max-width:520px){
+  :root{--header-height:66px;--nav-height:84px;--active-session-offset:calc(var(--header-height) + env(safe-area-inset-top) + 8px)}
+  .app{padding-left:12px;padding-right:12px}
+  .top{margin-left:-12px;margin-right:-12px;padding-left:12px;padding-right:12px}
+  .grid2,
+  .quickActions,
+  .createActions,
+  .actions,
+  .finishActions,
+  .accountActions,
+  .accountTypeActions,
+  .segmentedControl,
+  .formGrid,
+  .fields,
+  .fields.simplified,
+  .inlineEditGrid,
+  .realHistoryMeta,
+  .summaryGrid,
+  .repTargetsGrid,
+  .exerciseFilterGrid,
+  .workoutEditorActions,
+  .studentActions{
+    grid-template-columns:1fr;
+  }
+  .pageTitleRow{align-items:stretch;flex-direction:column}
+  .titleActions{display:grid;grid-template-columns:1fr;width:100%}
+  .coachPanel{align-items:flex-start;flex-direction:column}
+  .coachPanel span{white-space:normal}
+  .card{min-height:auto}
+  .libraryCard.rich,
+  .editablePreview,
+  .studentProfileHead,
+  .detailHeader{
+    grid-template-columns:1fr;
+  }
+  .managerActions,.previewActions{justify-content:flex-end;flex-wrap:wrap}
+  .bodyToggleButton{width:100%}
+  .sessionCard{align-items:flex-start}
+  .activeSessionControl{align-items:stretch;flex-direction:column}
+  .sessionTimerGrid{grid-template-columns:minmax(0,1fr) 78px auto}
+  .setLine{
+    grid-template-columns:40px minmax(0,1fr) minmax(0,1fr) 42px;
+    gap:7px;
+  }
+  .setLine span{grid-column:2/4}
+  .setLine .danger.iconBtn{grid-column:4}
+  .setLine input:nth-of-type(1){grid-column:1/3}
+  .setLine input:nth-of-type(2){grid-column:3/5}
+  .dropRows{grid-column:1/-1}
+  .dropRow{grid-template-columns:1fr 1fr}
+  .dropRow b,.dropRow small{grid-column:1/-1}
+  .performedHead{display:grid}
+  .modal{padding-left:10px;padding-right:10px}
+  .nav button{font-size:9px;padding-left:2px;padding-right:2px}
+}
+
+@media(max-width:420px){
+  .top{grid-template-columns:minmax(0,1fr) 132px;gap:6px}
+  .internalMode .top{grid-template-columns:auto minmax(0,1fr) auto}
+  .brandIdentity{gap:5px}
+  .brandIdentity strong{font-size:11px;line-height:1.05}
+  .brandBlock p{font-size:12px}
+  .headerLogo{width:38px;min-width:38px;max-width:none;height:38px}
+  .compactModeSwitch{width:132px;min-width:132px;height:44px}
+  .compactModeSwitch button{height:34px;min-height:34px;padding:0 5px;font-size:10.5px}
+  .internalModeSwitch{width:112px;min-width:112px}
+  .internalModeSwitch button{font-size:9.5px}
+  .authCard{padding:18px}
+  .loginLogo{width:min(220px,86%)}
+  .timerCard{grid-template-columns:1fr auto auto}
+  .timerCard .ghost{display:none}
+  .timerDisplay strong{font-size:27px}
+  .workoutHead h2{font-size:24px}
+  .nav button svg{width:19px;height:19px}
+}
+
+/* Etapa 5A - professional mobile-first refinements */
+.brandIdentity strong{font-size:15px}
+.headerLogo{width:40px;min-width:40px;height:40px}
+.brandBlock p{font-size:12px}
+.compactModeSwitch{
+  width:140px;
+  min-width:140px;
+  height:38px;
+  border-radius:999px;
+}
+.compactModeSwitch button{
+  min-height:30px;
+  height:30px;
+  font-size:11px;
+  border-radius:999px;
+}
+
+.pageIntro{
+  display:grid;
+  gap:4px;
+  margin:6px 0 14px;
+}
+.pageIntro span,
+.todayGreeting span,
+.sectionHeaderRow small{
+  color:var(--color-primary);
+  font-size:11px;
+  font-weight:950;
+  letter-spacing:.7px;
+  text-transform:uppercase;
+}
+.pageIntro h2,
+.todayGreeting h2{
+  margin:0;
+  font-size:32px;
+  line-height:1.02;
+}
+.pageIntro h2.pageTitle,
+.todayGreeting h2.pageTitle{
+  font-size:24px;
+  font-weight:950;
+  line-height:1.08;
+}
+.pageIntro p,
+.todayGreeting p{
+  margin:0;
+  color:var(--color-text-muted);
+  line-height:1.4;
+}
+.compactIntro{margin:0}
+
+.athleteDashboardTitleRow{
+  margin:4px 0 8px;
+}
+.athleteDashboardGrid{
+  display:grid;
+  gap:10px;
+}
+.inviteActionCard{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+}
+.inviteActionCard small,
+.dashboardCardHeader small,
+.dashboardCompactHeader small,
+.inviteModalCard small{
+  color:var(--color-primary);
+  font-size:11px;
+  font-weight:950;
+  letter-spacing:.6px;
+  text-transform:uppercase;
+}
+.inviteActionCard b,
+.dashboardCompactBody b{
+  display:block;
+  font-size:16px;
+  line-height:1.2;
+}
+.inviteActionCard button{
+  min-width:104px;
+}
+.dashboardPrimaryCard{
+  display:grid;
+  gap:14px;
+  padding:16px;
+  border:1px solid color-mix(in srgb,var(--color-primary) 24%,var(--color-border));
+  border-radius:var(--radius-xl);
+  background:
+    linear-gradient(180deg,color-mix(in srgb,var(--color-primary) 10%,var(--color-card)),var(--color-card) 52%),
+    var(--color-card);
+  box-shadow:var(--shadow-card);
+}
+.dashboardPrimaryBody h3{
+  margin:2px 0 0;
+  font-size:24px;
+  line-height:1.08;
+}
+.dashboardMetaRow{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:10px;
+}
+.dashboardMetaRow span{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  padding:0 10px;
+  border-radius:999px;
+  background:var(--color-card-elevated);
+  border:1px solid var(--color-border);
+  color:var(--color-text-secondary);
+  font-size:12px;
+  font-weight:850;
+}
+.dashboardPrimaryAction{
+  width:100%;
+  min-height:50px;
+  box-shadow:0 10px 24px color-mix(in srgb,var(--color-primary) 22%,transparent);
+}
+.dashboardCompactCard{
+  display:grid;
+  gap:10px;
+  padding:14px;
+  margin:0;
+}
+.dashboardCompactButton{
+  width:100%;
+  text-align:left;
+  background:var(--color-card);
+}
+.dashboardCompactButton:disabled{
+  opacity:1;
+}
+.mode-atleta .dashboardCompactButton,
+.mode-atleta .dashboardCompactButton .dashboardCompactHeader,
+.mode-atleta .dashboardCompactButton .dashboardCompactBody{
+  justify-items:start;
+  text-align:left;
+}
+.dashboardCompactBody{
+  display:grid;
+  gap:4px;
+}
+.dashboardCompactBody span{
+  color:var(--color-text-secondary);
+  font-weight:800;
+}
+.athleteMonthlyCalendar{
+  margin:0;
+}
+.calendarHeaderRow{
+  display:grid;
+  grid-template-columns:40px minmax(0,1fr) 40px;
+  align-items:center;
+  gap:10px;
+}
+.calendarHeaderRow h3{
+  margin:0;
+  text-align:center;
+  font-size:18px;
+}
+.calendarWeekdays{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:7px;
+  margin-top:12px;
+}
+.calendarWeekdays span{
+  text-align:center;
+  color:var(--color-text-muted);
+  font-size:11px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+.athleteCalendarGrid{
+  margin-top:8px;
+}
+.day{
+  padding:0;
+}
+.day.today{
+  border-color:color-mix(in srgb,var(--color-primary) 62%,var(--color-border));
+  color:var(--color-text);
+}
+.day.today.trained{
+  border-color:var(--color-complete);
+}
+.day.dayBlank{
+  border-color:transparent;
+  background:transparent;
+}
+.day:disabled{
+  cursor:default;
+}
+.inviteModalCard{
+  display:grid;
+  gap:12px;
+}
+.inviteModalCard h2{
+  margin:0;
+  font-size:24px;
+  line-height:1.12;
+}
+
+.todayHero{
+  display:grid;
+  gap:14px;
+  padding:4px 0 2px;
+}
+.nextWorkoutCard{
+  display:grid;
+  gap:14px;
+  padding:18px;
+  border:1px solid color-mix(in srgb,var(--color-primary) 28%,var(--color-border));
+  border-radius:var(--radius-xl);
+  background:
+    linear-gradient(135deg,color-mix(in srgb,var(--color-primary) 18%,var(--color-card)),var(--color-card) 62%),
+    var(--color-card);
+  box-shadow:var(--shadow-card);
+}
+.nextWorkoutCard small{
+  display:block;
+  color:var(--color-text-muted);
+  font-size:12px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+}
+.nextWorkoutCard h3{
+  margin:5px 0 4px;
+  font-size:25px;
+  line-height:1.1;
+}
+.nextWorkoutCard p{margin:0;color:var(--color-text-secondary)}
+.nextWorkoutCard button{width:100%;min-height:52px}
+
+.statStrip{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin:14px 0;
+}
+.statStrip .card{
+  min-height:96px;
+  margin:0;
+  box-shadow:none;
+}
+.card p{
+  margin-bottom:4px;
+  font-size:12px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.45px;
+}
+.card h3{
+  font-size:22px;
+  line-height:1.12;
+  overflow-wrap:anywhere;
+}
+
+.sectionHeaderRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.sectionHeaderRow h3{margin:3px 0 0}
+
+.hero,
+.card,
+.chartCard,
+.formCard,
+.exerciseGroup,
+.sessionCard,
+.libraryCard,
+.studentCard,
+.coachPanel,
+.sessionControl{
+  border-radius:var(--radius-lg);
+}
+
+.activeWorkoutHero{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+  padding:16px;
+  margin:4px 0 12px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-xl);
+  background:var(--color-card);
+  box-shadow:var(--shadow-soft);
+}
+.activeWorkoutHero small{
+  color:var(--color-primary);
+  font-weight:950;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.6px;
+}
+.activeWorkoutHero h2{
+  margin:4px 0;
+  font-size:28px;
+  line-height:1.08;
+}
+.activeWorkoutHero p{margin:0;color:var(--color-text-muted)}
+.activeWorkoutHero strong{
+  display:grid;
+  place-items:center;
+  width:58px;
+  height:58px;
+  border-radius:50%;
+  background:color-mix(in srgb,var(--color-primary) 16%,var(--color-card-elevated));
+  border:1px solid color-mix(in srgb,var(--color-primary) 44%,var(--color-border));
+  color:var(--color-text);
+}
+.focusWorkout .exerciseGroup{
+  padding:0;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+}
+.focusWorkout .exerciseGroup.conjugado{
+  padding:12px;
+  border:1px solid color-mix(in srgb,var(--color-info) 38%,var(--color-border));
+  border-radius:var(--radius-xl);
+  background:var(--color-card);
+  box-shadow:var(--shadow-soft);
+}
+.focusWorkout .exerciseGroup.conjugado .exercise{
+  margin:0;
+  padding:12px 0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+}
+.focusWorkout .exerciseGroup.conjugado .exercise + .exercise{
+  border-top:1px solid var(--color-border);
+}
+.dropCheck{
+  display:grid;
+  place-items:center;
+  min-width:38px;
+  min-height:38px;
+  padding:0;
+}
+.dropCheck.on{color:var(--color-success);border-color:var(--color-success);background:color-mix(in srgb,var(--color-success) 12%,var(--color-card))}
+.focusWorkout .exercise{
+  margin:8px 0;
+  padding:10px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-xl);
+  background:var(--color-card);
+  box-shadow:var(--shadow-soft);
+}
+.focusWorkout .exContent h3{font-size:18px;line-height:1.2}
+.focusWorkout .exerciseGroup.conjugado .exContent h3{font-size:18px;font-weight:inherit;line-height:1.2;text-align:left}
+.focusWorkout .lastExecution,
+.focusWorkout .inlineField{display:none}
+.focusWorkout .activeWorkoutHero{
+  padding:12px 14px;
+  margin:2px 0 7px;
+  border-radius:var(--radius-lg);
+  box-shadow:none;
+}
+.focusWorkout .activeWorkoutHero h2{font-size:20px}
+.focusWorkout .workoutExecutionTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.focusWorkout .workoutExecutionTitle h2{min-width:0;margin:0;overflow-wrap:anywhere}
+.focusWorkout .workoutExecutionTitle span{flex:0 0 auto;color:var(--color-text-muted);font-size:13px;font-weight:900}
+.focusWorkout .progressPill{height:5px;margin:0 0 8px}
+.focusWorkout .progressPill span{display:none}
+.sessionWorkoutNote{
+  margin:0 0 8px;
+  padding:7px 10px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+}
+.sessionWorkoutNote p{display:-webkit-box;margin:0;color:var(--color-text-secondary);font-size:12px;line-height:1.35;white-space:pre-wrap;overflow:hidden;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+.sessionWorkoutNote.expanded p{-webkit-line-clamp:unset}
+.sessionWorkoutNote button{min-height:26px;margin-top:3px;padding:0 4px;font-size:11px}
+.focusWorkout .activeSessionControl{
+  padding:7px 10px;
+  margin:0 0 9px;
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+  box-shadow:none;
+}
+.focusWorkout .sessionTimerGrid{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;
+  gap:8px;
+  align-items:center;
+}
+.focusWorkout .sessionTimerGrid > span{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  color:var(--color-text-muted);
+  font-size:12px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.focusWorkout .sessionTimerGrid b,
+.focusWorkout .sessionTimerGrid > span button{
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--color-text);
+  font:inherit;
+  font-weight:950;
+}
+.focusWorkout .timerActions{gap:4px}
+.focusWorkout .timerActions .iconBtn{min-height:30px;min-width:30px;padding:0}
+.sessionExerciseNav{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin:7px 0;
+  padding:9px 11px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card);
+  color:var(--color-text);
+  text-align:left;
+}
+.sessionExerciseNav div{min-width:0}
+.sessionExerciseNav b,.sessionExerciseNav small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sessionExerciseNav b{font-size:14px}
+.sessionExerciseNav small{margin-top:2px;color:var(--color-text-muted);font-size:12px}
+.sessionExerciseNav > span{color:var(--color-text-muted);font-size:11px;font-weight:850;white-space:nowrap}
+.sessionExerciseNav.done{border-color:color-mix(in srgb,var(--color-success) 42%,var(--color-border));background:color-mix(in srgb,var(--color-success) 7%,var(--color-card))}
+.sessionExerciseNav.done > span{color:var(--color-success)}
+.evolutionSection{display:grid;gap:9px;margin:12px 0}
+.evolutionSection h3{margin:0;font-size:16px}
+.evolutionPeriodControl,.evolutionMetricControl{margin:0 0 10px}
+.evolutionSummary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.evolutionSummary .card{padding:10px;box-shadow:none}
+.evolutionSummary .card h3{font-size:16px}
+.evolutionSummary .card p,.evolutionSummary .card small{font-size:10px}
+.evolutionMetricValue{margin:3px 0 0;font-size:20px;font-weight:950}
+.evolutionMetricValue small{font-size:12px;color:var(--color-text-secondary)}
+.evolutionHistoryCard{width:100%;display:block;text-align:left;color:var(--color-text);background:var(--color-card)}
+.evolutionSessionTotals{margin:7px 0 12px;color:var(--color-text-secondary);font-weight:800;line-height:1.45}
+.evolutionSessionDetail .performedDetail{display:block;margin:7px 0;padding:9px}
+.evolutionSessionDetail .performedDetail summary{cursor:pointer;font-weight:900;color:var(--color-text)}
+.evolutionSessionDetail .performedDetail[open] summary{margin-bottom:7px}
+.activeSessionControl{
+  top:calc(66px + env(safe-area-inset-top));
+  border-color:color-mix(in srgb,var(--color-primary) 28%,var(--color-border));
+}
+.setLine input,
+.dropRow input{
+  min-height:42px;
+  font-size:16px;
+  font-weight:850;
+  text-align:center;
+}
+.setCheck{
+  min-height:42px;
+  border-radius:14px;
+}
+.setActions button{min-height:42px}
+.subtleBack{
+  min-height:36px;
+  width:max-content;
+  border-radius:999px;
+  margin-bottom:6px;
+}
+.internalMode main > .backButton,
+.internalMode .detailHeader .backButton,
+.internalMode #assign-workout > .backButton{
+  display:none;
+}
+
+.workoutListCard{
+  align-items:center;
+  min-height:96px;
+  border-radius:var(--radius-xl);
+}
+.workoutListCard strong{
+  font-size:18px;
+  line-height:1.2;
+}
+.workoutListCard small,
+.workoutListCard p{
+  line-height:1.35;
+}
+.workoutListCard .managerActions{
+  max-width:190px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+.profileModeSwitch{
+  width:100%;
+  border-radius:999px;
+}
+.profileModeSwitch button{border-radius:999px}
+
+.nav .on{
+  background:color-mix(in srgb,var(--color-primary) 14%,var(--color-card));
+  border-color:color-mix(in srgb,var(--color-primary) 44%,var(--color-border));
+  color:var(--color-text);
+}
+.nav .on svg{color:var(--color-primary)}
+
+@media(max-width:520px){
+  .app{padding-left:14px;padding-right:14px}
+  .top{margin-left:-14px;margin-right:-14px;padding-left:14px;padding-right:14px}
+  .pageIntro h2,.todayGreeting h2{font-size:30px}
+  .pageIntro h2.pageTitle,.todayGreeting h2.pageTitle{font-size:24px}
+  .nextWorkoutCard h3{font-size:23px}
+  .statStrip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .workoutListCard{
+    display:grid;
+    grid-template-columns:1fr;
+    align-items:start;
+  }
+  .workoutListCard .managerActions{
+    max-width:none;
+    width:100%;
+    justify-content:flex-start;
+  }
+  .focusWorkout .sessionTimerGrid{gap:5px}
+  .focusWorkout .sessionTimerGrid > span{font-size:11px;gap:3px}
+}
+
+@media(max-width:420px){
+  .top{grid-template-columns:minmax(0,1fr) 124px}
+  .internalMode .top{grid-template-columns:auto minmax(0,1fr) auto}
+  .headerLogo{width:34px;min-width:34px;height:34px}
+  .compactModeSwitch{width:124px;min-width:124px}
+  .compactModeSwitch button{font-size:10px}
+  .internalModeSwitch{width:112px;min-width:112px}
+  .internalModeSwitch button{font-size:9.5px}
+  .statStrip{gap:8px}
+  .statStrip .card{padding:12px}
+  .card h3{font-size:19px}
+  .activeWorkoutHero h2{font-size:24px}
+}
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:calc(var(--nav-height) + 18px + env(safe-area-inset-bottom));
+  z-index:60;
+  width:min(520px,calc(100% - 28px));
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 14px;
+  border:1px solid color-mix(in srgb,var(--color-success) 42%,var(--color-border));
+  border-radius:var(--radius-lg);
+  background:color-mix(in srgb,var(--color-success) 14%,var(--color-surface));
+  color:var(--color-text);
+  box-shadow:var(--shadow-card);
+  font-weight:850;
+  animation:toastIn .2s ease both;
+}
+.internalMode .toast{
+  bottom:calc(18px + env(safe-area-inset-bottom));
+}
+.toast.info{
+  border-color:color-mix(in srgb,var(--color-primary) 45%,var(--color-border));
+  background:color-mix(in srgb,var(--color-primary) 14%,var(--color-surface));
+}
+.toast svg{color:var(--color-success)}
+.toast.info svg{color:var(--color-primary)}
+
+.app main > section,
+.app main > .list,
+.app main > .pageTitleRow,
+.app main > h2,
+.exerciseGroup,
+.sessionCard,
+.libraryCard,
+.studentCard{
+  animation:contentRise .22s ease both;
+}
+
+.card,
+.chartCard,
+.formCard,
+.sessionCard,
+.libraryCard,
+.studentCard,
+.workoutListCard,
+.nextWorkoutCard{
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease,background .16s ease;
+}
+.card:hover,
+.chartCard:hover,
+.formCard:hover{
+  border-color:color-mix(in srgb,var(--color-primary) 18%,var(--color-border));
+}
+
+.focusWorkout .exercise.currentExercise{
+  border-color:color-mix(in srgb,var(--color-primary) 58%,var(--color-border));
+  background:
+    linear-gradient(135deg,color-mix(in srgb,var(--color-primary) 10%,transparent),transparent 46%),
+    var(--color-card);
+  box-shadow:0 14px 34px color-mix(in srgb,var(--color-primary) 16%,transparent);
+}
+.focusWorkout .exercise:not(.currentExercise):not(.done){
+  opacity:.74;
+  box-shadow:none;
+}
+.focusWorkout .exercise:not(.currentExercise):not(.done) .lastExecution{
+  display:none;
+}
+.focusWorkout .exercise.done{
+  border-color:color-mix(in srgb,var(--color-success) 55%,var(--color-border));
+  background:
+    linear-gradient(135deg,color-mix(in srgb,var(--color-success) 12%,transparent),transparent 50%),
+    var(--color-card);
+  opacity:.66;
+  box-shadow:none;
+}
+.setLine{
+  padding:8px;
+  border-radius:var(--radius-md);
+  transition:background .16s ease,border-color .16s ease,transform .16s ease;
+}
+.setLine.setDone{
+  background:color-mix(in srgb,var(--color-success) 10%,var(--color-card-elevated));
+  outline:1px solid color-mix(in srgb,var(--color-success) 38%,var(--color-border));
+}
+.setLine.currentSet{
+  background:color-mix(in srgb,var(--color-primary) 8%,var(--color-card-elevated));
+  outline:1px solid color-mix(in srgb,var(--color-primary) 32%,var(--color-border));
+}
+.dropRow.dropDone{
+  border-color:color-mix(in srgb,var(--color-success) 38%,var(--color-border));
+  background:color-mix(in srgb,var(--color-success) 8%,var(--color-card-elevated));
+}
+.setCheck.on{
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--color-success) 14%,transparent);
+}
+.activeSessionControl{
+  box-shadow:0 14px 34px rgba(0,0,0,.18);
+}
+.timerPill{
+  font-variant-numeric:tabular-nums;
+}
+.startWorkoutShortcut,
+.sessionActions button,
+.nextWorkoutCard button{
+  box-shadow:0 10px 24px color-mix(in srgb,var(--color-primary) 22%,transparent);
+}
+.danger{
+  box-shadow:none;
+}
+
+.mode-atleta .pageTitleRow{
+  margin:2px 0 10px;
+  gap:8px;
+}
+.mode-atleta .inviteActionCard,
+.mode-atleta .dashboardPrimaryCard,
+.mode-atleta .dashboardCompactCard,
+.mode-atleta .athleteMonthlyCalendar{
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-soft);
+}
+.mode-atleta .pageIntro p,
+.mode-atleta .todayGreeting p{
+  font-size:14px;
+  line-height:1.28;
+}
+.mode-atleta .todayHero{
+  gap:10px;
+  padding-top:2px;
+}
+.mode-atleta .nextWorkoutCard{
+  gap:10px;
+  padding:14px;
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-soft);
+}
+.mode-atleta .nextWorkoutCard h3{
+  margin:2px 0;
+  font-size:22px;
+}
+.mode-atleta .nextWorkoutCard button{
+  min-height:46px;
+}
+.mode-atleta .statStrip{
+  gap:8px;
+  margin:10px 0;
+}
+.mode-atleta .statStrip .card,
+.mode-atleta.screen-historico .card{
+  min-height:82px;
+  padding:12px;
+}
+.mode-atleta .card p{
+  margin-bottom:2px;
+  font-size:10.5px;
+}
+.mode-atleta .card h3{
+  font-size:20px;
+}
+.mode-atleta .coachPanel{
+  gap:8px;
+  padding:12px;
+  margin:8px 0 10px;
+  border-radius:var(--radius-md);
+  box-shadow:none;
+}
+.mode-atleta .coachPanel b{
+  font-size:14px;
+}
+.mode-atleta .athleteDashboardGrid{
+  gap:8px;
+}
+.mode-atleta .dashboardPrimaryCard{
+  gap:12px;
+  padding:14px;
+}
+.mode-atleta .dashboardPrimaryBody h3{
+  font-size:22px;
+}
+.mode-atleta .dashboardCompactCard{
+  padding:12px;
+}
+.mode-atleta .calendarHeaderRow h3{
+  font-size:16px;
+}
+.mode-atleta .calendarGrid{
+  gap:6px;
+}
+.mode-atleta .day{
+  font-size:13px;
+}
+.mode-atleta .coachPanel span{
+  font-size:12px;
+  font-weight:900;
+}
+.mode-atleta .workoutListCard{
+  min-height:82px;
+  border-radius:var(--radius-lg);
+}
+.mode-atleta .workoutListCard strong{
+  font-size:17px;
+}
+.mode-atleta .workoutListCard .managerActions button{
+  min-height:40px;
+}
+.athleteWorkoutsScreen .pageTitleRow{
+  margin-bottom:8px;
+}
+.athleteWorkoutsScreen .workoutModelsList{
+  display:grid;
+  gap:8px;
+  padding:0;
+  margin:0;
+  background:transparent;
+  border:0;
+  box-shadow:none;
+}
+.athleteWorkoutRecommendations{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
+  gap:7px;
+  margin:0 0 9px;
+}
+.athleteWorkoutRecommendations button{
+  display:grid;
+  gap:2px;
+  min-width:0;
+  min-height:0;
+  padding:8px 10px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+  color:var(--color-text);
+  text-align:left;
+}
+.athleteWorkoutRecommendations small{color:var(--color-text-muted);font-size:10px;font-weight:850;text-transform:uppercase}
+.athleteWorkoutRecommendations b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.athleteWorkoutsScreen .workoutListCard{
+  min-height:0;
+  padding:12px;
+  border-radius:var(--radius-lg);
+  align-items:center;
+}
+.athleteWorkoutsScreen .workoutListCard:hover{
+  border-color:color-mix(in srgb,var(--color-primary) 40%,var(--color-border));
+}
+.athleteWorkoutsScreen .workoutListCard.isTodayWorkout{
+  background:color-mix(in srgb,var(--color-primary) 8%,var(--color-card));
+  border-color:color-mix(in srgb,var(--color-primary) 34%,var(--color-border));
+}
+.athleteWorkoutsScreen .workoutListCard.isNextWorkout{
+  border-color:color-mix(in srgb,var(--color-info) 28%,var(--color-border));
+}
+.athleteWorkoutsScreen .workoutCardContent{
+  min-width:0;
+}
+.athleteWorkoutsScreen .workoutCardTitle{
+  display:flex;
+  align-items:center;
+  gap:7px;
+}
+.athleteWorkoutsScreen .workoutCardTitle strong{
+  font-size:16px;
+  line-height:1.2;
+}
+.athleteWorkoutsScreen .workoutCardTitle span{
+  flex:0 0 auto;
+  padding:3px 7px;
+  border-radius:999px;
+  background:color-mix(in srgb,var(--color-primary) 14%,var(--color-card-elevated));
+  color:var(--color-text-secondary);
+  font-size:11px;
+  font-weight:850;
+}
+.athleteWorkoutsScreen .isNextWorkout .workoutCardTitle span{
+  background:color-mix(in srgb,var(--color-info) 12%,var(--color-card-elevated));
+}
+.athleteWorkoutsScreen .workoutCardMeta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:2px 9px;
+  margin-top:5px;
+}
+.athleteWorkoutsScreen .workoutCardMeta small{
+  color:var(--color-text-secondary);
+  font-size:12px;
+  line-height:1.35;
+}
+.athleteWorkoutsScreen .managerActions{
+  flex:0 0 auto;
+  max-width:none;
+}
+.athleteWorkoutsScreen .managerActions button{
+  min-height:36px;
+  padding:0 11px;
+}
+.athleteWorkoutsScreen .emptyState.slim{
+  padding:18px 14px;
+}
+@media(max-width:520px){
+  .athleteWorkoutsScreen .workoutListCard{
+    display:flex;
+    gap:10px;
+  }
+  .athleteWorkoutsScreen .workoutCardTitle{
+    align-items:flex-start;
+  }
+  .athleteWorkoutsScreen .workoutCardTitle span{
+    margin-top:1px;
+  }
+  .athleteWorkoutsScreen .managerActions{
+    width:auto;
+  }
+}
+.mode-atleta .workoutDetailScreen{
+  display:grid;
+  gap:10px;
+}
+.mode-atleta .workoutDetailHeader h2{
+  margin:0;
+  font-size:22px;
+}
+.mode-atleta .workoutCoachLine{
+  display:block;
+  margin-top:4px;
+  color:var(--color-text-secondary);
+  font-size:13px;
+  font-weight:750;
+}
+.mode-atleta .workoutInfoCard{
+  padding:12px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card);
+  box-shadow:none;
+}
+.mode-atleta .workoutInfoGrid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+}
+.mode-atleta .workoutInfoGrid div{
+  display:grid;
+  gap:3px;
+  min-width:0;
+}
+.mode-atleta .workoutInfoGrid b{
+  color:var(--color-text-muted);
+  font-size:10.5px;
+  text-transform:uppercase;
+  letter-spacing:.45px;
+}
+.mode-atleta .workoutInfoGrid span{
+  color:var(--color-text);
+  font-size:14px;
+  font-weight:900;
+  overflow-wrap:anywhere;
+}
+.mode-atleta .workoutNotesCard{
+  padding:11px 12px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card);
+}
+.mode-atleta .workoutNotesCard b{
+  display:block;
+  color:var(--color-text-secondary);
+  font-size:12px;
+}
+.mode-atleta .workoutNotesCard p{
+  margin:5px 0 0;
+  color:var(--color-text-secondary);
+  font-size:13px;
+  line-height:1.4;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+.mode-atleta .workoutDetailPrimaryAction{
+  width:100%;
+  min-height:46px;
+}
+.mode-atleta .workoutExercisesSection{
+  display:grid;
+  gap:8px;
+}
+.mode-atleta .workoutExercisesSection .sectionHeaderRow h3{
+  margin:0;
+  font-size:16px;
+}
+.mode-atleta .workoutExerciseList{
+  display:grid;
+  gap:8px;
+}
+.mode-atleta .workoutExerciseCard{
+  min-height:52px;
+  padding:10px 12px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card);
+}
+.mode-atleta .workoutExerciseCard b,
+.mode-atleta .workoutExerciseCard span,
+.mode-atleta .workoutExerciseCard small{
+  display:block;
+}
+.mode-atleta .workoutExerciseCard b{
+  font-size:15px;
+  line-height:1.2;
+}
+.mode-atleta .workoutExerciseCard span,
+.mode-atleta .workoutExerciseCard small{
+  margin-top:3px;
+  color:var(--color-text-muted);
+  font-size:12px;
+  font-weight:800;
+}
+.mode-atleta .workoutExerciseNotes{
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  font-weight:650;
+}
+.mode-atleta .activeWorkoutHero{
+  padding:13px;
+  margin-bottom:10px;
+  border-radius:var(--radius-lg);
+  box-shadow:none;
+}
+.mode-atleta .activeWorkoutHero h2{
+  font-size:23px;
+}
+.mode-atleta .activeWorkoutHero strong{
+  width:50px;
+  height:50px;
+}
+.mode-atleta .progressPill{
+  height:5px;
+  margin-bottom:8px;
+}
+.mode-atleta .activeSessionControl{
+  padding:10px 12px;
+  margin:8px 0 10px;
+  border-radius:var(--radius-md);
+}
+.mode-atleta .sessionTimerGrid{
+  grid-template-columns:minmax(0,1fr) auto auto;
+}
+.mode-atleta .timerPill{
+  min-height:28px;
+  padding:5px 9px;
+}
+.mode-atleta .focusWorkout .exercise:not(.currentExercise):not(.done) .performedSets{
+  display:none;
+}
+.mode-atleta .focusWorkout .exercise.done .performedHead,
+.mode-atleta .focusWorkout .exercise.done .setLine,
+.mode-atleta .focusWorkout .exercise.done .inlineField{
+  display:none;
+}
+.mode-atleta .focusWorkout .exercise:not(.currentExercise):not(.done){
+  padding:11px 12px;
+}
+.mode-atleta .focusWorkout .exercise:not(.currentExercise):not(.done) .exContent h3{
+  font-size:17px;
+}
+.mode-atleta .focusWorkout .exercise:not(.currentExercise):not(.done) .badges span{
+  padding:4px 7px;
+  font-size:10.5px;
+}
+.mode-atleta .performedSets{
+  padding:10px;
+  border-radius:var(--radius-md);
+}
+.mode-atleta .performedHead span{
+  display:none;
+}
+.mode-atleta .focusWorkout .exerciseGroup.conjugado .exercise:not(.currentExercise){
+  opacity:1;
+}
+.mode-atleta .focusWorkout .exerciseGroup.conjugado .exercise:not(.currentExercise) .performedSets{
+  display:grid;
+}
+.mode-atleta .focusWorkout .exerciseGroup.conjugado .exercise:not(.currentExercise) .lastExecution{
+  display:none;
+}
+.mode-atleta .setLine{
+  gap:7px;
+  padding:7px;
+}
+.mode-atleta .setActions button{
+  min-height:44px;
+}
+@media(max-width:520px){
+  .mode-atleta .focusWorkout{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
+  .mode-atleta .focusWorkout .exercise{padding:11px;overflow:hidden}
+  .mode-atleta .focusWorkout .badges{gap:4px}
+  .mode-atleta .focusWorkout .badges span{max-width:100%;overflow-wrap:anywhere}
+  .mode-atleta .setLine{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) 34px;
+    gap:8px;
+    align-items:start;
+  }
+  .mode-atleta .setLine > span{grid-column:1/3;min-width:0}
+  .mode-atleta .setLine > .setInputField{grid-row:2}
+  .mode-atleta .setLine > .setInputField:nth-of-type(1){grid-column:1}
+  .mode-atleta .setLine > .setInputField:nth-of-type(2){grid-column:2}
+  .mode-atleta .setLine > .danger.iconBtn{grid-column:3;grid-row:1;min-width:34px;min-height:34px;padding:0}
+  .mode-atleta .setLine > .setCheck{grid-column:1/3;grid-row:3;width:100%;min-width:0;min-height:42px;display:flex;gap:7px;justify-content:center}
+  .mode-atleta .setCheckLabel{display:inline;font-size:14px}
+  .mode-atleta .dropRows{grid-column:1/-1;grid-row:2}
+  .mode-atleta .dropRow{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;padding:9px}
+  .mode-atleta .dropRow b,.mode-atleta .dropRow > small{grid-column:1/-1}
+  .mode-atleta .dropRow .setInputField{min-width:0}
+  .mode-atleta .setInputField input{min-height:44px;font-size:16px}
+  .mode-atleta .setActions{display:grid;grid-template-columns:1fr 1fr}
+  .mode-atleta .setActions button{min-width:0;padding:0 9px;font-size:13px}
+  .mode-atleta .setActions button:last-child{grid-column:1/-1}
+  .mode-atleta .setLine{
+    grid-template-columns:minmax(0,1.45fr) minmax(0,.8fr) 44px;
+    align-items:end;
+  }
+  .mode-atleta .setLine > span{grid-column:1/3;grid-row:1}
+  .mode-atleta .setLine > .setInputField{grid-row:2}
+  .mode-atleta .setLine > .setInputField:nth-of-type(1){grid-column:1}
+  .mode-atleta .setLine > .setInputField:nth-of-type(2){grid-column:2}
+  .mode-atleta .setLine > .setCheck{grid-column:3;grid-row:2;width:44px;min-width:44px;min-height:44px;padding:0}
+  .mode-atleta .setCheckLabel{display:none}
+  .mode-atleta .setLine > .danger.iconBtn{grid-column:3;grid-row:1}
+  .mode-atleta .dropRow{grid-template-columns:minmax(0,1.45fr) minmax(0,.8fr) 44px;align-items:end}
+  .mode-atleta .dropRow b,.mode-atleta .dropRow > small{grid-column:1/3}
+  .mode-atleta .dropRow b{grid-row:1}
+  .mode-atleta .dropRow > small{grid-row:2}
+  .mode-atleta .dropRow .setInputField{grid-row:3}
+  .mode-atleta .dropRow .dropCheck{grid-column:3;grid-row:3;width:44px;min-width:44px;min-height:44px}
+}
+.mode-atleta.screen-historico .statStrip{
+  margin-top:8px;
+}
+.mode-atleta.screen-historico .filterRow{
+  padding-bottom:4px;
+}
+.mode-atleta.screen-historico .emptyState{
+  padding:14px;
+  box-shadow:none;
+}
+.mode-atleta .modalCard{
+  border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+  padding:16px;
+}
+.mode-atleta .summaryGrid{
+  gap:8px;
+}
+.mode-atleta .toast{
+  font-size:14px;
+}
+.feedbackMessage,
+.authMessage,
+.bodyMessage{
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+  padding:10px 12px;
+}
+
+@keyframes contentRise{
+  from{opacity:0;transform:translateY(6px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes toastIn{
+  from{opacity:0;transform:translate(-50%,8px)}
+  to{opacity:1;transform:translate(-50%,0)}
+}
+
+@media(prefers-reduced-motion:reduce){
+  *,
+  *::before,
+  *::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    scroll-behavior:auto !important;
+    transition-duration:.001ms !important;
+  }
+}
+
+/* ===== Execução focada por exercício — 2026-07-11 ===== */
+.screen-treino .focusWorkout{
+  padding-bottom:calc(104px + env(safe-area-inset-bottom));
+}
+
+.sessionOverview,
+.sessionExerciseScreen{
+  margin:10px 0 0;
+}
+
+.sessionOverview{
+  display:grid;
+  gap:12px;
+}
+.sessionOverviewHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:14px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-lg);
+  background:var(--color-card);
+}
+.sessionOverviewHeader > div{min-width:0}
+.sessionOverviewHeader small,
+.executionExerciseHeader small,
+.sessionListBlockHeader small{
+  display:block;
+  color:var(--color-primary);
+  font-size:10.5px;
+  font-weight:950;
+  letter-spacing:.55px;
+  text-transform:uppercase;
+}
+.sessionOverviewHeader h3{
+  margin:3px 0 2px;
+  font-size:18px;
+  line-height:1.15;
+}
+.sessionOverviewHeader span{
+  color:var(--color-text-muted);
+  font-size:12px;
+  font-weight:800;
+}
+.sessionOverviewHeader > button{
+  flex:0 0 auto;
+  min-height:40px;
+  padding:0 13px;
+}
+.sessionExerciseList{
+  display:grid;
+  gap:8px;
+}
+.sessionListBlock{
+  display:grid;
+  gap:6px;
+  padding:10px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-lg);
+  background:var(--color-card);
+}
+.conjugateListBlock{
+  border-color:color-mix(in srgb,var(--color-info) 42%,var(--color-border));
+  background:linear-gradient(145deg,color-mix(in srgb,var(--color-info) 7%,var(--color-card)),var(--color-card) 42%);
+}
+.sessionListBlockHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:2px 3px 5px;
+}
+.sessionListBlockHeader b{
+  display:block;
+  margin-top:2px;
+  font-size:14px;
+}
+.sessionListBlockHeader > span{
+  display:grid;
+  place-items:center;
+  min-width:34px;
+  min-height:28px;
+  padding:0 8px;
+  border:1px solid var(--color-border);
+  border-radius:999px;
+  background:var(--color-card-elevated);
+  color:var(--color-text-secondary);
+  font-size:11px;
+  font-weight:950;
+}
+.sessionListRow{
+  width:100%;
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) auto;
+  align-items:center;
+  gap:9px;
+  min-height:56px;
+  padding:8px 10px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+  color:var(--color-text);
+  text-align:left;
+  box-shadow:none;
+}
+.sessionListRow.standalone{
+  background:var(--color-card);
+}
+.sessionListRow.active{
+  border-color:color-mix(in srgb,var(--color-primary) 58%,var(--color-border));
+  background:color-mix(in srgb,var(--color-primary) 8%,var(--color-card));
+}
+.sessionListRow.done{
+  border-color:color-mix(in srgb,var(--color-success) 42%,var(--color-border));
+}
+.sessionListLetter,
+.sessionListNumber{
+  display:grid;
+  place-items:center;
+  width:32px;
+  height:32px;
+  border-radius:10px;
+  border:1px solid var(--color-border);
+  background:var(--color-card);
+  color:var(--color-text-secondary);
+  font-size:12px;
+  font-weight:950;
+}
+.sessionListRow.active .sessionListLetter,
+.sessionListRow.active .sessionListNumber{
+  border-color:color-mix(in srgb,var(--color-primary) 48%,var(--color-border));
+  color:var(--color-primary);
+}
+.sessionListRow.done .sessionListLetter,
+.sessionListRow.done .sessionListNumber{
+  color:var(--color-success);
+}
+.sessionListText{min-width:0}
+.sessionListText b,
+.sessionListText small{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.sessionListText b{
+  font-size:14px;
+  line-height:1.2;
+}
+.sessionListText small{
+  margin-top:3px;
+  color:var(--color-text-muted);
+  font-size:11px;
+  font-weight:750;
+}
+.sessionListRow em{
+  color:var(--color-text-muted);
+  font-size:10.5px;
+  font-style:normal;
+  font-weight:900;
+  white-space:nowrap;
+}
+.sessionListRow.done em{color:var(--color-success)}
+.sessionOverviewFooter{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  padding-top:2px;
+}
+.sessionOverviewFooter button{
+  min-width:0;
+  min-height:46px;
+}
+
+.sessionExerciseScreen{
+  display:grid;
+  gap:11px;
+  padding:13px;
+  border:1px solid color-mix(in srgb,var(--color-primary) 45%,var(--color-border));
+  border-radius:var(--radius-xl);
+  background:
+    linear-gradient(145deg,color-mix(in srgb,var(--color-primary) 7%,transparent),transparent 34%),
+    var(--color-card);
+  box-shadow:0 15px 34px rgba(0,0,0,.16);
+}
+.sessionExerciseScreen.done{
+  border-color:color-mix(in srgb,var(--color-success) 48%,var(--color-border));
+}
+.executionExerciseHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+.executionExerciseHeader > div{min-width:0}
+.executionExerciseHeader h2{
+  margin:4px 0 0;
+  font-size:21px;
+  line-height:1.12;
+  overflow-wrap:anywhere;
+}
+.executionConjugateContext{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:6px;
+  padding:6px;
+  border:1px solid color-mix(in srgb,var(--color-info) 35%,var(--color-border));
+  border-radius:var(--radius-md);
+  background:color-mix(in srgb,var(--color-info) 5%,var(--color-card-elevated));
+}
+.executionConjugateContext button{
+  display:grid;
+  grid-template-columns:26px minmax(0,1fr) auto;
+  align-items:center;
+  gap:7px;
+  min-width:0;
+  min-height:42px;
+  padding:6px 8px;
+  border:1px solid transparent;
+  border-radius:10px;
+  background:transparent;
+  color:var(--color-text-secondary);
+  text-align:left;
+  box-shadow:none;
+}
+.executionConjugateContext button.active{
+  border-color:color-mix(in srgb,var(--color-info) 48%,var(--color-border));
+  background:var(--color-card);
+  color:var(--color-text);
+}
+.executionConjugateContext button.done{color:var(--color-success)}
+.executionConjugateContext button > span{
+  display:grid;
+  place-items:center;
+  width:25px;
+  height:25px;
+  border-radius:8px;
+  background:var(--color-card);
+  border:1px solid var(--color-border);
+  font-size:11px;
+  font-weight:950;
+}
+.executionConjugateContext button b{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:12px;
+}
+.executionExerciseMeta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+}
+.executionExerciseMeta span{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:0 8px;
+  border:1px solid var(--color-border);
+  border-radius:999px;
+  background:var(--color-card-elevated);
+  color:var(--color-text-secondary);
+  font-size:10.5px;
+  font-weight:850;
+}
+.executionNote{
+  padding:8px 10px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+}
+.executionNote summary{
+  cursor:pointer;
+  color:var(--color-text-secondary);
+  font-size:12px;
+  font-weight:900;
+}
+.executionNote p{
+  margin:7px 0 0;
+  color:var(--color-text-secondary);
+  font-size:12px;
+  line-height:1.4;
+  white-space:pre-wrap;
+}
+.executionLastSummary{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  padding:8px 10px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+}
+.executionLastSummary svg{flex:0 0 auto;margin-top:1px;color:var(--color-text-muted)}
+.executionLastSummary div{min-width:0}
+.executionLastSummary b,
+.executionLastSummary span{display:block}
+.executionLastSummary b{font-size:11.5px}
+.executionLastSummary span{
+  margin-top:2px;
+  color:var(--color-text-secondary);
+  font-size:11px;
+  line-height:1.35;
+}
+.executionSets{
+  display:grid;
+  gap:8px;
+}
+.executionSetsHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:0 2px;
+}
+.executionSetsHeader b{font-size:14px}
+.executionSetsHeader span{
+  color:var(--color-text-muted);
+  font-size:11px;
+  font-weight:900;
+}
+.executionSetCard{
+  display:grid;
+  gap:8px;
+  padding:9px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+}
+.executionSetCard.current{
+  border-color:color-mix(in srgb,var(--color-primary) 45%,var(--color-border));
+  background:color-mix(in srgb,var(--color-primary) 6%,var(--color-card-elevated));
+}
+.executionSetCard.done{
+  border-color:color-mix(in srgb,var(--color-success) 40%,var(--color-border));
+  background:color-mix(in srgb,var(--color-success) 7%,var(--color-card-elevated));
+}
+.executionSetHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.executionSetHeader > div{min-width:0}
+.executionSetHeader b,
+.executionSetHeader small{display:block}
+.executionSetHeader b{font-size:13px}
+.executionSetHeader small{
+  margin-top:2px;
+  color:var(--color-text-muted);
+  font-size:10.5px;
+  font-weight:750;
+  line-height:1.25;
+}
+.executionSetHeader .iconBtn{
+  min-width:32px;
+  min-height:32px;
+  padding:0;
+}
+.executionSetInputs{
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) minmax(0,.85fr) 82px;
+  gap:7px;
+  align-items:end;
+}
+.executionSetInputs label,
+.executionDropRow label{
+  display:grid;
+  gap:4px;
+  min-width:0;
+}
+.executionSetInputs label > span,
+.executionDropRow label > span{
+  color:var(--color-text-muted);
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.35px;
+}
+.executionSetInputs input,
+.executionDropRow input,
+.executionRpeField input{
+  width:100%;
+  min-width:0;
+  min-height:44px;
+  padding:0 9px;
+  box-sizing:border-box;
+  font-size:16px;
+  font-weight:900;
+  text-align:center;
+}
+.executionInputWithUnit{
+  position:relative;
+  min-width:0;
+}
+.executionInputWithUnit input{padding-right:30px}
+.executionInputWithUnit em{
+  position:absolute;
+  top:50%;
+  right:9px;
+  transform:translateY(-50%);
+  color:var(--color-text-muted);
+  font-size:10px;
+  font-style:normal;
+  font-weight:900;
+  pointer-events:none;
+}
+.executionCheckButton{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  min-width:0;
+  min-height:44px;
+  padding:0 8px;
+  border-color:color-mix(in srgb,var(--color-primary) 42%,var(--color-border));
+  background:color-mix(in srgb,var(--color-primary) 10%,var(--color-card));
+  color:var(--color-text);
+  font-size:11px;
+  box-shadow:none;
+}
+.executionCheckButton.done{
+  border-color:color-mix(in srgb,var(--color-success) 55%,var(--color-border));
+  background:color-mix(in srgb,var(--color-success) 12%,var(--color-card));
+  color:var(--color-success);
+}
+.executionCheckButton.compact{
+  width:44px;
+  min-width:44px;
+  padding:0;
+}
+.executionCheckButton.full{width:100%}
+.executionDropList{
+  display:grid;
+  gap:7px;
+}
+.executionDropRow{
+  display:grid;
+  grid-template-columns:minmax(96px,1fr) minmax(0,1.1fr) minmax(0,.75fr) 44px;
+  align-items:end;
+  gap:7px;
+  padding:8px;
+  border:1px solid var(--color-border);
+  border-radius:11px;
+  background:var(--color-card);
+}
+.executionDropRow.done{
+  border-color:color-mix(in srgb,var(--color-success) 38%,var(--color-border));
+}
+.executionDropTitle{align-self:center;min-width:0}
+.executionDropTitle b,
+.executionDropTitle small{display:block}
+.executionDropTitle b{font-size:12px}
+.executionDropTitle small{margin-top:2px;color:var(--color-text-muted);font-size:10px}
+.executionRpeField{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 92px;
+  align-items:center;
+  gap:10px;
+  padding:8px 10px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+}
+.executionRpeField > span{
+  color:var(--color-text-secondary);
+  font-size:12px;
+  font-weight:850;
+}
+.executionRpeField input{min-height:40px}
+.executionExerciseActions{
+  display:grid;
+  gap:8px;
+  padding-top:1px;
+}
+.executionSecondaryActions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+}
+.executionExerciseActions button{
+  min-width:0;
+  min-height:44px;
+}
+.executionCompleteButton{
+  width:100%;
+  min-height:50px!important;
+  font-size:14px;
+  box-shadow:0 10px 24px color-mix(in srgb,var(--color-primary) 22%,transparent);
+}
+.executionStepNavigation{
+  position:sticky;
+  bottom:calc(8px + env(safe-area-inset-bottom));
+  z-index:17;
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:6px;
+  margin:10px 0 0;
+  padding:6px;
+  border:1px solid color-mix(in srgb,var(--color-primary) 26%,var(--color-border));
+  border-radius:var(--radius-lg);
+  background:color-mix(in srgb,var(--color-card) 94%,transparent);
+  box-shadow:0 12px 28px rgba(0,0,0,.24);
+  backdrop-filter:blur(14px);
+}
+.executionStepNavigation button{
+  min-width:0;
+  min-height:42px;
+  padding:0 8px;
+  font-size:11px;
+}
+.executionStepNavigation button:first-child{justify-content:flex-start}
+.executionStepNavigation button:last-child{justify-content:flex-end}
+
+/* Mantém o conteúdo do card Último treino no mesmo eixo dos demais cards. */
+.dashboardCompactButton{
+  align-content:start;
+  justify-items:stretch;
+}
+.dashboardCompactButton .dashboardCompactHeader,
+.dashboardCompactButton .dashboardCompactBody{
+  width:100%;
+  box-sizing:border-box;
+}
+
+@media(max-width:520px){
+  .screen-treino .focusWorkout{
+    padding-bottom:calc(108px + env(safe-area-inset-bottom));
+  }
+  .screen-treino .focusWorkout .activeWorkoutHero{
+    margin-bottom:5px;
+  }
+  .screen-treino .focusWorkout .activeSessionControl{
+    margin:6px 0 8px;
+  }
+  .sessionExerciseScreen{
+    gap:9px;
+    padding:11px;
+    border-radius:var(--radius-lg);
+  }
+  .executionExerciseHeader h2{font-size:19px}
+  .executionConjugateContext{
+    grid-template-columns:1fr;
+  }
+  .executionSetInputs{
+    grid-template-columns:minmax(0,1.35fr) minmax(0,.8fr) 48px;
+  }
+  .executionCheckButton{
+    width:48px;
+    min-width:48px;
+    padding:0;
+  }
+  .executionCheckButton span{display:none}
+  .executionCheckButton.full{
+    width:100%;
+    min-width:0;
+    padding:0 10px;
+  }
+  .executionCheckButton.full span{display:inline}
+  .executionDropRow{
+    grid-template-columns:minmax(0,1.35fr) minmax(0,.8fr) 44px;
+  }
+  .executionDropTitle{
+    grid-column:1/3;
+  }
+  .executionDropRow label:nth-of-type(1){grid-column:1}
+  .executionDropRow label:nth-of-type(2){grid-column:2}
+  .executionDropRow .executionCheckButton{grid-column:3}
+  .sessionOverviewHeader{
+    padding:12px;
+  }
+  .sessionOverviewHeader > button{
+    padding:0 10px;
+    font-size:12px;
+  }
+  .sessionListRow{
+    grid-template-columns:32px minmax(0,1fr);
+    min-height:54px;
+  }
+  .sessionListRow em{
+    grid-column:2;
+    margin-top:-3px;
+  }
+  .sessionOverviewFooter{
+    grid-template-columns:1fr;
+  }
+  .executionStepNavigation button span{font-size:10.5px}
+}
+
+@media(max-width:370px){
+  .executionExerciseHeader h2{font-size:18px}
+  .executionExerciseMeta span{font-size:10px}
+  .executionSetInputs{
+    grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr) 44px;
+    gap:5px;
+  }
+  .executionSetInputs input,
+  .executionDropRow input{padding-left:6px;padding-right:6px}
+  .executionInputWithUnit input{padding-right:25px}
+  .executionInputWithUnit em{right:6px}
+  .executionSecondaryActions button{padding:0 7px;font-size:12px}
+  .executionStepNavigation{gap:4px;padding:5px}
+  .executionStepNavigation button{padding:0 5px}
+}
+
+/* ===== Correções críticas pós-teste — 2026-07-11 ===== */
+/* O card é um button por acessibilidade, mas deve se comportar visualmente como card. */
+.mode-atleta .dashboardCompactButton{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  width:100%;
+  min-height:0;
+  align-items:start;
+  align-content:start;
+  justify-content:stretch;
+  justify-items:stretch;
+  padding:12px;
+  color:var(--color-text);
+  text-align:left;
+  background:var(--color-card);
+  border-color:var(--color-border);
+  box-shadow:var(--shadow-soft);
+  transform:none;
+}
+.mode-atleta .dashboardCompactButton .dashboardCompactHeader,
+.mode-atleta .dashboardCompactButton .dashboardCompactBody{
+  width:100%;
+  min-width:0;
+  justify-self:stretch;
+  text-align:left;
+}
+.mode-atleta .dashboardCompactButton .dashboardCompactHeader small{
+  color:var(--color-primary);
+  text-align:left;
+}
+.mode-atleta .dashboardCompactButton .dashboardCompactBody b{
+  color:var(--color-text);
+  text-align:left;
+}
+.mode-atleta .dashboardCompactButton .dashboardCompactBody span{
+  color:var(--color-text-secondary);
+  text-align:left;
+}
+.mode-atleta .dashboardCompactButton:hover:not(:disabled),
+.mode-atleta .dashboardCompactButton:active:not(:disabled),
+.mode-atleta .dashboardCompactButton:focus-visible{
+  color:var(--color-text);
+  background:var(--color-card);
+  border-color:color-mix(in srgb,var(--color-primary) 32%,var(--color-border));
+  transform:none;
+}
+
+/* ===== Criação de treinos e seleção compacta — 2026-07-11 ===== */
+.exerciseSelectorScreen{
+  display:grid;
+  gap:8px;
+  min-height:calc(100dvh - var(--header-height) - 28px);
+  padding:10px;
+  overflow:hidden;
+}
+.exerciseSelectorToolbar{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:7px;
+  align-items:center;
+}
+.exerciseSelectorSearch{position:relative;min-width:0}
+.exerciseSelectorSearch input{
+  width:100%;
+  min-height:42px;
+  padding-right:42px;
+}
+.exerciseSelectorSearch .iconBtn{
+  position:absolute;
+  top:5px;
+  right:5px;
+  width:32px;
+  min-width:32px;
+  min-height:32px;
+  padding:0;
+  border:0;
+  background:transparent;
+}
+.exerciseFilterToggle{
+  min-height:42px;
+  padding:0 11px;
+  white-space:nowrap;
+}
+.exerciseFilterToggle.active{
+  border-color:color-mix(in srgb,var(--color-primary) 55%,var(--color-border));
+  background:color-mix(in srgb,var(--color-primary) 10%,var(--color-card-elevated));
+  color:var(--color-primary);
+}
+.exerciseSelectorFilters{
+  display:grid;
+  gap:8px;
+  padding:9px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+}
+.exerciseSelectorFilters > button{justify-self:end}
+.exerciseSelectorResultsBar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  min-height:26px;
+  padding:0 2px;
+  color:var(--color-text-muted);
+  font-size:11px;
+  font-weight:850;
+}
+.exerciseSelectorResultsBar small{font-size:10.5px}
+.exerciseSelectorScreen .workoutLibraryPicker{
+  display:grid;
+  align-content:start;
+  gap:6px;
+  max-height:calc(100dvh - var(--header-height) - 126px);
+  min-height:220px;
+  overflow:auto;
+  overscroll-behavior:contain;
+  padding:1px 2px 12px;
+}
+.exerciseSelectorScreen .pickerItem{
+  width:100%;
+  min-height:54px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 24px;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+  color:var(--color-text);
+  text-align:left;
+  box-shadow:none;
+}
+.exerciseSelectorScreen .pickerItem:hover,
+.exerciseSelectorScreen .pickerItem:focus-visible{
+  border-color:color-mix(in srgb,var(--color-primary) 48%,var(--color-border));
+  background:color-mix(in srgb,var(--color-primary) 7%,var(--color-card-elevated));
+}
+.exerciseSelectorScreen .pickerItem div{min-width:0}
+.exerciseSelectorScreen .pickerItem b,
+.exerciseSelectorScreen .pickerItem span{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.exerciseSelectorScreen .pickerItem b{font-size:13.5px;line-height:1.18}
+.exerciseSelectorScreen .pickerItem span{margin-top:3px;color:var(--color-text-muted);font-size:10.5px;font-weight:750}
+.exerciseSelectorScreen .pickerItem > svg{justify-self:end;color:var(--color-primary)}
+
+.workoutExerciseEditScreen{display:grid!important;gap:11px!important}
+.exerciseEditorIdentity{
+  padding-bottom:9px;
+  border-bottom:1px solid var(--color-border);
+}
+.exerciseEditorIdentity small,
+.exerciseEditorIdentity span{display:block;color:var(--color-text-muted);font-size:10.5px;font-weight:850}
+.exerciseEditorIdentity h3{margin:3px 0 2px!important;font-size:20px!important;color:var(--color-text)!important}
+.exercisePrescriptionSection,
+.exerciseMethodSection{display:grid;gap:8px}
+.exercisePrescriptionSection h4,
+.exerciseMethodSection h4{margin:0;font-size:13px}
+.exercisePrescriptionGrid{
+  display:grid;
+  grid-template-columns:.72fr 1fr 1fr;
+  gap:7px;
+}
+.exercisePrescriptionGrid label,
+.standardRepsField,
+.exerciseNotesField{display:grid;gap:4px;min-width:0}
+.exercisePrescriptionGrid label > span,
+.standardRepsField > span,
+.exerciseNotesField > span{
+  color:var(--color-text-muted);
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.3px;
+}
+.exercisePrescriptionGrid input{min-width:0;width:100%}
+.exerciseEditorSectionTitle{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
+.exerciseEditorSectionTitle small{display:block;margin-top:2px;color:var(--color-text-muted);font-size:10.5px}
+.exerciseMethodGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+}
+.exerciseMethodGrid button{
+  min-width:0;
+  min-height:64px;
+  display:grid;
+  align-content:center;
+  justify-items:start;
+  gap:3px;
+  padding:9px 10px;
+  border-color:var(--color-border);
+  background:var(--color-card-elevated);
+  color:var(--color-text);
+  text-align:left;
+  box-shadow:none;
+}
+.exerciseMethodGrid button b{font-size:12.5px}
+.exerciseMethodGrid button span{color:var(--color-text-muted);font-size:10px;line-height:1.25}
+.exerciseMethodGrid button.active{
+  border-color:color-mix(in srgb,var(--color-primary) 60%,var(--color-border));
+  background:color-mix(in srgb,var(--color-primary) 10%,var(--color-card));
+  color:var(--color-text);
+}
+.exerciseMethodGrid button.active b{color:var(--color-primary)}
+.methodHint{padding:0 1px}
+.segmentedRepsPanel{
+  display:grid;
+  gap:8px;
+  padding:9px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+}
+.segmentedRepsGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.segmentedRepsGrid label{display:grid;gap:4px;min-width:0}
+.segmentedRepsGrid label > span{color:var(--color-text-muted);font-size:10px;font-weight:900}
+.segmentedRepsGrid label > div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px}
+.segmentedRepsGrid input{min-width:0;width:100%}
+.segmentedRepsGrid .iconBtn{width:38px;min-width:38px;min-height:40px;padding:0}
+.addSegmentButton{justify-self:start}
+.exerciseConjugateStatus{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:8px;
+  padding:9px 10px;
+  border:1px dashed var(--color-border-strong);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+}
+.exerciseConjugateStatus.active{border-style:solid;border-color:color-mix(in srgb,var(--color-info) 45%,var(--color-border))}
+.exerciseConjugateStatus b,
+.exerciseConjugateStatus span{display:block}
+.exerciseConjugateStatus b{font-size:12px}
+.exerciseConjugateStatus span{margin-top:2px;color:var(--color-text-muted);font-size:10.5px;line-height:1.3}
+.exerciseConjugateStatus button{white-space:nowrap}
+.exerciseEditorActions{grid-template-columns:.8fr 1.2fr}
+
+.workoutEditorExerciseList{gap:8px!important}
+.workoutEditorSingleExercise{display:grid;gap:5px}
+.workoutEditorConjugateBlock{
+  display:grid;
+  gap:7px;
+  padding:9px;
+  border:1px solid color-mix(in srgb,var(--color-info) 45%,var(--color-border));
+  border-radius:var(--radius-lg);
+  background:color-mix(in srgb,var(--color-info) 5%,var(--color-card));
+}
+.workoutEditorConjugateHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.workoutEditorConjugateHeader small,
+.workoutEditorConjugateHeader b{display:block}
+.workoutEditorConjugateHeader small{color:var(--color-info);font-size:9.5px;font-weight:950;text-transform:uppercase;letter-spacing:.4px}
+.workoutEditorConjugateHeader b{margin-top:2px;font-size:12.5px}
+.conjugateKindRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px}
+.conjugateKindRow select{min-width:0}
+.conjugateExerciseCard{grid-template-columns:30px minmax(0,1fr) auto!important}
+.conjugateEditorLetter{
+  display:grid;
+  place-items:center;
+  width:28px;
+  height:28px;
+  border:1px solid color-mix(in srgb,var(--color-info) 45%,var(--color-border));
+  border-radius:9px;
+  background:var(--color-card);
+  color:var(--color-info);
+  font-size:12px;
+  font-weight:950;
+}
+.combinePreviousButton{
+  justify-self:center;
+  min-height:30px;
+  padding:5px 9px;
+  border-style:dashed;
+  font-size:10.5px;
+}
+
+/* A navegação da execução fica presa ao fim da tela, sem encostar no exercício. */
+.screen-treino .focusWorkout{padding-bottom:calc(82px + env(safe-area-inset-bottom))}
+.executionStepNavigation{
+  position:fixed;
+  left:50%;
+  right:auto;
+  bottom:calc(8px + env(safe-area-inset-bottom));
+  width:min(576px,calc(100% - 24px));
+  margin:0;
+  transform:translateX(-50%);
+}
+
+@media(max-width:520px){
+  .exerciseSelectorScreen{min-height:calc(100dvh - var(--header-height) - 18px);padding:8px}
+  .exerciseSelectorToolbar{grid-template-columns:minmax(0,1fr) 94px}
+  .exerciseFilterToggle{padding:0 7px;font-size:11px}
+  .exerciseSelectorScreen .workoutLibraryPicker{max-height:calc(100dvh - var(--header-height) - 112px)}
+  .exerciseSelectorResultsBar small{display:none}
+  .exercisePrescriptionGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .exercisePrescriptionGrid label:last-child{grid-column:1/-1}
+  .exerciseMethodGrid{gap:6px}
+  .exerciseMethodGrid button{min-height:60px;padding:8px}
+  .segmentedRepsGrid{grid-template-columns:1fr}
+  .exerciseConjugateStatus{grid-template-columns:1fr}
+  .exerciseConjugateStatus button{width:100%}
+  .conjugateKindRow{grid-template-columns:1fr}
+  .conjugateKindRow button{width:100%}
+  .conjugateExerciseCard{grid-template-columns:28px minmax(0,1fr)!important}
+  .conjugateExerciseCard .exerciseEditActions{grid-column:2;justify-content:flex-start}
+  .screen-treino .focusWorkout{padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+}
+
+
+/* Compact spacing: trainer dashboard and completed workout summary */
+.trainerDashboardScreen .pageTitleRow{
+  margin-bottom:6px;
+}
+.trainerDashboardScreen .grid2{
+  gap:8px;
+  margin:6px 0;
+}
+.trainerDashboardScreen .grid2 .card{
+  margin:0;
+}
+.trainerDashboardScreen > .chartCard{
+  margin:6px 0;
+  padding:12px 14px;
+}
+.trainerDashboardScreen > .chartCard h3{
+  margin-bottom:6px;
+}
+.trainerDashboardScreen > .chartCard .detailLine{
+  padding:8px 0;
+}
+.trainerDashboardScreen > .chartCard .recordLine{
+  padding:9px 0;
+}
+
+.sessionSummaryModal{
+  padding:16px;
+}
+.sessionSummaryModal > h2{
+  margin-bottom:4px;
+  padding-right:44px;
+}
+.sessionSummaryModal > .muted{
+  margin-bottom:10px;
+}
+.sessionSummaryModal .summaryGrid{
+  gap:8px;
+}
+.sessionSummaryModal .summaryGrid .card{
+  min-height:78px;
+  margin:0;
+  padding:10px 12px;
+}
+.sessionSummaryModal .summaryGrid .card p{
+  margin-bottom:2px;
+  font-size:11px;
+}
+.sessionSummaryModal .summaryGrid .card h3{
+  margin:2px 0;
+  font-size:20px;
+  line-height:1.08;
+}
+.sessionSummaryModal .summaryGrid .card small{
+  font-size:11px;
+  line-height:1.2;
+}
+.sessionSummaryModal > .emptyHint{
+  margin:10px 0 0;
+}
+
+@media(max-width:520px){
+  .trainerDashboardScreen .grid2{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .trainerDashboardScreen .grid2 .card{
+    min-height:88px;
+    margin:0;
+    padding:11px 12px;
+  }
+  .trainerDashboardScreen .grid2 .card h3{
+    font-size:21px;
+    margin:4px 0 2px;
+  }
+  .trainerDashboardScreen .grid2 .card p,
+  .trainerDashboardScreen .grid2 .card small{
+    font-size:11px;
+  }
+  .sessionSummaryModal .summaryGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .sessionSummaryModal .summaryGrid .card:last-child{
+    grid-column:1/-1;
+  }
+}
+
+.configurationErrorCard {
+  width: min(100%, 520px);
+  margin: auto;
+}
+
+.configurationErrorCard p {
+  overflow-wrap: anywhere;
+}
+
+/* Prescrição por série: repetições e carga */
+.prescriptionTargetsGrid{grid-template-columns:1fr}
+.prescriptionTargetRow,
+.dropSetSeriesCard{
+  display:grid;
+  gap:8px;
+  padding:10px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-card-elevated);
+}
+.prescriptionTargetRow{grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);align-items:end}
+.prescriptionTargetRow > b,
+.dropSetSeriesCard > b{font-size:12px;color:var(--color-text)}
+.prescriptionTargetRow label,
+.dropTargetRow label{display:grid;gap:4px;min-width:0}
+.prescriptionTargetRow label > span,
+.dropTargetRow label > span,
+.dropTargetRow > span{font-size:10px;font-weight:900;color:var(--color-text-muted)}
+.dropSetTargetsPanel{gap:10px}
+.dropSetSeriesCard .segmentedRepsGrid{grid-template-columns:1fr}
+.dropTargetRow{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr) auto;gap:7px;align-items:end}
+.dropTargetRow .iconBtn{align-self:end}
+@media (max-width:640px){
+  .prescriptionTargetRow{grid-template-columns:1fr 1fr}
+  .prescriptionTargetRow > b{grid-column:1/-1}
+  .dropTargetRow{grid-template-columns:1fr 1fr}
+  .dropTargetRow > span{grid-column:1/-1}
+  .dropTargetRow .iconBtn{position:absolute;right:18px}
+}

@@ -1,0 +1,29 @@
+CORREÇÕES E MELHORIAS — 2026-07-11
+
+1. Prescrição progressiva
+- Repetições por série preservadas.
+- Nova carga opcional por série.
+- Cargas gravadas em prescribed_sets.target_load.
+- Cargas restauradas ao reabrir o treino e o histórico.
+
+2. Drop set
+- Repetições e cargas configuráveis para cada drop de cada série.
+- Metas gravadas em prescribed_drops.target_reps/target_load.
+- Metas restauradas ao reabrir e usadas na execução.
+
+3. Histórico e integridade
+- Exercício só é concluído quando todas as séries estão concluídas.
+- Histórico recarrega prescribed_sets e prescribed_drops.
+- Treino existente não pode ser transferido para outro aluno nem mudar de origem.
+- Conjugados legados bi_set/tri_set são normalizados para o modelo atual.
+- Exclusão de sessão só altera a interface após confirmação do banco.
+- Falhas ao salvar configurações não provocam rejeição não tratada.
+
+4. Supabase
+- README inclui migrations 003 e 004.
+- Migrations finais solicitam reload do schema do PostgREST.
+- Migration 004 é o patch indicado para banco que já recebeu 001, 002 e 003.
+
+5. Testes
+- Casos adicionados para cargas progressivas, cargas/repetições por drop,
+  recarga das metas, imutabilidade do treino e documentação das migrations.
