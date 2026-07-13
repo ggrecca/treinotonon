@@ -25,8 +25,6 @@ const today = (value=new Date()) => {
 const APP_NAME = "Treino Tonon";
 const APP_VERSION = "1.0.0";
 const APP_RELEASE_LABEL = "Julho de 2026";
-const APP_VERSION = "1.0.0";
-const APP_RELEASE_LABEL = "Julho de 2026";
 const TYPES = ["NORMAL", "PROG", "CONJ", "REST PAUSE", "DROP SET"];
 const EXECUTION_METHODS = [
   {value:"NORMAL", label:"Normal", description:"Mesma meta em todas as séries."},
@@ -583,19 +581,6 @@ function cloneWorkoutItemsForAssignment(items){
     }
     return clone;
   });
-}
-
-function ProductFooter(){
-  const footerStyle = {
-    display:"grid", gap:3, margin:"18px 0 2px", padding:"14px 4px 0",
-    borderTop:"1px solid var(--color-border)", color:"var(--color-text-muted)", textAlign:"center"
-  };
-  const lineStyle = {margin:0, fontSize:10, fontWeight:700, lineHeight:1.45};
-  return <footer style={footerStyle} aria-label="Informações do aplicativo">
-    <p style={{...lineStyle, color:"var(--color-text-secondary)", fontWeight:900}}>Treino Tonon · Versão {APP_VERSION} · {APP_RELEASE_LABEL}</p>
-    <p style={lineStyle}>© 2026 Gustavo Grecca Garcia. Todos os direitos reservados.</p>
-    <p style={lineStyle}>Criado por Gustavo Grecca Garcia em parceria com ChatGPT.</p>
-  </footer>;
 }
 
 function ProductFooter(){
@@ -6420,4 +6405,5 @@ class ErrorBoundary extends React.Component {
   }
 }
 createRoot(document.getElementById("root")).render(<ErrorBoundary><App /></ErrorBoundary>);
+
 
