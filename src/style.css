@@ -3807,3 +3807,41 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
   .dropTargetRow > span{grid-column:1/-1}
   .dropTargetRow .iconBtn{position:absolute;right:18px}
 }
+
+
+/* Identidade de lançamento — Perfil e Conta */
+.productFooter{
+  display:grid;
+  justify-items:center;
+  gap:5px;
+  margin:24px 0 2px;
+  padding:20px 8px 2px;
+  border-top:1px solid color-mix(in srgb,var(--color-primary) 26%,var(--color-border));
+  color:var(--color-text-muted);
+  text-align:center;
+}
+.productFooterMark{
+  display:grid;
+  place-items:center;
+  width:30px;
+  height:30px;
+  margin-bottom:2px;
+  border:1px solid color-mix(in srgb,var(--color-primary) 48%,var(--color-border));
+  border-radius:10px;
+  background:color-mix(in srgb,var(--color-primary) 10%,var(--color-card-elevated));
+  color:var(--color-primary);
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.4px;
+}
+.productFooter p{margin:0;line-height:1.45}
+.productFooterVersion{
+  color:var(--color-text-secondary);
+  font-size:10.5px;
+  font-weight:900;
+  letter-spacing:.15px;
+}
+.productFooterVersion span{color:var(--color-primary);padding:0 2px}
+.productFooterCopyright{font-size:10px;font-weight:750}
+.productFooterCredit{max-width:270px;font-size:9.5px;font-weight:650}
+

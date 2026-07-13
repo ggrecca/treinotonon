@@ -25,6 +25,8 @@ const today = (value=new Date()) => {
 const APP_NAME = "Treino Tonon";
 const APP_VERSION = "1.0.0";
 const APP_RELEASE_LABEL = "Julho de 2026";
+const APP_VERSION = "1.0.0";
+const APP_RELEASE_LABEL = "Julho de 2026";
 const TYPES = ["NORMAL", "PROG", "CONJ", "REST PAUSE", "DROP SET"];
 const EXECUTION_METHODS = [
   {value:"NORMAL", label:"Normal", description:"Mesma meta em todas as séries."},
@@ -593,6 +595,15 @@ function ProductFooter(){
     <p style={{...lineStyle, color:"var(--color-text-secondary)", fontWeight:900}}>Treino Tonon · Versão {APP_VERSION} · {APP_RELEASE_LABEL}</p>
     <p style={lineStyle}>© 2026 Gustavo Grecca Garcia. Todos os direitos reservados.</p>
     <p style={lineStyle}>Criado por Gustavo Grecca Garcia em parceria com ChatGPT.</p>
+  </footer>;
+}
+
+function ProductFooter(){
+  return <footer className="productFooter" aria-label="Informações do aplicativo">
+    <div className="productFooterMark" aria-hidden="true">TT</div>
+    <p className="productFooterVersion">Treino Tonon <span>·</span> Versão {APP_VERSION} <span>·</span> {APP_RELEASE_LABEL}</p>
+    <p className="productFooterCopyright">© 2026 Gustavo Grecca Garcia. Todos os direitos reservados.</p>
+    <p className="productFooterCredit">Criado por Gustavo Grecca Garcia em parceria com ChatGPT.</p>
   </footer>;
 }
 
@@ -6409,3 +6420,4 @@ class ErrorBoundary extends React.Component {
   }
 }
 createRoot(document.getElementById("root")).render(<ErrorBoundary><App /></ErrorBoundary>);
+

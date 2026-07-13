@@ -1,8 +1,0 @@
-Esta migration já foi aplicada diretamente no Supabase do Treino Tonon em 12/07/2026.
-
-Copie a pasta supabase para a raiz do repositório, preservando o caminho:
-
-supabase/migrations/20260712231244_security_search_path_and_duplicate_indexes.sql
-
-Não execute novamente no SQL Editor: o Supabase já registrou a migration.
-O arquivo existe para manter o GitHub alinhado com o banco de produção.
