@@ -43,6 +43,17 @@ As migrations estão em [supabase/migrations](supabase/migrations) e devem ser a
 
 Nunca use ou publique uma `service_role key` no frontend. O app usa somente a chave pública (`VITE_SUPABASE_PUBLISHABLE_KEY`).
 
+### Recuperação de senha
+
+O frontend envia o usuário de volta para a mesma rota com `?auth=recovery`. No painel do Supabase, configure antes de testar ou publicar:
+
+1. **Authentication → URL Configuration → Site URL** com a URL oficial do app.
+2. **Redirect URLs** com as URLs exatas de produção, preview e desenvolvimento que poderão receber `?auth=recovery`.
+3. Se o template de recuperação foi customizado, use `{{ .RedirectTo }}` no link em vez de fixar `{{ .SiteURL }}`.
+4. Configure SMTP próprio para produção; o serviço padrão do Supabase é destinado apenas a testes e possui limite reduzido.
+
+Esses ajustes são de configuração do Auth e não exigem migration, alteração de schema ou nova policy RLS.
+
 Consulte [supabase/README.md](supabase/README.md) para a ordem das migrations e orientações da versão v10.
 
 ## Publicação

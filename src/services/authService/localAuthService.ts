@@ -107,6 +107,14 @@ export const localAuthService = {
     throw new Error("Recuperacao de senha disponivel apenas com Supabase configurado.");
   },
 
+  async updatePassword(): Promise<void> {
+    throw new Error("Atualizacao de senha disponivel apenas com Supabase configurado.");
+  },
+
+  onAuthStateChange(): () => void {
+    return () => {};
+  },
+
   async signOut(): Promise<void> {
     // Local fallback has no remote session; keep authUser intact for compatibility.
   },

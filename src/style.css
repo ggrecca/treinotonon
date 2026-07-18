@@ -508,6 +508,12 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
   color:var(--color-primary);
   border-color:transparent;
 }
+.recoveryCard{display:grid;gap:14px}
+.recoveryCard > button{width:100%}
+.recoveryCard > .muted{display:flex;align-items:center;justify-content:center;gap:8px}
+.buttonSpinner,.inlineSpinner{animation:spin .8s linear infinite}
+.buttonSpinner{width:18px;height:18px}
+.inlineSpinner{width:20px;height:20px}
 
 .ring{
   width:124px;
@@ -2735,6 +2741,14 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
   background:var(--color-card-elevated);
   padding:10px 12px;
 }
+.feedbackMessage.success{
+  border-color:color-mix(in srgb,var(--color-success) 45%,var(--color-border));
+  background:color-mix(in srgb,var(--color-success) 12%,var(--color-card-elevated));
+}
+.feedbackMessage.error{
+  border-color:color-mix(in srgb,var(--color-danger) 50%,var(--color-border));
+  background:color-mix(in srgb,var(--color-danger) 12%,var(--color-card-elevated));
+}
 
 @keyframes contentRise{
   from{opacity:0;transform:translateY(6px)}
@@ -2744,6 +2758,7 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
   from{opacity:0;transform:translate(-50%,8px)}
   to{opacity:1;transform:translate(-50%,0)}
 }
+@keyframes spin{to{transform:rotate(360deg)}}
 
 @media(prefers-reduced-motion:reduce){
   *,

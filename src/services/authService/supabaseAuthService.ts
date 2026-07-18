@@ -50,13 +50,22 @@ function authErrorMessage(error: unknown, fallback: string): string {
     return "Email ou senha inválidos.";
   }
   if(code.includes("weak_password") || lower.includes("password") && (lower.includes("short") || lower.includes("least") || lower.includes("weak"))) {
-    return "Senha curta. Use pelo menos 6 caracteres.";
+    return "Senha fraca. Use pelo menos 8 caracteres.";
   }
   if(code.includes("email") && code.includes("invalid") || lower.includes("invalid email")) {
     return "Email inválido. Confira o endereço informado.";
   }
   if(lower.includes("already") || lower.includes("registered") || lower.includes("exists")) {
     return "Este email já possui conta. Tente entrar.";
+  }
+  if(code.includes("otp_expired") || code.includes("expired") || lower.includes("expired") || lower.includes("invalid token")) {
+    return "Este link de recuperação é inválido, expirou ou já foi usado. Solicite um novo link.";
+  }
+  if(code.includes("rate_limit") || lower.includes("rate limit") || lower.includes("too many requests")) {
+    return "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.";
+  }
+  if(code.includes("network") || lower.includes("failed to fetch") || lower.includes("network")) {
+    return "Não foi possível conectar ao serviço. Verifique sua internet e tente novamente.";
   }
   return message || fallback;
 }
@@ -112,7 +121,13 @@ export const supabaseAuthService = {
   async getCurrentUser(): Promise<AuthUser | null> {
     const client = requireSupabase();
     const {data, error} = await client.auth.getUser();
-    if(error) return null;
+    if(error) {
+      const name = String((error as {name?: string}).name || "").toLowerCase();
+      const code = String((error as {code?: string}).code || "").toLowerCase();
+      const message = String(error.message || "").toLowerCase();
+      if(name.includes("authsessionmissing") || code.includes("session_not_found") || message.includes("auth session missing")) return null;
+      throw supabaseAuthError(error, "Não foi possível verificar sua sessão.");
+    }
     if(!data.user) return null;
     return ensureProfile(data.user);
   },
@@ -153,10 +168,23 @@ export const supabaseAuthService = {
     return ensureProfile(data.user, role);
   },
 
-  async resetPassword(email: string): Promise<void> {
+  async resetPassword(email: string, options?: {redirectTo?: string}): Promise<void> {
     const client = requireSupabase();
-    const {error} = await client.auth.resetPasswordForEmail(email);
+    const {error} = await client.auth.resetPasswordForEmail(email, options?.redirectTo ? {redirectTo:options.redirectTo} : undefined);
     if(error) throw supabaseAuthError(error, "Nao foi possivel enviar as instrucoes de recuperacao.");
+  },
+
+  async updatePassword(password: string): Promise<void> {
+    const client = requireSupabase();
+    const {data, error} = await client.auth.updateUser({password});
+    if(error) throw supabaseAuthError(error, "Não foi possível atualizar a senha.");
+    if(!data.user) throw new Error("A sessão de recuperação não é mais válida. Solicite um novo link.");
+  },
+
+  onAuthStateChange(listener): () => void {
+    const client = requireSupabase();
+    const {data} = client.auth.onAuthStateChange(event=>listener(event));
+    return () => data.subscription.unsubscribe();
   },
 
   async signOut(): Promise<void> {

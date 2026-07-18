@@ -13,6 +13,8 @@ const unavailableAuthService: AuthService = {
   async signIn() { return configurationFailure(); },
   async signUp() { return configurationFailure(); },
   async resetPassword() { return configurationFailure(); },
+  async updatePassword() { return configurationFailure(); },
+  onAuthStateChange() { return () => {}; },
   async signOut() { return configurationFailure(); },
   async updateCurrentUser() { return configurationFailure(); },
 };
@@ -24,4 +26,4 @@ export const authService = isSupabaseConfigured
     ? localAuthService
     : unavailableAuthService;
 
-export type { AuthService, AuthState, AuthUser, LoginCredentials, SignUpCredentials, UserRole } from "./types";
+export type { AuthEvent, AuthEventListener, AuthService, AuthState, AuthUser, LoginCredentials, SignUpCredentials, UserRole } from "./types";

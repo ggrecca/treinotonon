@@ -5,7 +5,8 @@ import { createPortal } from "react-dom";
 import {
   Dumbbell, BarChart3, Scale, CheckCircle2, Circle, Save, Trash2, TimerReset,
   Play, Pause, History, PlusCircle, ClipboardList, X, Copy, Edit3, ArrowUp,
-  ArrowDown, Settings2, Eye, EyeOff, Users, UserPlus, ArrowLeft, ArrowRight
+  ArrowDown, Settings2, Eye, EyeOff, Users, UserPlus, ArrowLeft, ArrowRight,
+  LoaderCircle
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from "recharts";
 import { authService, configurationError, isSupabaseConfigured } from "./services/authService";
@@ -15,6 +16,7 @@ import { buildRepPlan, expandRepTargetsForSets, isDropSetType, isRestPauseType, 
 import { Card } from "./components/Card";
 import { DashboardSwitcher } from "./components/DashboardSwitcher";
 import { WorkoutSwitcher } from "./components/WorkoutSwitcher";
+import { buildPasswordRecoveryRedirect, cleanPasswordRecoveryUrl, readPasswordRecoveryLocation, validateNewPassword } from "./utils/authRecovery";
 import "./style.css";
 
 const today = (value=new Date()) => {
@@ -662,6 +664,12 @@ function App(){
   const [signUpRole,setSignUpRole]=useState("athlete");
   const [showAuthPassword,setShowAuthPassword]=useState(false);
   const [passwordResetMode,setPasswordResetMode]=useState(false);
+  const [passwordResetSent,setPasswordResetSent]=useState(false);
+  const [passwordRecovery,setPasswordRecovery]=useState(()=>{
+    const recovery = readPasswordRecoveryLocation();
+    if(recovery.errorMessage) return {phase:"invalid", message:recovery.errorMessage};
+    return recovery.requested ? {phase:"checking", message:""} : {phase:"idle", message:""};
+  });
   const [dataMode,setDataMode]=useState("local");
   const [bodyMessage,setBodyMessage]=useState("");
   const [coachStudents,setCoachStudents]=useState([]);
@@ -727,12 +735,27 @@ function App(){
   }
 
   useEffect(()=>{
+    if(!isSupabaseConfigured) return undefined;
+    return authService.onAuthStateChange(event=>{
+      if(event === "PASSWORD_RECOVERY") {
+        setPasswordRecovery({phase:"ready", message:""});
+      }
+    });
+  },[]);
+
+  useEffect(()=>{
     let alive = true;
     (async()=>{
+      const recoveryReturn = readPasswordRecoveryLocation();
       try {
         const user = await authService.getCurrentUser();
         if(!alive) return;
         setCurrentUser(user);
+        if(recoveryReturn.requested && !recoveryReturn.errorMessage) {
+          setPasswordRecovery(user
+            ? {phase:"ready", message:""}
+            : {phase:"invalid", message:"Este link de recuperação é inválido, expirou ou já foi usado. Solicite um novo link."});
+        }
         if(isSupabaseConfigured && !user){
           setDataMode("cloud");
           return;
@@ -743,6 +766,9 @@ function App(){
         setDataMode(mode);
       } catch(error) {
         if(!configurationError) console.error("Erro ao carregar dados iniciais:", error);
+        if(recoveryReturn.requested) {
+          setPasswordRecovery({phase:"invalid", message:"Não foi possível validar o link agora. Verifique sua conexão ou solicite um novo link."});
+        }
       } finally {
         if(alive) setAuthReady(true);
       }
@@ -2743,11 +2769,12 @@ function exerciseCatalogToWorkoutItem(ex={}){
     const message = String(err?.message || "");
     const lower = message.toLowerCase();
     if(lower.includes("invalid") && lower.includes("email")) return "Email inválido. Confira o endereço informado.";
-    if(lower.includes("password") && (lower.includes("short") || lower.includes("6"))) return "Senha curta. Use pelo menos 6 caracteres.";
+    if(lower.includes("password") && (lower.includes("short") || lower.includes("weak") || lower.includes("8"))) return "Senha fraca. Use pelo menos 8 caracteres.";
     if(lower.includes("already") || lower.includes("registered") || lower.includes("exists")) return "Este email já possui conta. Tente entrar.";
     if(lower.includes("invalid login") || lower.includes("invalid credentials")) return "Email ou senha incorretos.";
     if(lower.includes("email ainda não foi confirmado") || lower.includes("email not confirmed") || lower.includes("not confirmed")) return "Seu email ainda não foi confirmado. Verifique sua caixa de entrada ou desative a confirmação de email durante os testes.";
     if(lower.includes("confirm")) return "Confirme seu email antes de entrar.";
+    if(lower.includes("expir") || lower.includes("invalid token") || lower.includes("recuperação não é mais válida")) return "Este link de recuperação é inválido, expirou ou já foi usado. Solicite um novo link.";
     return message || "Não foi possível concluir a operação de conta.";
   }
 
@@ -2758,6 +2785,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
   function changeAccountMode(mode){
     setAccountMode(mode);
     setPasswordResetMode(false);
+    setPasswordResetSent(false);
     setAuthMessage("");
   }
 
@@ -2768,6 +2796,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
   async function submitAccount(e){
     e.preventDefault();
+    if(authBusy) return;
     const accountForm = e.currentTarget;
     const f = new FormData(accountForm);
     const email = String(f.get("email") || "").trim();
@@ -2825,6 +2854,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
   }
 
   async function sendPasswordReset(email){
+    if(authBusy) return;
     if(!email){
       setAuthMessage("Informe seu email para recuperar a senha.");
       return;
@@ -2836,8 +2866,9 @@ function exerciseCatalogToWorkoutItem(ex={}){
     setAuthBusy(true);
     setAuthMessage("");
     try{
-      await authService.resetPassword(email);
-      setAuthMessage("Enviamos as instruções para seu e-mail.");
+      await authService.resetPassword(email, {redirectTo:buildPasswordRecoveryRedirect()});
+      setPasswordResetSent(true);
+      setAuthMessage("Se existir uma conta com este e-mail, enviaremos as instruções de recuperação.");
       notify("Instruções enviadas.", "info");
     } catch(err){
       console.error("Erro ao solicitar recuperação de senha:", err);
@@ -2849,7 +2880,64 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
   async function requestPasswordReset(){
     setPasswordResetMode(true);
+    setPasswordResetSent(false);
     setAuthMessage("Digite seu email para recuperar a senha.");
+  }
+
+  function clearRecoveryLocation(){
+    const cleanUrl = cleanPasswordRecoveryUrl();
+    if(cleanUrl && globalThis.history?.replaceState) globalThis.history.replaceState({}, "", cleanUrl);
+  }
+
+  function requestNewRecoveryLink(){
+    clearRecoveryLocation();
+    setPasswordRecovery({phase:"idle", message:""});
+    setCurrentUser(null);
+    setAccountMode("signIn");
+    setPasswordResetMode(true);
+    setPasswordResetSent(false);
+    setAuthMessage("Digite seu email para receber um novo link.");
+  }
+
+  function returnToLoginAfterRecovery(){
+    clearRecoveryLocation();
+    setPasswordRecovery({phase:"idle", message:""});
+    setCurrentUser(null);
+    setAccountMode("signIn");
+    setPasswordResetMode(false);
+    setPasswordResetSent(false);
+    setAuthMessage("Senha atualizada. Entre com a nova senha.");
+  }
+
+  async function submitNewPassword(event){
+    event.preventDefault();
+    if(authBusy) return;
+    const form = event.currentTarget;
+    const fields = new FormData(form);
+    const password = String(fields.get("newPassword") || "");
+    const confirmation = String(fields.get("confirmPassword") || "");
+    const validationError = validateNewPassword(password, confirmation);
+    if(validationError) {
+      setPasswordRecovery(current=>({...current, phase:"ready", message:validationError}));
+      return;
+    }
+    setAuthBusy(true);
+    setPasswordRecovery({phase:"updating", message:""});
+    try {
+      await authService.updatePassword(password);
+      await authService.signOut().catch(()=>{});
+      form?.reset?.();
+      setCurrentUser(null);
+      clearRecoveryLocation();
+      setPasswordRecovery({phase:"success", message:"Sua senha foi atualizada com segurança."});
+      notify("Senha atualizada.");
+    } catch(error) {
+      const message = friendlyAuthError(error);
+      const invalid = /link|expir|sessão de recuperação/i.test(message);
+      setPasswordRecovery({phase:invalid ? "invalid" : "ready", message});
+    } finally {
+      setAuthBusy(false);
+    }
   }
 
   async function signOutAccount(){
@@ -2875,6 +2963,11 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
   function AccountAccess({entry=false}){
     const statusText = dataMode === "cloud" ? "Dados: nuvem" : "Dados: local";
+    const authActionLabel = passwordResetMode
+      ? (authBusy ? "Enviando..." : passwordResetSent ? "Reenviar instruções" : "Enviar instruções")
+      : accountMode === "signUp"
+        ? (authBusy ? "Criando conta..." : "Criar conta")
+        : (authBusy ? "Entrando..." : "Entrar");
     if(!isSupabaseConfigured && !entry){
       return <section className="formCard accountCard settingsAccount">
         <h3>Conta</h3>
@@ -2912,7 +3005,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
         <button type="button" className={signUpRole === "athlete" ? "active" : "ghost"} onClick={()=>{setSignUpRole("athlete"); clearAuthMessage();}} disabled={authBusy}>Aluno</button>
         <button type="button" className={signUpRole === "coach" ? "active" : "ghost"} onClick={()=>{setSignUpRole("coach"); clearAuthMessage();}} disabled={authBusy}>Treinador</button>
       </div>}
-      <form className="accountForm" onSubmit={submitAccount}>
+      <form className="accountForm" onSubmit={submitAccount} aria-busy={authBusy}>
         {accountMode === "signUp" && !entry && !passwordResetMode && <section className="accountTypeBox" aria-label="Tipo de conta">
           <b>Como você vai usar o Treino Tonon?</b>
           <div className="accountTypeActions">
@@ -2921,18 +3014,60 @@ function exerciseCatalogToWorkoutItem(ex={}){
           </div>
         </section>}
         {accountMode === "signUp" && !passwordResetMode && <input name="name" placeholder="Nome" required onChange={clearAuthMessage} />}
-        <input name="email" type="email" placeholder="Email" defaultValue={currentUser?.email || ""} onChange={clearAuthMessage} />
+        <input name="email" type="email" placeholder="Email" defaultValue={currentUser?.email || ""} onChange={clearAuthMessage} required disabled={authBusy} />
         {!passwordResetMode && <div className="passwordField">
-          <input name="password" type={showAuthPassword ? "text" : "password"} placeholder="Senha" autoComplete={accountMode === "signUp" ? "new-password" : "current-password"} onChange={clearAuthMessage} />
-          <button type="button" className="ghost passwordToggle" onClick={()=>setShowAuthPassword(value=>!value)} aria-label={showAuthPassword ? "Ocultar senha" : "Mostrar senha"}>
+          <input name="password" type={showAuthPassword ? "text" : "password"} placeholder="Senha" autoComplete={accountMode === "signUp" ? "new-password" : "current-password"} onChange={clearAuthMessage} required disabled={authBusy} />
+          <button type="button" className="ghost passwordToggle" onClick={()=>setShowAuthPassword(value=>!value)} aria-label={showAuthPassword ? "Ocultar senha" : "Mostrar senha"} disabled={authBusy}>
             {showAuthPassword ? <EyeOff size={17}/> : <Eye size={17}/>}
           </button>
         </div>}
         <div className="accountActions primaryAuthAction">
-          <button disabled={authBusy}>{passwordResetMode ? "Enviar instruções" : accountMode === "signUp" ? "Criar conta" : "Entrar"}</button>
+          <button disabled={authBusy} aria-busy={authBusy}>{authBusy && <LoaderCircle className="buttonSpinner" aria-hidden="true"/>}{authActionLabel}</button>
         </div>
         {accountMode === "signIn" && !passwordResetMode && <button className="passwordResetLink" type="button" onClick={requestPasswordReset} disabled={authBusy}>Esqueci minha senha</button>}
-        {authMessage && <p className="feedbackMessage authMessage">{authMessage}</p>}
+        {passwordResetMode && <button className="passwordResetLink" type="button" onClick={()=>changeAccountMode("signIn")} disabled={authBusy}>Voltar ao login</button>}
+        {authMessage && <p className="feedbackMessage authMessage" role="status" aria-live="polite">{authMessage}</p>}
+      </form>
+    </section>;
+  }
+
+  function PasswordRecoveryAccess(){
+    const phase = passwordRecovery.phase;
+    if(phase === "checking") return <section className="formCard accountCard authCard recoveryCard" aria-busy="true">
+      <img className="loginLogo" src={logoSrc} alt={APP_NAME} />
+      <h2>Validando link</h2>
+      <p className="muted"><LoaderCircle className="inlineSpinner" aria-hidden="true"/> Preparando a troca de senha...</p>
+    </section>;
+    if(phase === "invalid") return <section className="formCard accountCard authCard recoveryCard">
+      <img className="loginLogo" src={logoSrc} alt={APP_NAME} />
+      <h2>Link indisponível</h2>
+      <p className="feedbackMessage error" role="alert">{passwordRecovery.message || "Este link é inválido, expirou ou já foi usado."}</p>
+      <button type="button" onClick={requestNewRecoveryLink}>Solicitar novo link</button>
+    </section>;
+    if(phase === "success") return <section className="formCard accountCard authCard recoveryCard">
+      <img className="loginLogo" src={logoSrc} alt={APP_NAME} />
+      <h2>Senha atualizada</h2>
+      <p className="feedbackMessage success" role="status">{passwordRecovery.message}</p>
+      <button type="button" onClick={returnToLoginAfterRecovery}>Entrar com a nova senha</button>
+    </section>;
+    return <section className="formCard accountCard authCard recoveryCard">
+      <img className="loginLogo" src={logoSrc} alt={APP_NAME} />
+      <h2>Defina uma nova senha</h2>
+      <p className="muted">Use pelo menos 8 caracteres e confirme a senha antes de salvar.</p>
+      <form className="accountForm" onSubmit={submitNewPassword} aria-busy={authBusy || phase === "updating"}>
+        <div className="passwordField">
+          <input name="newPassword" type={showAuthPassword ? "text" : "password"} placeholder="Nova senha" autoComplete="new-password" required disabled={authBusy || phase === "updating"} />
+          <button type="button" className="ghost passwordToggle" onClick={()=>setShowAuthPassword(value=>!value)} aria-label={showAuthPassword ? "Ocultar senha" : "Mostrar senha"} disabled={authBusy || phase === "updating"}>
+            {showAuthPassword ? <EyeOff size={17}/> : <Eye size={17}/>}
+          </button>
+        </div>
+        <input name="confirmPassword" type={showAuthPassword ? "text" : "password"} placeholder="Confirme a nova senha" autoComplete="new-password" required disabled={authBusy || phase === "updating"} />
+        {passwordRecovery.message && <p className="feedbackMessage error" role="alert">{passwordRecovery.message}</p>}
+        <button disabled={authBusy || phase === "updating"} aria-busy={authBusy || phase === "updating"}>
+          {(authBusy || phase === "updating") && <LoaderCircle className="buttonSpinner" aria-hidden="true"/>}
+          {authBusy || phase === "updating" ? "Atualizando..." : "Atualizar senha"}
+        </button>
+        <button className="passwordResetLink" type="button" onClick={requestNewRecoveryLink} disabled={authBusy || phase === "updating"}>Solicitar outro link</button>
       </form>
     </section>;
   }
@@ -4423,6 +4558,12 @@ function exerciseCatalogToWorkoutItem(ex={}){
         <p>{configurationError}</p>
         <p className="muted">O modo local permanece disponível apenas em desenvolvimento quando VITE_ENABLE_LOCAL_MODE=true.</p>
       </section>
+    </div>;
+  }
+
+  if(isSupabaseConfigured && passwordRecovery.phase !== "idle"){
+    return <div className={`app authGate ${themeClass}`}>
+      <PasswordRecoveryAccess />
     </div>;
   }
 
