@@ -2201,13 +2201,21 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
   .activeWorkoutHero h2{font-size:24px}
 }
 
-.toast{
+.toastRegion{
   position:fixed;
   left:50%;
   bottom:calc(var(--nav-height) + 18px + env(safe-area-inset-bottom));
-  z-index:60;
+  z-index:140;
   width:min(520px,calc(100% - 28px));
   transform:translateX(-50%);
+  display:grid;
+  gap:8px;
+  pointer-events:none;
+}
+.internalMode .toastRegion{
+  bottom:calc(18px + env(safe-area-inset-bottom));
+}
+.toast{
   display:flex;
   align-items:center;
   gap:10px;
@@ -2219,16 +2227,35 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
   box-shadow:var(--shadow-card);
   font-weight:850;
   animation:toastIn .2s ease both;
-}
-.internalMode .toast{
-  bottom:calc(18px + env(safe-area-inset-bottom));
+  pointer-events:auto;
 }
 .toast.info{
-  border-color:color-mix(in srgb,var(--color-primary) 45%,var(--color-border));
-  background:color-mix(in srgb,var(--color-primary) 14%,var(--color-surface));
+  border-color:color-mix(in srgb,var(--color-info) 48%,var(--color-border));
+  background:color-mix(in srgb,var(--color-info) 14%,var(--color-surface));
 }
-.toast svg{color:var(--color-success)}
-.toast.info svg{color:var(--color-primary)}
+.toast.warning{
+  border-color:color-mix(in srgb,var(--color-warning) 52%,var(--color-border));
+  background:color-mix(in srgb,var(--color-warning) 14%,var(--color-surface));
+}
+.toast.error{
+  border-color:color-mix(in srgb,var(--color-danger) 56%,var(--color-border));
+  background:color-mix(in srgb,var(--color-danger) 14%,var(--color-surface));
+}
+.toast .toastIcon{color:var(--color-success);flex:0 0 auto}
+.toast.info .toastIcon{color:var(--color-info)}
+.toast.warning .toastIcon{color:var(--color-warning)}
+.toast.error .toastIcon{color:var(--color-danger)}
+.toastMessage{min-width:0;flex:1}
+.toastCount{font-size:12px;color:var(--color-text-muted);white-space:nowrap}
+.toast .toastRetry,
+.toast .toastClose{
+  flex:0 0 auto;
+  min-height:36px;
+  padding:7px 9px;
+}
+.toast .toastRetry{background:transparent;color:var(--color-text);border-color:var(--color-border-strong)}
+.toast .toastClose{width:36px;padding:0;background:transparent;color:var(--color-text-muted);border-color:transparent}
+.toast .toastClose:hover{color:var(--color-text);background:var(--color-card-elevated)}
 
 .app main > section,
 .app main > .list,

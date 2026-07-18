@@ -6,7 +6,7 @@ import {
   Dumbbell, BarChart3, Scale, CheckCircle2, Circle, Save, Trash2, TimerReset,
   Play, Pause, History, PlusCircle, ClipboardList, X, Copy, Edit3, ArrowUp,
   ArrowDown, Settings2, Eye, EyeOff, Users, UserPlus, ArrowLeft, ArrowRight,
-  LoaderCircle, RefreshCw, WifiOff, AlertTriangle
+  LoaderCircle, RefreshCw, WifiOff, AlertTriangle, AlertCircle, Info
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from "recharts";
 import { authService, configurationError, isSupabaseConfigured } from "./services/authService";
@@ -20,6 +20,7 @@ import { buildPasswordRecoveryRedirect, cleanPasswordRecoveryUrl, readPasswordRe
 import { editorDraftKey, editorValuesDiffer, readEditorDraft, removeEditorDraft, writeEditorDraft } from "./utils/editorDrafts";
 import { canRunRemoteMutation, deriveSyncState } from "./utils/syncState";
 import { buildExerciseEvolution, buildExerciseSummary, buildTrainerAnalytics, sessionsForSubject } from "./utils/trainerAnalytics";
+import { enqueueToast } from "./utils/toasts";
 import "./style.css";
 
 const today = (value=new Date()) => {
@@ -657,7 +658,7 @@ function App(){
   const [sessionSummary,setSessionSummary]=useState(null);
   const [finishConfirm,setFinishConfirm]=useState(false);
   const [pendingWorkoutStartKey,setPendingWorkoutStartKey]=useState("");
-  const [feedback,setFeedback]=useState(null);
+  const [toasts,setToasts]=useState([]);
   const [currentUser,setCurrentUser]=useState(null);
   const [authReady,setAuthReady]=useState(false);
   const [authBusy,setAuthBusy]=useState(false);
@@ -1545,10 +1546,14 @@ function App(){
   },[activeSession, currentUserId, activeExerciseIndex, restExerciseIndex, exerciseRestOverrides, timer, restEndsAt]);
 
   useEffect(()=>{
-    if(!feedback) return;
-    const id=setTimeout(()=>setFeedback(null),2600);
-    return ()=>clearTimeout(id);
-  },[feedback]);
+    const timers = toasts
+      .filter(toast=>toast.duration > 0)
+      .map(toast=>setTimeout(
+        ()=>setToasts(current=>current.filter(item=>item.id !== toast.id)),
+        Math.max(0, toast.createdAt + toast.duration - Date.now()),
+      ));
+    return ()=>timers.forEach(clearTimeout);
+  },[toasts]);
 
   function closeActionMenus(){
     setOpenActionMenuId("");
@@ -1592,8 +1597,19 @@ function App(){
     showExerciseEditor
   ]);
 
-  function notify(message, type="success"){
-    setFeedback({id:makeId(), message, type});
+  function dismissToast(id){
+    setToasts(current=>current.filter(toast=>toast.id !== id));
+  }
+
+  function notify(message, type="success", options={}){
+    setToasts(current=>enqueueToast(current, {
+      id:makeId(),
+      message,
+      type,
+      duration:options.duration,
+      onRetry:options.onRetry,
+      retryLabel:options.retryLabel,
+    }));
   }
 
   function hasWorkoutGroups(groups){
@@ -2130,7 +2146,7 @@ function App(){
     } catch(error) {
       console.error("Erro ao responder convite:", error);
       await refreshAppData().catch(()=>{});
-      notify(error?.message || (accepted ? "Não foi possível aceitar este convite." : "Não foi possível recusar este convite."), "info");
+      notify(error?.message || (accepted ? "Não foi possível aceitar este convite." : "Não foi possível recusar este convite."), "error");
     }
   }
 
@@ -6640,9 +6656,27 @@ function exerciseCatalogToWorkoutItem(ex={}){
       </div>
     </div>}
 
-    {feedback && !finishConfirm && !sessionSummary && <div className={`toast ${feedback.type || "success"}`} role="status" aria-live="polite">
-      <CheckCircle2 size={18}/>
-      <span>{feedback.message}</span>
+    {toasts.length > 0 && <div className="toastRegion" aria-label="Notificações">
+      {toasts.map(toast=>{
+        const ToastIcon = toast.type === "success" ? CheckCircle2 : toast.type === "warning" ? AlertTriangle : toast.type === "error" ? AlertCircle : Info;
+        return <div
+          className={`toast ${toast.type}`}
+          key={toast.id}
+          role={toast.type === "error" ? "alert" : "status"}
+          aria-live={toast.type === "error" ? "assertive" : "polite"}
+          aria-atomic="true"
+        >
+          <ToastIcon className="toastIcon" size={20} aria-hidden="true"/>
+          <span className="toastMessage">{toast.message}</span>
+          {toast.count > 1 && <span className="toastCount" aria-label={`Repetido ${toast.count} vezes`}>×{toast.count}</span>}
+          {typeof toast.onRetry === "function" && <button type="button" className="toastRetry" onClick={()=>{
+            const retry = toast.onRetry;
+            dismissToast(toast.id);
+            Promise.resolve(retry()).catch(error=>notify(error?.message || "Não foi possível tentar novamente.", "error"));
+          }}>{toast.retryLabel || "Tentar novamente"}</button>}
+          <button type="button" className="toastClose" onClick={()=>dismissToast(toast.id)} aria-label="Fechar notificação"><X size={18}/></button>
+        </div>;
+      })}
     </div>}
 
     {showBottomNav && <nav className="nav">
