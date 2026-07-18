@@ -21,6 +21,7 @@ import { editorDraftKey, editorValuesDiffer, readEditorDraft, removeEditorDraft,
 import { canRunRemoteMutation, deriveSyncState } from "./utils/syncState";
 import { buildExerciseEvolution, buildExerciseSummary, buildTrainerAnalytics, sessionsForSubject } from "./utils/trainerAnalytics";
 import { enqueueToast } from "./utils/toasts";
+import { executeAssignmentBatch, mergeAssignmentsById } from "./utils/assignmentBatch";
 import "./style.css";
 
 const today = (value=new Date()) => {
@@ -695,6 +696,9 @@ function App(){
   const [studentMessage,setStudentMessage]=useState("");
   const [assignmentWorkoutId,setAssignmentWorkoutId]=useState("");
   const [assignmentSelection,setAssignmentSelection]=useState({self:false, students:{}});
+  const [assignmentRetryEntries,setAssignmentRetryEntries]=useState([]);
+  const [assignmentResult,setAssignmentResult]=useState(null);
+  const assignmentCompletedCountRef = useRef(0);
   const [selectedWorkoutDetailKey,setSelectedWorkoutDetailKey]=useState("");
   const [selectedWorkoutExerciseIndex,setSelectedWorkoutExerciseIndex]=useState(null);
   const [editingWorkoutExerciseIndex,setEditingWorkoutExerciseIndex]=useState(null);
@@ -711,6 +715,8 @@ function App(){
   const [inviteModalLink,setInviteModalLink]=useState(null);
   const [dirtyScopes,setDirtyScopes]=useState({});
   const [pendingNavigation,setPendingNavigation]=useState(null);
+  const [pendingActions,setPendingActions]=useState({});
+  const pendingActionKeysRef = useRef(new Set());
   const workoutEditorBaselineRef = useRef(blankWorkout);
   const exerciseEditorBaselineRef = useRef({...blankExercise, editingName:null});
   const bypassDirtyGuardRef = useRef(false);
@@ -864,6 +870,30 @@ function App(){
       : "Aguarde a atualização dos dados antes de fazer esta alteração.";
     notify(message, "warning");
     return false;
+  }
+
+  function isActionPending(key){
+    return !!pendingActions[key];
+  }
+
+  async function runPendingAction(key, action){
+    const actionKey = String(key || "action");
+    if(pendingActionKeysRef.current.has(actionKey)) return;
+    pendingActionKeysRef.current.add(actionKey);
+    setPendingActions(current=>({...current, [actionKey]:true}));
+    setPendingSyncCount(current=>current + 1);
+    try{
+      return await action();
+    } finally {
+      pendingActionKeysRef.current.delete(actionKey);
+      setPendingActions(current=>{
+        if(!current[actionKey]) return current;
+        const next = {...current};
+        delete next[actionKey];
+        return next;
+      });
+      setPendingSyncCount(current=>Math.max(0, current - 1));
+    }
   }
 
   function clearDirty(scope){
@@ -1806,6 +1836,7 @@ function App(){
   async function deleteSession(id){
     if(!ensureMutationAllowed()) return;
     if(!confirm("Excluir esta sessão do histórico?")) return;
+    return runPendingAction(`delete-session:${id}`, async()=>{
     try{
       await dataService.deleteWorkoutSession(id);
       setSessions(current=>current.filter(session=>session.id !== id));
@@ -1814,14 +1845,16 @@ function App(){
       notify("Sessão excluída.");
     } catch(error){
       console.error("Erro ao excluir sessão:", error);
-      alert(error?.message || "Não foi possível excluir a sessão.");
+      notify(error?.message || "Não foi possível excluir a sessão.", "error");
     }
+    });
   }
 
   async function addBody(e){
     e.preventDefault();
     if(!ensureMutationAllowed()) return;
     const form = e.currentTarget;
+    return runPendingAction("save-profile-body", async()=>{
     const f = new FormData(form);
     const record = buildBodyRecordFromForm(f, {fallbackAge: profile.age});
     const age = String(record.age || "").trim();
@@ -1848,6 +1881,7 @@ function App(){
       console.error("Erro ao salvar dados corporais:", error);
       setBodyMessage("Não foi possível salvar os dados corporais. Tente novamente.");
     }
+    });
   }
 
   function buildBodyRecordFromForm(f, target={}){
@@ -1934,6 +1968,7 @@ function App(){
       return;
     }
     const form = e.currentTarget;
+    return runPendingAction(`save-student-body:${student.studentId}`, async()=>{
     const record = buildBodyRecordFromForm(new FormData(form), student.isSelf ? {
       fallbackAge:student.age || profile.age || ""
     } : {
@@ -1958,6 +1993,7 @@ function App(){
       console.error("Erro ao salvar dados corporais do aluno:", error);
       setStudentMessage("Não foi possível salvar os dados corporais do aluno.");
     }
+    });
   }
 
   async function deleteBodyRecord(record, index){
@@ -1969,6 +2005,7 @@ function App(){
       return false;
     }
     if(!confirm("Excluir este registro de dados corporais?")) return false;
+    return runPendingAction(`delete-body:${record?.id || index}`, async()=>{
     const next = record?.id
       ? body.filter(item => item.id !== record.id)
       : body.filter((item, i) => i !== index);
@@ -1985,6 +2022,7 @@ function App(){
       setStudentMessage("Não foi possível excluir este registro corporal.");
       return false;
     }
+    });
   }
 
   function canManageBodyRecord(record){
@@ -2036,6 +2074,7 @@ function App(){
   async function createStudentInvite(studentEmail, extra={}){
     if(!ensureMutationAllowed()) return;
     if(!studentEmail) return setStudentMessage("Informe o e-mail do aluno.");
+    return runPendingAction("create-invite", async()=>{
     const link = {
       id:makeId(),
       coachId:currentUserId,
@@ -2060,6 +2099,7 @@ function App(){
       console.error("Erro ao convidar aluno:", error);
       setStudentMessage("Não foi possível criar o convite.");
     }
+    });
   }
 
   async function inviteStudent(e){
@@ -2119,6 +2159,8 @@ function App(){
       notify("Este convite pertence a outro e-mail.", "info");
       return;
     }
+    const actionKey = `invite-response:${link.id}`;
+    return runPendingAction(actionKey, async()=>{
     const invite = {
       ...link,
       id:link.id,
@@ -2128,7 +2170,6 @@ function App(){
       status:link.status
     };
     const optimisticStatus = accepted ? "active" : "refused";
-    setInviteModalLink(null);
     setDismissedInviteIds(current => current.filter(id => id !== link.id));
     setCoachStudents(current => current.map(item => item.id === link.id ? {...item, ...invite, status:optimisticStatus} : item));
     try{
@@ -2137,6 +2178,7 @@ function App(){
         : await dataService.refuseCoachInvite(invite);
       setCoachStudents(current => current.map(item=>item.id === link.id ? savedLink : item));
       const data = await refreshAppData();
+      setInviteModalLink(null);
       if(accepted) {
         setCoachStudents(data.coachStudents || []);
         setScreen("dashboard");
@@ -2148,6 +2190,7 @@ function App(){
       await refreshAppData().catch(()=>{});
       notify(error?.message || (accepted ? "Não foi possível aceitar este convite." : "Não foi possível recusar este convite."), "error");
     }
+    });
   }
 
   async function updateStudentStatus(link, status){
@@ -2190,6 +2233,7 @@ function App(){
     if(!ensureMutationAllowed()) return;
     if(!editingStudentLink?.id) return;
     const form = event.currentTarget;
+    return runPendingAction(`save-student:${editingStudentLink.id}`, async()=>{
     const data = new FormData(form);
     const next = {
       ...editingStudentLink,
@@ -2211,6 +2255,7 @@ function App(){
       console.error("Erro ao salvar informações do aluno:", error);
       setStudentMessage("Não foi possível salvar as informações do aluno.");
     }
+    });
   }
 
   async function saveProfile(e){
@@ -2219,6 +2264,8 @@ function App(){
     const f = new FormData(e.currentTarget);
     const p = {...profile, name:String(f.get("name") || "").trim(), age:String(f.get("age") ?? profile.age ?? "").trim()};
     if(!p.name){ notify("Informe seu nome.", "error"); return; }
+    return runPendingAction("save-profile", async()=>{
+    try{
     setProfile(p);
     await dataService.saveSettings({profile: p});
     try{
@@ -2233,6 +2280,11 @@ function App(){
     clearDirty("profile-name");
     removeEditorDraft(globalThis.localStorage, currentDraftKey("profile-name", "current"));
     setShowNameEditor(false);
+    } catch(error){
+      console.error("Erro ao salvar perfil:", error);
+      notify(error?.message || "Não foi possível salvar o perfil.", "error");
+    }
+    });
   }
 
   async function saveExerciseToLibrary(ex){
@@ -2382,6 +2434,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
     const {editingName, editingId, ...exerciseData} = exerciseForm;
     const normalized = catalogExercise({...exerciseData, id:exerciseData.id || editingId || makeId()});
     if(!normalized.name) return alert("Informe o nome do exercício.");
+    return runPendingAction("save-exercise", async()=>{
     const oldName = String(editingName || normalized.name);
     const oldKey = normalizeExerciseName(oldName);
     const normalizedKey = normalizeExerciseName(normalized.name);
@@ -2415,7 +2468,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
       }
     } catch(error){
       console.error("Erro ao salvar exercício:", error);
-      alert("Não foi possível salvar o exercício. Confira o console e tente novamente.");
+      notify(error?.message || "Não foi possível salvar o exercício. Tente novamente.", "error");
       return;
     }
 
@@ -2428,6 +2481,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
     closeExerciseEditor();
     queueMicrotask(()=>{ bypassDirtyGuardRef.current = false; });
     notify("Exercício salvo na biblioteca.");
+    });
   }
 
   function startNewExerciseEditor(){
@@ -2455,15 +2509,26 @@ function exerciseCatalogToWorkoutItem(ex={}){
     const normalizedName = String(exerciseItem.name || exercise || "").trim();
     if(!normalizedName) return;
     if(!confirm("Excluir este exercício da biblioteca? Treinos já criados e históricos salvos não serão apagados.")) return;
+    const actionKey = `delete-exercise:${exerciseItem.id || normalizeExerciseName(normalizedName)}`;
+    return runPendingAction(actionKey, async()=>{
     const key = normalizeExerciseName(normalizedName);
     const updated = userLibrary.filter(ex => normalizeExerciseName(ex.name) !== key);
     const hidden = hiddenLibrary.some(item => normalizeExerciseName(item) === key) ? hiddenLibrary : [...hiddenLibrary, normalizedName];
-    setUserLibrary(updated);
-    await dataService.deleteExercise(exerciseItem.id || normalizedName);
-    setHiddenLibrary(hidden);
-    await dataService.saveSettings({hiddenLibrary: hidden});
-    if(normalizeExerciseName(exerciseForm.editingName) === key) closeExerciseEditor();
-    if(selectedExerciseDetailId && normalizeExerciseName(selectedExerciseDetail?.name) === key) setSelectedExerciseDetailId("");
+    try{
+      await dataService.deleteExercise(exerciseItem.id || normalizedName);
+      await dataService.saveSettings({hiddenLibrary: hidden});
+      setUserLibrary(updated);
+      setHiddenLibrary(hidden);
+      if(normalizeExerciseName(exerciseForm.editingName) === key) closeExerciseEditor();
+      if(selectedExerciseDetailId && normalizeExerciseName(selectedExerciseDetail?.name) === key) setSelectedExerciseDetailId("");
+      notify("Exercício excluído.");
+    } catch(error){
+      console.error("Erro ao excluir exercício:", error);
+      notify(error?.message || "Não foi possível excluir o exercício.", "error", {
+        onRetry:()=>deleteUserLibraryExercise(exerciseItem),
+      });
+    }
+    });
   }
 
   function startNewWorkout(){
@@ -2646,6 +2711,8 @@ function exerciseCatalogToWorkoutItem(ex={}){
       && repTargetFieldLabels(item).slice(0, plannedSetCount(item.sets)).some(value=>!String(value || "").trim())
     );
     if(incompleteProgressiveExercise) return alert(`Informe as repetições de todas as séries em ${incompleteProgressiveExercise.name}.`);
+    return runPendingAction("save-workout", async()=>{
+    try{
     const normalizedItems = normalizeAllPreviewConjugates(newWorkout.items).map(item=>withWorkoutExerciseIdentity(exerciseWithRepTargets(item)));
     for(const item of normalizedItems) await saveExerciseToLibrary(item);
     if(newWorkout.editingKey && baseWorkoutGroups[newWorkout.editingKey]){
@@ -2665,7 +2732,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
         await dataService.saveSettings({editedBaseWorkouts: next, hiddenBaseWorkouts: hidden});
       } catch(error) {
         console.error("Erro ao salvar treino-base:", error);
-        alert(error?.message || "Não foi possível salvar o treino-base.");
+        notify(error?.message || "Não foi possível salvar o treino-base.", "error");
         return;
       }
       setEditedBaseWorkouts(next);
@@ -2741,7 +2808,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
       await dataService.saveWorkout(savedWorkout);
     } catch(error) {
       console.error("Erro ao salvar treino:", error);
-      alert(error?.message || "Não foi possível salvar o treino.");
+      notify(error?.message || "Não foi possível salvar o treino.", "error");
       return;
     }
     setCustomWorkouts(list);
@@ -2757,6 +2824,11 @@ function exerciseCatalogToWorkoutItem(ex={}){
     } else {
       setScreen("treino");
     }
+    } catch(error){
+      console.error("Erro ao salvar treino:", error);
+      notify(error?.message || "Não foi possível salvar o treino.", "error");
+    }
+    });
   }
 
   function startEditWorkout(key){
@@ -3017,6 +3089,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
     const idx = customWorkoutIndexForKey(workoutKey);
     const target = customWorkouts[idx];
     if(!target?.id) return;
+    return runPendingAction(`delete-workout:${target.id}`, async()=>{
 
     if(workoutHasHistory(target)) {
       if(confirm("Este treino já possui histórico e não pode ser excluído. Você pode arquivá-lo.")) {
@@ -3049,8 +3122,9 @@ function exerciseCatalogToWorkoutItem(ex={}){
       notify("Treino excluído.");
     } catch(error) {
       console.error("Erro ao excluir treino:", error);
-      alert(error?.message || "Não foi possível excluir este treino. Se ele já tiver histórico, arquive para preservar os registros.");
+      notify(error?.message || "Não foi possível excluir este treino. Se ele já tiver histórico, arquive para preservar os registros.", "error");
     }
+    });
   }
 
   async function archiveEditingWorkout(){
@@ -3839,6 +3913,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
   async function saveActiveSession(session){
     if(!ensureMutationAllowed()) return;
+    return runPendingAction(`save-session:${session?.id || "active"}`, async()=>{
     const summary = summarizeActiveSession(session);
     try {
       await dataService.saveWorkoutSession(summary);
@@ -3882,9 +3957,13 @@ function exerciseCatalogToWorkoutItem(ex={}){
       return true;
     } catch(error) {
       console.error("Erro ao salvar sessão de treino:", error);
-      alert("Não foi possível salvar esta sessão. O treino continua aberto para você tentar novamente.");
+      notify("Não foi possível salvar esta sessão. O treino continua aberto para você tentar novamente.", "error", {
+        duration:0,
+        onRetry:()=>saveActiveSession(session),
+      });
       return false;
     }
+    });
   }
 
   function finishActiveSession(){
@@ -4421,18 +4500,21 @@ function exerciseCatalogToWorkoutItem(ex={}){
     if(!workoutItem?.id) return;
     setAssignmentWorkoutId(workoutItem.id);
     setAssignmentSelection(restoreControlledDraft("workout-assignment", workoutItem.id, {self:false, students:{}}));
+    setAssignmentRetryEntries([]);
+    setAssignmentResult(null);
+    assignmentCompletedCountRef.current = 0;
     setShowWorkoutEditor(false);
     requestAnimationFrame(()=>document.getElementById("assign-workout")?.scrollIntoView({block:"start", behavior:"smooth"}));
   }
 
-  async function assignWorkoutToStudent(workoutItem, student){
+  async function assignWorkoutToStudent(workoutItem, student, preparedCopy=null){
     if(!ensureMutationAllowed()) return;
     if(!workoutItem?.id || !student?.studentId) {
       alert("O aluno precisa aceitar o convite antes de receber treinos.");
       return;
     }
     const isSelfAssignment = !!student.isSelf;
-    const copy = {
+    const copy = preparedCopy || {
       ...workoutItem,
       id:makeId(),
       name:workoutItem.name,
@@ -4449,14 +4531,22 @@ function exerciseCatalogToWorkoutItem(ex={}){
       sourceTemplateId:workoutItem.id,
       isActive:true
     };
-    try{
-      await dataService.saveWorkout(copy);
-      setCustomWorkouts(current => [...current, copy]);
-      notify(isSelfAssignment ? "Treino atribuído aos seus treinos." : "Treino atribuído ao aluno.", "info");
-    } catch(error) {
-      console.error("Erro ao atribuir treino:", error);
-      alert(error?.message || "Não foi possível atribuir este treino.");
-    }
+    const actionKey = `assign-workout:${workoutItem.id}:${student.studentId}`;
+    return runPendingAction(actionKey, async()=>{
+      const entry = {key:actionKey, label:student.studentName || student.studentEmail || currentUserSelfLabel, copy};
+      const result = await executeAssignmentBatch([entry], item=>dataService.saveWorkout(item));
+      if(result.succeeded.length){
+        setCustomWorkouts(current=>mergeAssignmentsById(current, result.succeeded));
+        notify(isSelfAssignment ? "Treino atribuído aos seus treinos." : "Treino atribuído ao aluno.");
+        return;
+      }
+      const message = result.failed[0]?.error || "Não foi possível atribuir este treino.";
+      console.error("Erro ao atribuir treino:", message);
+      notify(message, "error", {
+        duration:0,
+        onRetry:()=>assignWorkoutToStudent(workoutItem, student, copy),
+      });
+    });
   }
 
   function toggleAssignmentStudent(linkId, checked){
@@ -4473,66 +4563,97 @@ function exerciseCatalogToWorkoutItem(ex={}){
   function closeAssignment(){
     setAssignmentWorkoutId("");
     setAssignmentSelection({self:false, students:{}});
+    setAssignmentRetryEntries([]);
+    setAssignmentResult(null);
+    assignmentCompletedCountRef.current = 0;
+  }
+
+  async function runAssignmentEntries(entries){
+    if(!ensureMutationAllowed()) return;
+    if(!entries.length) return;
+    return runPendingAction("assign-workout", async()=>{
+      const result = await executeAssignmentBatch(entries, copy=>dataService.saveWorkout(copy));
+      if(result.succeeded.length) setCustomWorkouts(current=>mergeAssignmentsById(current, result.succeeded));
+      assignmentCompletedCountRef.current += result.succeeded.length;
+      if(result.failed.length){
+        const status = result.succeeded.length ? "partial" : "error";
+        setAssignmentRetryEntries(result.failed);
+        setAssignmentResult({status:assignmentCompletedCountRef.current ? "partial" : status, succeeded:assignmentCompletedCountRef.current, failed:result.failed});
+        const message = result.succeeded.length
+          ? `${result.succeeded.length} atribuição${result.succeeded.length > 1 ? "ões" : ""} concluída${result.succeeded.length > 1 ? "s" : ""}; ${result.failed.length} falhou.`
+          : `Nenhuma atribuição foi concluída. ${result.failed.length} destino${result.failed.length > 1 ? "s falharam" : " falhou"}.`;
+        notify(message, status === "partial" ? "warning" : "error", {
+          duration:0,
+          onRetry:()=>runAssignmentEntries(result.failed),
+          retryLabel:`Tentar ${result.failed.length} novamente`,
+        });
+        return result;
+      }
+      removeEditorDraft(globalThis.localStorage, currentDraftKey("workout-assignment", assignmentWorkoutId));
+      const completedCount = assignmentCompletedCountRef.current;
+      closeAssignment();
+      notify(`Treino atribuído para ${completedCount} destino${completedCount > 1 ? "s" : ""}.`);
+      return result;
+    });
   }
 
   async function assignWorkoutCopies(){
-    if(!ensureMutationAllowed()) return;
     if(!assignmentSourceWorkout) return;
+    if(assignmentRetryEntries.length) return runAssignmentEntries(assignmentRetryEntries);
     const selectedLinks = activeAssignableStudents.filter(link => assignmentSelection.students?.[link.id]);
     if(!assignmentSelection.self && selectedLinks.length === 0) {
       alert("Escolha pelo menos um destino para atribuir o treino.");
       return;
     }
     const baseItems = cloneWorkoutItemsForAssignment(assignmentSourceWorkout.items || []);
-    const copies = [];
+    const entries = [];
     if(assignmentSelection.self) {
-      copies.push({
-        ...assignmentSourceWorkout,
-        id:makeId(),
-        name:assignmentSourceWorkout.name,
-        items:cloneWorkoutItemsForAssignment(baseItems),
-        type:"personal",
-        ownerId:currentUserId,
-        coachId:"",
-        coachName:"",
-        coachEmail:"",
-        studentId:"",
-        studentName:"",
-        studentEmail:"",
-        sourceWorkoutId:assignmentSourceWorkout.id,
-        sourceTemplateId:assignmentSourceWorkout.id,
-        isActive:true
+      entries.push({
+        key:"self",
+        label:currentUserSelfLabel,
+        copy:{
+          ...assignmentSourceWorkout,
+          id:makeId(),
+          name:assignmentSourceWorkout.name,
+          items:cloneWorkoutItemsForAssignment(baseItems),
+          type:"personal",
+          ownerId:currentUserId,
+          coachId:"",
+          coachName:"",
+          coachEmail:"",
+          studentId:"",
+          studentName:"",
+          studentEmail:"",
+          sourceWorkoutId:assignmentSourceWorkout.id,
+          sourceTemplateId:assignmentSourceWorkout.id,
+          isActive:true
+        }
       });
     }
     selectedLinks.forEach(link => {
-      copies.push({
-        ...assignmentSourceWorkout,
-        id:makeId(),
-        name:assignmentSourceWorkout.name,
-        items:cloneWorkoutItemsForAssignment(baseItems),
-        type:"student",
-        ownerId:link.studentId,
-        coachId:currentUserId,
-        coachName:currentUserName,
-        coachEmail:currentUserEmail,
-        studentId:link.studentId,
-        studentName:link.studentName || "",
-        studentEmail:normalizeEmail(link.studentEmail),
-        sourceWorkoutId:assignmentSourceWorkout.id,
-        sourceTemplateId:assignmentSourceWorkout.id,
-        isActive:true
+      entries.push({
+        key:link.id,
+        label:link.studentName || link.studentEmail || "Aluno",
+        copy:{
+          ...assignmentSourceWorkout,
+          id:makeId(),
+          name:assignmentSourceWorkout.name,
+          items:cloneWorkoutItemsForAssignment(baseItems),
+          type:"student",
+          ownerId:link.studentId,
+          coachId:currentUserId,
+          coachName:currentUserName,
+          coachEmail:currentUserEmail,
+          studentId:link.studentId,
+          studentName:link.studentName || "",
+          studentEmail:normalizeEmail(link.studentEmail),
+          sourceWorkoutId:assignmentSourceWorkout.id,
+          sourceTemplateId:assignmentSourceWorkout.id,
+          isActive:true
+        }
       });
     });
-    try{
-      for(const copy of copies) await dataService.saveWorkout(copy);
-      setCustomWorkouts(current => [...current, ...copies]);
-      removeEditorDraft(globalThis.localStorage, currentDraftKey("workout-assignment", assignmentWorkoutId));
-      closeAssignment();
-      notify(`Treino atribuído para ${copies.length} destino${copies.length > 1 ? "s" : ""}.`);
-    } catch(error) {
-      console.error("Erro ao atribuir treino:", error);
-      alert(error?.message || "Não foi possível atribuir este treino.");
-    }
+    return runAssignmentEntries(entries);
   }
 
   function latestExerciseExecution(exerciseName){
@@ -5156,7 +5277,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
         }) : <span>Sem séries detalhadas nesta sessão.</span>}
         <em>Volume do exercício: {i.volume ? `${Math.round(i.volume).toLocaleString("pt-BR")} kg` : "indisponível"}</em>
       </details>)}
-      {canDeleteOpenSession(session) && <button type="button" className="danger" onClick={()=>deleteSession(session.id)}>Excluir sessão</button>}
+      {canDeleteOpenSession(session) && <button type="button" className="danger" disabled={isActionPending(`delete-session:${session.id}`)} aria-busy={isActionPending(`delete-session:${session.id}`)} onClick={()=>deleteSession(session.id)}>
+        {isActionPending(`delete-session:${session.id}`) && <LoaderCircle className="buttonSpinner" aria-hidden="true"/>}
+        {isActionPending(`delete-session:${session.id}`) ? "Excluindo…" : "Excluir sessão"}
+      </button>}
     </section>;
   }
 
@@ -5612,17 +5736,20 @@ function exerciseCatalogToWorkoutItem(ex={}){
           <section className="studentSection compactStudentSection">
             <h3>Registro corporal</h3>
             {bodyRecordDetailLines(selectedBodyRecord.record).map(([label,value])=><div className="recordLine" key={label}><b>{label}</b><span>{value}</span></div>)}
-            {canManageBodyRecord(selectedBodyRecord.record) && <button type="button" className="danger" onClick={async ()=>{
+            {canManageBodyRecord(selectedBodyRecord.record) && <button type="button" className="danger" disabled={isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`)} aria-busy={isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`)} onClick={async ()=>{
               if(await deleteBodyRecord(selectedBodyRecord.record, selectedBodyRecord.index)) closeSelectedBodyRecord();
-            }}>Excluir registro</button>}
+            }}>{isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`) ? "Excluindo…" : "Excluir registro"}</button>}
           </section>
         </section> : showStudentBodyForm || studentDetailView === "bodyForm" ? <section className="studentProfile internalDetail compactStudentProfile">
           <section className="studentSection compactStudentSection">
             <h3>Dados corporais</h3>
-            <form id="student-body-form" className="accountForm bodyRecordForm" onSubmit={event=>addStudentBody(event, selectedStudentProfile)} onInputCapture={()=>markDirty("student-body")} onChangeCapture={()=>markDirty("student-body")}>
+            <form id="student-body-form" className="accountForm bodyRecordForm" onSubmit={event=>addStudentBody(event, selectedStudentProfile)} onInputCapture={()=>markDirty("student-body")} onChangeCapture={()=>markDirty("student-body")} aria-busy={isActionPending(`save-student-body:${selectedStudentProfile.studentId}`)}>
               <input type="hidden" name="bodyFatOverrideMode" value="methodOnly" />
               <BodyRecordFields profileBodyEditor />
-              <button><Save size={18}/> Salvar registro corporal</button>
+              <button disabled={isActionPending(`save-student-body:${selectedStudentProfile.studentId}`)}>
+                {isActionPending(`save-student-body:${selectedStudentProfile.studentId}`) ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Save size={18}/>}
+                {isActionPending(`save-student-body:${selectedStudentProfile.studentId}`) ? "Salvando…" : "Salvar registro corporal"}
+              </button>
             </form>
             {studentMessage && <p className="feedbackMessage">{studentMessage}</p>}
           </section>
@@ -5641,7 +5768,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
             {customWorkouts.filter(w=>w.isActive !== false && isTrainerWorkoutTemplate(w)).length===0 && <p className="emptyHint">Nenhum modelo disponível para atribuir.</p>}
             {customWorkouts.filter(w=>w.isActive !== false && isTrainerWorkoutTemplate(w)).map((w,idx)=><div className="recordLine" key={w.id || idx}>
               <b>{w.name || `Treino ${idx + 1}`}</b>
-              <button type="button" className="ghost small" onClick={()=>assignWorkoutToStudent(w, selectedStudentProfile)}>Atribuir</button>
+              <button type="button" className="ghost small" disabled={isActionPending(`assign-workout:${w.id}:${selectedStudentProfile.studentId}`)} aria-busy={isActionPending(`assign-workout:${w.id}:${selectedStudentProfile.studentId}`)} onClick={()=>assignWorkoutToStudent(w, selectedStudentProfile)}>
+                {isActionPending(`assign-workout:${w.id}:${selectedStudentProfile.studentId}`) && <LoaderCircle className="buttonSpinner" aria-hidden="true"/>}
+                {isActionPending(`assign-workout:${w.id}:${selectedStudentProfile.studentId}`) ? "Atribuindo…" : "Atribuir"}
+              </button>
             </div>)}
           </section>
         </section> : studentDetailView === "workoutHistory" ? <section className="studentProfile internalDetail compactStudentProfile">
@@ -5707,7 +5837,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
                 <ActionMenu id={`student-workout-${w.id || w.name}`} label="Ações do treino">
                     <button type="button" disabled={!workoutKey} onClick={()=>workoutKey && startEditWorkout(workoutKey)}>Editar</button>
                     <button type="button" disabled={!workoutKey} onClick={()=>workoutKey && duplicateWorkout(workoutKey)}>Duplicar</button>
-                    <button type="button" className="danger" disabled={!workoutKey} onClick={()=>workoutKey && deleteWorkoutSafely(workoutKey)}>Excluir</button>
+                    <button type="button" className="danger" disabled={!workoutKey || isActionPending(`delete-workout:${workoutKey}`)} aria-busy={isActionPending(`delete-workout:${workoutKey}`)} onClick={()=>workoutKey && deleteWorkoutSafely(workoutKey)}>{isActionPending(`delete-workout:${workoutKey}`) ? "Excluindo…" : "Excluir"}</button>
                 </ActionMenu>
               </div>;
             })}
@@ -5720,7 +5850,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
         </section>}
       </> : showInviteForm ? <>
         <section className="formCard">
-          <button type="button" onClick={generateInviteFromButton}><UserPlus size={18}/> Gerar convite</button>
+          <button type="button" onClick={generateInviteFromButton} disabled={isActionPending("create-invite")} aria-busy={isActionPending("create-invite")}>
+            {isActionPending("create-invite") ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <UserPlus size={18}/>}
+            {isActionPending("create-invite") ? "Gerando…" : "Gerar convite"}
+          </button>
           {generatedInvite && <div className="inviteResult">
             <div className="recordLine"><b>Convite</b><span>{generatedInvite.id}</span></div>
             <div className="accountActions">
@@ -5823,7 +5956,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
                 {selectedWorkoutDetail.meta.isActive === false
                   ? <button type="button" onClick={()=>reactivateWorkout(selectedWorkoutDetail.key)}>Restaurar</button>
                   : <button type="button" onClick={()=>archiveWorkout(selectedWorkoutDetail.key)}>Arquivar</button>}
-                <button type="button" className="danger" onClick={()=>deleteWorkoutSafely(selectedWorkoutDetail.key)}>Excluir</button>
+                <button type="button" className="danger" disabled={isActionPending(`delete-workout:${selectedWorkoutDetail.meta.id || selectedWorkoutDetail.key}`)} aria-busy={isActionPending(`delete-workout:${selectedWorkoutDetail.meta.id || selectedWorkoutDetail.key}`)} onClick={()=>deleteWorkoutSafely(selectedWorkoutDetail.key)}>{isActionPending(`delete-workout:${selectedWorkoutDetail.meta.id || selectedWorkoutDetail.key}`) ? "Excluindo…" : "Excluir"}</button>
             </ActionMenu>}
           </div>
 
@@ -5891,7 +6024,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
       </div>}
       {showWorkoutEditor && appMode === "treinador" && isEditingExistingWorkout && editingWorkoutExerciseIndex === null && <div className="titleActions workoutEditorTopActions">
         <button type="button" className="ghost" onClick={archiveEditingWorkout}><EyeOff size={18}/> Arquivar treino</button>
-        {newWorkout.editingWorkoutKey && <button type="button" className="danger" onClick={()=>deleteWorkoutSafely(newWorkout.editingWorkoutKey)}><Trash2 size={18}/> Excluir treino</button>}
+        {newWorkout.editingWorkoutKey && <button type="button" className="danger" disabled={isActionPending(`delete-workout:${newWorkout.editingId || newWorkout.editingWorkoutKey}`)} aria-busy={isActionPending(`delete-workout:${newWorkout.editingId || newWorkout.editingWorkoutKey}`)} onClick={()=>deleteWorkoutSafely(newWorkout.editingWorkoutKey)}>{isActionPending(`delete-workout:${newWorkout.editingId || newWorkout.editingWorkoutKey}`) ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Trash2 size={18}/>} {isActionPending(`delete-workout:${newWorkout.editingId || newWorkout.editingWorkoutKey}`) ? "Excluindo…" : "Excluir treino"}</button>}
       </div>}
       {!showWorkoutEditor && !assignmentWorkoutId && appMode === "treinador" && <section className="formCard compactWorkoutSearch">
         <input value={workoutSearch} onChange={e=>setWorkoutSearch(e.target.value)} placeholder="Pesquisar por nome, objetivo ou exercício" />
@@ -5919,18 +6052,27 @@ function exerciseCatalogToWorkoutItem(ex={}){
       {!showWorkoutEditor && assignmentWorkoutId && assignmentSourceWorkout && <section className="formCard" id="assign-workout">
         <h3>Atribuir treino</h3>
         <p className="muted">{assignmentSourceWorkout.name} será copiado individualmente para cada destino selecionado.</p>
+        {assignmentResult && <div className={`assignmentResult ${assignmentResult.status}`} role={assignmentResult.status === "error" ? "alert" : "status"}>
+          <b>{assignmentResult.status === "partial" ? "Atribuição parcialmente concluída" : "Não foi possível concluir a atribuição"}</b>
+          {assignmentResult.succeeded > 0 && <span>{assignmentResult.succeeded} destino{assignmentResult.succeeded > 1 ? "s" : ""} concluído{assignmentResult.succeeded > 1 ? "s" : ""}.</span>}
+          <span>{assignmentResult.failed.length} destino{assignmentResult.failed.length > 1 ? "s precisam" : " precisa"} de nova tentativa:</span>
+          <ul>{assignmentResult.failed.map(entry=><li key={entry.key}><b>{entry.label}</b><small>{entry.error}</small></li>)}</ul>
+        </div>}
         <label className="toggleLine">
-          <input type="checkbox" checked={!!assignmentSelection.self} onChange={event=>toggleAssignmentSelf(event.target ? event.target.checked : false)} />
+          <input type="checkbox" checked={!!assignmentSelection.self} disabled={isActionPending("assign-workout") || assignmentRetryEntries.length > 0} onChange={event=>toggleAssignmentSelf(event.target ? event.target.checked : false)} />
           <span>{currentUserSelfLabel}</span>
         </label>
         {activeAssignableStudents.length===0 && <p className="emptyHint">Nenhum aluno ativo disponível para atribuição.</p>}
         {activeAssignableStudents.map(link=><label className="toggleLine" key={link.id}>
-          <input type="checkbox" checked={!!assignmentSelection.students?.[link.id]} onChange={event=>toggleAssignmentStudent(link.id, event.target ? event.target.checked : false)} />
+          <input type="checkbox" checked={!!assignmentSelection.students?.[link.id]} disabled={isActionPending("assign-workout") || assignmentRetryEntries.length > 0} onChange={event=>toggleAssignmentStudent(link.id, event.target ? event.target.checked : false)} />
           <span>{link.studentName || link.studentEmail}</span>
         </label>)}
         <div className="createActions">
-          <button type="button" className="ghost" onClick={()=>closeDirtyScope("workout-assignment", closeAssignment)}>Cancelar</button>
-          <button type="button" onClick={assignWorkoutCopies}><Save size={18}/> Atribuir treino</button>
+          <button type="button" className="ghost" disabled={isActionPending("assign-workout")} onClick={()=>closeDirtyScope("workout-assignment", closeAssignment)}>Cancelar</button>
+          <button type="button" onClick={assignWorkoutCopies} disabled={isActionPending("assign-workout")} aria-busy={isActionPending("assign-workout")}>
+            {isActionPending("assign-workout") ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Save size={18}/>}
+            {isActionPending("assign-workout") ? "Atribuindo…" : assignmentRetryEntries.length ? `Tentar ${assignmentRetryEntries.length} novamente` : "Atribuir treino"}
+          </button>
         </div>
       </section>}
 
@@ -5985,12 +6127,12 @@ function exerciseCatalogToWorkoutItem(ex={}){
             {appMode === "treinador" && <ActionMenu id={`workout-list-${k}`} label="Ações do treino">
                 {workoutArchiveView === "archived" ? <>
                   <button type="button" onClick={()=>reactivateWorkout(k)}>Restaurar</button>
-                  <button type="button" className="danger" onClick={()=>deleteWorkoutSafely(k, {permanent:true})}>Excluir definitivamente</button>
+                  <button type="button" className="danger" disabled={isActionPending(`delete-workout:${k}`)} aria-busy={isActionPending(`delete-workout:${k}`)} onClick={()=>deleteWorkoutSafely(k, {permanent:true})}>{isActionPending(`delete-workout:${k}`) ? "Excluindo…" : "Excluir definitivamente"}</button>
                 </> : <>
                   <button type="button" onClick={()=>startEditWorkout(k)}>Editar</button>
                   <button type="button" onClick={()=>duplicateWorkout(k)}>Duplicar</button>
                   <button type="button" onClick={()=>archiveWorkout(k)}>Arquivar</button>
-                  <button type="button" className="danger" onClick={()=>deleteWorkoutSafely(k)}>Excluir</button>
+                  <button type="button" className="danger" disabled={isActionPending(`delete-workout:${k}`)} aria-busy={isActionPending(`delete-workout:${k}`)} onClick={()=>deleteWorkoutSafely(k)}>{isActionPending(`delete-workout:${k}`) ? "Excluindo…" : "Excluir"}</button>
                 </>}
             </ActionMenu>}
           </div>
@@ -6200,8 +6342,11 @@ function exerciseCatalogToWorkoutItem(ex={}){
           </section>
         </section>
         <div className="createActions workoutEditorFinalActions">
-          <button type="button" className="ghost" onClick={cancelEditWorkout}>Cancelar</button>
-          <button onClick={saveCustomWorkout}><Save size={18}/> {isEditingExistingWorkout ? "Salvar alterações" : "Salvar treino"}</button>
+          <button type="button" className="ghost" disabled={isActionPending("save-workout")} onClick={cancelEditWorkout}>Cancelar</button>
+          <button onClick={saveCustomWorkout} disabled={isActionPending("save-workout")} aria-busy={isActionPending("save-workout")}>
+            {isActionPending("save-workout") ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Save size={18}/>}
+            {isActionPending("save-workout") ? "Salvando…" : isEditingExistingWorkout ? "Salvar alterações" : "Salvar treino"}
+          </button>
         </div>
       </>)}
       </>}
@@ -6229,7 +6374,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
           </section>
           <div className="createActions">
             <button type="button" className="ghost" onClick={()=>editLibraryExercise(selectedExerciseDetail)}><Edit3 size={18}/> Editar</button>
-            <button type="button" className="danger" onClick={()=>deleteUserLibraryExercise(selectedExerciseDetail)}><Trash2 size={18}/> Excluir</button>
+            <button type="button" className="danger" disabled={isActionPending(`delete-exercise:${selectedExerciseDetail.id || normalizeExerciseName(selectedExerciseDetail.name)}`)} aria-busy={isActionPending(`delete-exercise:${selectedExerciseDetail.id || normalizeExerciseName(selectedExerciseDetail.name)}`)} onClick={()=>deleteUserLibraryExercise(selectedExerciseDetail)}>
+              {isActionPending(`delete-exercise:${selectedExerciseDetail.id || normalizeExerciseName(selectedExerciseDetail.name)}`) ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Trash2 size={18}/>}
+              {isActionPending(`delete-exercise:${selectedExerciseDetail.id || normalizeExerciseName(selectedExerciseDetail.name)}`) ? "Excluindo…" : "Excluir"}
+            </button>
           </div>
         </section>
       </> : <>
@@ -6252,8 +6400,11 @@ function exerciseCatalogToWorkoutItem(ex={}){
         <input value={normalizeList(exerciseForm.tags).join(", ")} onChange={e=>updateExerciseFormField("tags", e.currentTarget.value)} placeholder="Tags técnicas separadas por vírgula" />
         <textarea name="technicalNotes" value={exerciseForm.technicalNotes || exerciseForm.notes || ""} onChange={e=>updateExerciseFormField("technicalNotes", e.currentTarget.value)} placeholder="Informações técnicas do exercício" />
         <div className="createActions">
-          <button type="button" className="ghost" onClick={closeExerciseEditor}>Cancelar</button>
-          <button><Save size={18}/> {exerciseForm.editingName ? "Salvar alterações" : "Salvar exercício"}</button>
+          <button type="button" className="ghost" disabled={isActionPending("save-exercise")} onClick={closeExerciseEditor}>Cancelar</button>
+          <button disabled={isActionPending("save-exercise")} aria-busy={isActionPending("save-exercise")}>
+            {isActionPending("save-exercise") ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Save size={18}/>}
+            {isActionPending("save-exercise") ? "Salvando…" : exerciseForm.editingName ? "Salvar alterações" : "Salvar exercício"}
+          </button>
         </div>
       </form>}
 
@@ -6303,7 +6454,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
               </div>
               <div className="managerActions">
                 <button className="ghost iconBtn" type="button" title="Editar exercício" onClick={(event)=>{event.stopPropagation(); editLibraryExercise(ex);}}><Edit3 size={16}/></button>
-                <button className="danger iconBtn" type="button" title="Excluir exercício" onClick={(event)=>{event.stopPropagation(); deleteUserLibraryExercise(ex);}}><Trash2 size={16}/></button>
+                <button className="danger iconBtn" type="button" title="Excluir exercício" disabled={isActionPending(`delete-exercise:${ex.id || normalizeExerciseName(ex.name)}`)} aria-busy={isActionPending(`delete-exercise:${ex.id || normalizeExerciseName(ex.name)}`)} onClick={(event)=>{event.stopPropagation(); deleteUserLibraryExercise(ex);}}>{isActionPending(`delete-exercise:${ex.id || normalizeExerciseName(ex.name)}`) ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Trash2 size={16}/>}</button>
               </div>
             </div>
           })}
@@ -6437,17 +6588,20 @@ function exerciseCatalogToWorkoutItem(ex={}){
         <section className="formCard">
           <h3>Registro corporal</h3>
           {bodyRecordDetailLines(selectedBodyRecord.record).map(([label,value])=><div className="recordLine" key={label}><b>{label}</b><span>{value}</span></div>)}
-          {canManageBodyRecord(selectedBodyRecord.record) && <button type="button" className="danger" onClick={async ()=>{
+          {canManageBodyRecord(selectedBodyRecord.record) && <button type="button" className="danger" disabled={isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`)} aria-busy={isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`)} onClick={async ()=>{
             if(await deleteBodyRecord(selectedBodyRecord.record, selectedBodyRecord.index)) closeSelectedBodyRecord();
-          }}>Excluir registro</button>}
+          }}>{isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`) ? "Excluindo…" : "Excluir registro"}</button>}
         </section>
       </> : showProfileBodyEditor ? <>
         <section className="formCard">
           <h3>Dados corporais</h3>
-          <form id="profile-body-form" className="accountForm" onSubmit={addBody} onInputCapture={()=>markDirty("profile-body")} onChangeCapture={()=>markDirty("profile-body")}>
+          <form id="profile-body-form" className="accountForm" onSubmit={addBody} onInputCapture={()=>markDirty("profile-body")} onChangeCapture={()=>markDirty("profile-body")} aria-busy={isActionPending("save-profile-body")}>
             <input type="hidden" name="bodyFatOverrideMode" value="methodOnly" />
             <BodyRecordFields includeDate={false} profileBodyEditor />
-            <button>Salvar dados corporais</button>
+            <button disabled={isActionPending("save-profile-body")}>
+              {isActionPending("save-profile-body") && <LoaderCircle className="buttonSpinner" aria-hidden="true"/>}
+              {isActionPending("save-profile-body") ? "Salvando…" : "Salvar dados corporais"}
+            </button>
           </form>
           {bodyMessage && <p className="feedbackMessage">{bodyMessage}</p>}
         </section>
@@ -6479,7 +6633,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
           <div className="recordLine"><b>E-mail conectado</b><span>{currentUser?.email || "Conta local"}</span></div>
           {showNameEditor ? <form id="profile-name-form" className="accountForm" onSubmit={saveProfile} onInputCapture={()=>markDirty("profile-name")} onChangeCapture={()=>markDirty("profile-name")}>
             <input name="name" defaultValue={currentUser?.name || profile.name || ""} required placeholder="Nome" />
-            <div className="createActions"><button type="button" className="ghost" onClick={()=>closeDirtyScope("profile-name", ()=>setShowNameEditor(false))}>Cancelar</button><button>Salvar nome</button></div>
+            <div className="createActions"><button type="button" className="ghost" disabled={isActionPending("save-profile")} onClick={()=>closeDirtyScope("profile-name", ()=>setShowNameEditor(false))}>Cancelar</button><button disabled={isActionPending("save-profile")} aria-busy={isActionPending("save-profile")}>{isActionPending("save-profile") && <LoaderCircle className="buttonSpinner" aria-hidden="true"/>}{isActionPending("save-profile") ? "Salvando…" : "Salvar nome"}</button></div>
           </form> : <button type="button" className="ghost" onClick={openProfileNameEditor}>Editar nome</button>}
           <button type="button" className="danger" onClick={signOutAccount} disabled={authBusy || !currentUser}>Sair da conta</button>
           {authMessage && <p className="feedbackMessage">{authMessage}</p>}
@@ -6551,8 +6705,11 @@ function exerciseCatalogToWorkoutItem(ex={}){
           <textarea name="notes" placeholder="Restrições, lesões, recomendações ou informações relevantes" defaultValue={editingStudentLink.notes || ""} />
         </section>
         <div className="finishActions">
-          <button type="button" className="ghost" onClick={()=>closeDirtyScope("student-admin", ()=>setEditingStudentLink(null))}>Cancelar</button>
-          <button type="submit"><Save size={18}/> Salvar</button>
+          <button type="button" className="ghost" disabled={isActionPending(`save-student:${editingStudentLink.id}`)} onClick={()=>closeDirtyScope("student-admin", ()=>setEditingStudentLink(null))}>Cancelar</button>
+          <button type="submit" disabled={isActionPending(`save-student:${editingStudentLink.id}`)} aria-busy={isActionPending(`save-student:${editingStudentLink.id}`)}>
+            {isActionPending(`save-student:${editingStudentLink.id}`) ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Save size={18}/>}
+            {isActionPending(`save-student:${editingStudentLink.id}`) ? "Salvando…" : "Salvar"}
+          </button>
         </div>
         {studentMessage && <p className="feedbackMessage">{studentMessage}</p>}
       </form>
@@ -6618,12 +6775,15 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
     {finishConfirm && activeSession && <div className="modal">
       <div className="modalCard">
-        <button className="close" onClick={()=>setFinishConfirm(false)}><X/></button>
+        <button className="close" disabled={isActionPending(`save-session:${activeSession.id || "active"}`)} onClick={()=>setFinishConfirm(false)}><X/></button>
         <h2>Finalizar treino</h2>
         <p className="muted">{Object.values(activeSession.exercises || {}).filter(ex=>ex.done).length} concluídos · {(activeSession.plannedItems || []).length - Object.values(activeSession.exercises || {}).filter(ex=>ex.done).length} pendentes</p>
         <div className="finishActions">
-          <button onClick={()=>saveActiveSession(activeSession)}><Save size={18}/> Finalizar mesmo assim</button>
-          <button className="ghost" onClick={()=>setFinishConfirm(false)}>Voltar ao treino</button>
+          <button onClick={()=>saveActiveSession(activeSession)} disabled={isActionPending(`save-session:${activeSession.id || "active"}`)} aria-busy={isActionPending(`save-session:${activeSession.id || "active"}`)}>
+            {isActionPending(`save-session:${activeSession.id || "active"}`) ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Save size={18}/>}
+            {isActionPending(`save-session:${activeSession.id || "active"}`) ? "Finalizando…" : "Finalizar mesmo assim"}
+          </button>
+          <button className="ghost" disabled={isActionPending(`save-session:${activeSession.id || "active"}`)} onClick={()=>setFinishConfirm(false)}>Voltar ao treino</button>
         </div>
       </div>
     </div>}
@@ -6646,12 +6806,15 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
     {appMode === "atleta" && inviteModalLink && <div className="modal">
       <div className="modalCard inviteModalCard">
-        <button className="close" type="button" onClick={()=>dismissInviteModal(inviteModalLink)}><X/></button>
+        <button className="close" type="button" disabled={isActionPending(`invite-response:${inviteModalLink.id}`)} onClick={()=>dismissInviteModal(inviteModalLink)}><X/></button>
         <small>Convite de treinador</small>
         <h2>{inviteModalLink.coachName || "Seu treinador"}</h2>
         <div className="finishActions">
-          <button type="button" className="ghost" onClick={()=>answerCoachInvite(inviteModalLink, false)}>Recusar</button>
-          <button type="button" onClick={()=>answerCoachInvite(inviteModalLink, true)}>Aceitar</button>
+          <button type="button" className="ghost" disabled={isActionPending(`invite-response:${inviteModalLink.id}`)} onClick={()=>answerCoachInvite(inviteModalLink, false)}>Recusar</button>
+          <button type="button" disabled={isActionPending(`invite-response:${inviteModalLink.id}`)} aria-busy={isActionPending(`invite-response:${inviteModalLink.id}`)} onClick={()=>answerCoachInvite(inviteModalLink, true)}>
+            {isActionPending(`invite-response:${inviteModalLink.id}`) && <LoaderCircle className="buttonSpinner" aria-hidden="true"/>}
+            {isActionPending(`invite-response:${inviteModalLink.id}`) ? "Respondendo…" : "Aceitar"}
+          </button>
         </div>
       </div>
     </div>}
