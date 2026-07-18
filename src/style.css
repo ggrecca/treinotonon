@@ -2741,6 +2741,9 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
   background:var(--color-card-elevated);
   padding:10px 12px;
 }
+.dirtyGuardModal{z-index:120}
+.draftGuardActions{display:grid;gap:10px}
+.draftGuardActions button{width:100%}
 .feedbackMessage.success{
   border-color:color-mix(in srgb,var(--color-success) 45%,var(--color-border));
   background:color-mix(in srgb,var(--color-success) 12%,var(--color-card-elevated));

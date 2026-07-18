@@ -17,6 +17,7 @@ import { Card } from "./components/Card";
 import { DashboardSwitcher } from "./components/DashboardSwitcher";
 import { WorkoutSwitcher } from "./components/WorkoutSwitcher";
 import { buildPasswordRecoveryRedirect, cleanPasswordRecoveryUrl, readPasswordRecoveryLocation, validateNewPassword } from "./utils/authRecovery";
+import { editorDraftKey, editorValuesDiffer, readEditorDraft, removeEditorDraft, writeEditorDraft } from "./utils/editorDrafts";
 import "./style.css";
 
 const today = (value=new Date()) => {
@@ -699,6 +700,11 @@ function App(){
   const [athleteCalendarCursor,setAthleteCalendarCursor]=useState(()=>monthCursor(new Date()));
   const [dismissedInviteIds,setDismissedInviteIds]=useState([]);
   const [inviteModalLink,setInviteModalLink]=useState(null);
+  const [dirtyScopes,setDirtyScopes]=useState({});
+  const [pendingNavigation,setPendingNavigation]=useState(null);
+  const workoutEditorBaselineRef = useRef(blankWorkout);
+  const exerciseEditorBaselineRef = useRef({...blankExercise, editingName:null});
+  const bypassDirtyGuardRef = useRef(false);
   const restoringNavigationRef = useRef(false);
   const suppressNextNavigationPushRef = useRef(false);
 
@@ -783,9 +789,200 @@ function App(){
   const currentUserSelfLabel = `${currentUserDisplayName} (Eu)`;
   const currentUserRole = normalizeAccountRole(currentUser?.role || profile.role);
   const canUseCoachMode = currentUserRole === "coach";
+  const workoutEditorDirty = showWorkoutEditor && editorValuesDiffer(newWorkout, workoutEditorBaselineRef.current);
+  const exerciseEditorDirty = showExerciseEditor && editorValuesDiffer(exerciseForm, exerciseEditorBaselineRef.current);
+  const assignmentDirty = !!assignmentWorkoutId && (assignmentSelection.self || Object.values(assignmentSelection.students || {}).some(Boolean));
+  const hasUnsavedChanges = workoutEditorDirty || exerciseEditorDirty || assignmentDirty || Object.values(dirtyScopes).some(Boolean);
   const professionalScreens = useMemo(()=>new Set(["alunos","exercicios","evolucao","analises"]),[]);
   const athleteScreens = useMemo(()=>new Set(["dashboard","criar","treino","historico","dados"]),[]);
   const lastRoleGuardUserRef = useRef("");
+
+  function markDirty(scope){
+    setDirtyScopes(current=>current[scope] ? current : {...current, [scope]:true});
+  }
+
+  function clearDirty(scope){
+    setDirtyScopes(current=>current[scope] ? {...current, [scope]:false} : current);
+  }
+
+  function workoutDraftEntity(value=newWorkout){
+    return value.editingWorkoutKey || value.editingKey || value.editingId || (Number.isInteger(value.editingIndex) ? `index-${value.editingIndex}` : "new");
+  }
+
+  function exerciseDraftEntity(value=exerciseForm){
+    return value.editingId || value.editingName || "new";
+  }
+
+  function currentDraftEntity(scope){
+    if(scope === "workout-editor") return workoutDraftEntity();
+    if(scope === "exercise-editor") return exerciseDraftEntity();
+    if(scope === "student-body" || scope === "student-admin") return selectedStudentProfile?.id || editingStudentLink?.id || "student";
+    if(scope === "workout-assignment") return assignmentWorkoutId || "assignment";
+    return "current";
+  }
+
+  function currentDraftKey(scope, entityId=currentDraftEntity(scope)){
+    return editorDraftKey(currentUserId, scope, entityId);
+  }
+
+  function namedFormValues(formId){
+    const form = document.getElementById(formId);
+    if(!form) return {};
+    return Array.from(form.elements || []).reduce((values,field)=>{
+      if(!field.name || field.disabled || field.type === "file" || field.type === "submit" || field.type === "button") return values;
+      if((field.type === "radio" || field.type === "checkbox") && !field.checked) {
+        if(field.type === "checkbox") values[field.name] = false;
+        return values;
+      }
+      values[field.name] = field.type === "checkbox" ? true : field.value;
+      return values;
+    },{});
+  }
+
+  function draftFormId(scope){
+    return {
+      "profile-body":"profile-body-form",
+      "student-body":"student-body-form",
+      "student-admin":"student-admin-form",
+      "profile-name":"profile-name-form",
+    }[scope] || "";
+  }
+
+  function persistCurrentDraft(scope){
+    let value = null;
+    if(scope === "workout-editor") value = {kind:"controlled", data:newWorkout};
+    else if(scope === "exercise-editor") value = {kind:"controlled", data:exerciseForm};
+    else if(scope === "workout-assignment") value = {kind:"controlled", data:assignmentSelection};
+    else {
+      const formId = draftFormId(scope);
+      value = {kind:"form", data:namedFormValues(formId)};
+    }
+    const saved = writeEditorDraft(globalThis.localStorage, currentDraftKey(scope), value);
+    notify(saved ? "Rascunho salvo neste navegador." : "Não foi possível salvar o rascunho.", saved ? "info" : "warning");
+    return saved;
+  }
+
+  function restoreControlledDraft(scope, entityId, fallback){
+    const saved = readEditorDraft(globalThis.localStorage, currentDraftKey(scope, entityId));
+    if(saved?.value?.kind !== "controlled" || !saved.value.data) return fallback;
+    requestAnimationFrame(()=>notify("Rascunho restaurado.", "info"));
+    return saved.value.data;
+  }
+
+  function restoreFormDraft(scope, formId, entityId=currentDraftEntity(scope)){
+    const saved = readEditorDraft(globalThis.localStorage, currentDraftKey(scope, entityId));
+    if(saved?.value?.kind !== "form" || !saved.value.data) return;
+    requestAnimationFrame(()=>{
+      const form = document.getElementById(formId);
+      if(!form) return;
+      Object.entries(saved.value.data).forEach(([name,value])=>{
+        const field = form.elements.namedItem(name);
+        if(!field || field instanceof RadioNodeList) return;
+        if(field.type === "checkbox" || field.type === "radio") field.checked = !!value;
+        else field.value = String(value ?? "");
+        field.dispatchEvent(new Event("input", {bubbles:true}));
+        field.dispatchEvent(new Event("change", {bubbles:true}));
+      });
+      markDirty(scope);
+      notify("Rascunho restaurado.", "info");
+    });
+  }
+
+  function activeDirtyScope(){
+    if(workoutEditorDirty) return "workout-editor";
+    if(exerciseEditorDirty) return "exercise-editor";
+    if(dirtyScopes["profile-body"]) return "profile-body";
+    if(dirtyScopes["student-body"]) return "student-body";
+    if(dirtyScopes["student-admin"]) return "student-admin";
+    if(dirtyScopes["profile-name"]) return "profile-name";
+    if(assignmentDirty) return "workout-assignment";
+    return "";
+  }
+
+  function requestProtectedAction(action){
+    if(bypassDirtyGuardRef.current) {
+      action();
+      return true;
+    }
+    const scope = activeDirtyScope();
+    if(!scope) {
+      action();
+      return true;
+    }
+    setPendingNavigation({scope, action});
+    return false;
+  }
+
+  function resolvePendingNavigation(choice){
+    const pending = pendingNavigation;
+    if(!pending) return;
+    if(choice === "continue") {
+      setPendingNavigation(null);
+      return;
+    }
+    if(choice === "save") persistCurrentDraft(pending.scope);
+    if(choice === "discard") removeEditorDraft(globalThis.localStorage, currentDraftKey(pending.scope));
+    clearDirty(pending.scope);
+    setPendingNavigation(null);
+    bypassDirtyGuardRef.current = true;
+    try {
+      pending.action();
+    } finally {
+      queueMicrotask(()=>{ bypassDirtyGuardRef.current = false; });
+    }
+  }
+
+  function openStudentBodyEditor(student){
+    setStudentDetailView("bodyForm");
+    setShowStudentBodyForm(true);
+    restoreFormDraft("student-body", "student-body-form", student?.id || "student");
+  }
+
+  function openStudentAdminEditor(student){
+    setStudentMessage("");
+    setEditingStudentLink(student);
+    restoreFormDraft("student-admin", "student-admin-form", student?.id || "student");
+  }
+
+  function openProfileBodyEditor(){
+    setShowProfileBodyEditor(true);
+    restoreFormDraft("profile-body", "profile-body-form", "current");
+  }
+
+  function openProfileNameEditor(){
+    setShowNameEditor(true);
+    restoreFormDraft("profile-name", "profile-name-form", "current");
+  }
+
+  function closeDirtyScope(scope, action){
+    if(!bypassDirtyGuardRef.current && (dirtyScopes[scope] || (scope === "workout-assignment" && assignmentDirty))) {
+      requestProtectedAction(action);
+      return;
+    }
+    action();
+  }
+
+  function dirtyScopeLabel(scope){
+    return {
+      "workout-editor":"treino",
+      "exercise-editor":"exercício",
+      "profile-body":"dados corporais",
+      "student-body":"dados corporais do aluno",
+      "student-admin":"cadastro do aluno",
+      "profile-name":"nome do perfil",
+      "workout-assignment":"seleção da atribuição",
+    }[scope] || "formulário";
+  }
+
+  useEffect(()=>{
+    if(!hasUnsavedChanges) return undefined;
+    const warnBeforeUnload = event => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return ()=>window.removeEventListener("beforeunload", warnBeforeUnload);
+  },[hasUnsavedChanges]);
 
   const activeStudentLinks = useMemo(()=>coachStudents.filter(link =>
     link.status === "active" && (link.studentId === currentUserId || normalizeEmail(link.studentEmail) === currentUserEmail)
@@ -1561,6 +1758,8 @@ function App(){
       await dataService.saveValue("body", dataMode === "cloud" ? [record] : nextBody);
       setBody(nextBody);
       form?.reset?.();
+      clearDirty("profile-body");
+      removeEditorDraft(globalThis.localStorage, currentDraftKey("profile-body", "current"));
       setBodyMessage("Dados corporais salvos.");
       notify("Dados corporais salvos.");
     } catch(error){
@@ -1666,6 +1865,8 @@ function App(){
       await dataService.saveValue("body", dataMode === "cloud" ? [record] : nextBody);
       setBody(nextBody);
       form.reset();
+      clearDirty("student-body");
+      removeEditorDraft(globalThis.localStorage, currentDraftKey("student-body", student.id || "student"));
       setShowStudentBodyForm(false);
       setStudentDetailView("");
       setStudentMessage("Registro corporal salvo.");
@@ -1912,6 +2113,8 @@ function App(){
     try{
       await dataService.saveCoachStudent(next);
       setCoachStudents(current => current.map(item => item.id === next.id ? {...item, ...next} : item));
+      clearDirty("student-admin");
+      removeEditorDraft(globalThis.localStorage, currentDraftKey("student-admin", editingStudentLink.id));
       setEditingStudentLink(null);
       setStudentMessage("");
       notify("Aluno atualizado.", "info");
@@ -1937,6 +2140,8 @@ function App(){
       // Perfil local deve continuar salvando mesmo se a sessão Supabase não estiver ativa.
     }
     notify("Perfil salvo.");
+    clearDirty("profile-name");
+    removeEditorDraft(globalThis.localStorage, currentDraftKey("profile-name", "current"));
     setShowNameEditor(false);
   }
 
@@ -2071,6 +2276,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
   }
 
   function closeExerciseEditor(){
+    if(!bypassDirtyGuardRef.current && exerciseEditorDirty) {
+      requestProtectedAction(closeExerciseEditor);
+      return;
+    }
     resetExerciseForm();
     setShowExerciseEditor(false);
     setLibrarySearch("");
@@ -2122,14 +2331,28 @@ function exerciseCatalogToWorkoutItem(ex={}){
     setUserLibrary(finalLibrary);
     setHiddenLibrary(finalHidden);
     if(updatedWorkouts) setCustomWorkouts(updatedWorkouts);
+    removeEditorDraft(globalThis.localStorage, currentDraftKey("exercise-editor"));
+    exerciseEditorBaselineRef.current = {...blankExercise, editingName:null};
+    bypassDirtyGuardRef.current = true;
     closeExerciseEditor();
+    queueMicrotask(()=>{ bypassDirtyGuardRef.current = false; });
     notify("Exercício salvo na biblioteca.");
+  }
+
+  function startNewExerciseEditor(){
+    const initial = {...blankExercise, editingName:null};
+    exerciseEditorBaselineRef.current = initial;
+    setExerciseForm(restoreControlledDraft("exercise-editor", "new", initial));
+    setShowExerciseEditor(true);
+    requestAnimationFrame(()=>window.scrollTo({top:0, behavior:"smooth"}));
   }
 
   function editLibraryExercise(ex){
     const exerciseId = String(ex.id || "");
     const normalized = catalogExercise({...ex, id:exerciseId || ex.id});
-    setExerciseForm({...blankExercise, ...normalized, editingId:exerciseId, editingName:ex.name});
+    const initial = {...blankExercise, ...normalized, editingId:exerciseId, editingName:ex.name};
+    exerciseEditorBaselineRef.current = initial;
+    setExerciseForm(restoreControlledDraft("exercise-editor", exerciseDraftEntity(initial), initial));
     setShowExerciseEditor(true);
     setLibrarySearch(ex.name || "");
     requestAnimationFrame(()=>document.getElementById("exercise-editor")?.scrollIntoView({block:"start", behavior:"smooth"}));
@@ -2153,7 +2376,9 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
   function startNewWorkout(){
     if(appMode !== "treinador") return;
-    setNewWorkout({...blankWorkout, type:"template", ownerId:currentUserId, coachId:currentUserId, coachName:currentUserName, coachEmail:currentUserEmail});
+    const initial = {...blankWorkout, type:"template", ownerId:currentUserId, coachId:currentUserId, coachName:currentUserName, coachEmail:currentUserEmail};
+    workoutEditorBaselineRef.current = initial;
+    setNewWorkout(restoreControlledDraft("workout-editor", "new", initial));
     setNewExercise(blankExercise);
     setShowWorkoutLibrary(false);
     setWorkoutLibraryFiltersOpen(false);
@@ -2352,6 +2577,8 @@ function exerciseCatalogToWorkoutItem(ex={}){
       }
       setEditedBaseWorkouts(next);
       setHiddenBaseWorkouts(hidden);
+      removeEditorDraft(globalThis.localStorage, currentDraftKey("workout-editor"));
+      workoutEditorBaselineRef.current = blankWorkout;
       setNewWorkout(blankWorkout);
       setNewExercise(blankExercise);
       setShowWorkoutEditor(false);
@@ -2425,6 +2652,8 @@ function exerciseCatalogToWorkoutItem(ex={}){
       return;
     }
     setCustomWorkouts(list);
+    removeEditorDraft(globalThis.localStorage, currentDraftKey("workout-editor"));
+    workoutEditorBaselineRef.current = blankWorkout;
     setNewWorkout(blankWorkout);
     setNewExercise(blankExercise);
     setShowWorkoutEditor(false);
@@ -2445,7 +2674,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
     clearWorkoutExerciseFilters();
     if(baseWorkoutGroups[key]){
       const existing = editedBaseWorkouts[key] || {};
-      setNewWorkout({
+      const initial = {
         ...existing,
         name:allWorkoutLabels[key] || `Treino ${key}`,
         items:groupsToCustomItems(allWorkouts[key] || []),
@@ -2458,7 +2687,9 @@ function exerciseCatalogToWorkoutItem(ex={}){
         editingKey:key,
         editingWorkoutKey:key,
         editingIndex:null
-      });
+      };
+      workoutEditorBaselineRef.current = initial;
+      setNewWorkout(restoreControlledDraft("workout-editor", workoutDraftEntity(initial), initial));
       setNewExercise(blankExercise);
       setShowWorkoutEditor(true);
       setScreen("criar");
@@ -2467,7 +2698,9 @@ function exerciseCatalogToWorkoutItem(ex={}){
     const idx = customWorkoutIndexForKey(key);
     const w = customWorkouts[idx];
     if(!w) return;
-    setNewWorkout({...w, name:w.name, items:(w.items || []).map(exerciseWithRepTargets), editingId:w.id || null, editingKey:null, editingWorkoutKey:key, editingIndex:idx});
+    const initial = {...w, name:w.name, items:(w.items || []).map(exerciseWithRepTargets), editingId:w.id || null, editingKey:null, editingWorkoutKey:key, editingIndex:idx};
+    workoutEditorBaselineRef.current = initial;
+    setNewWorkout(restoreControlledDraft("workout-editor", workoutDraftEntity(initial), initial));
     setNewExercise(blankExercise);
     setShowWorkoutEditor(true);
     setScreen("criar");
@@ -2484,7 +2717,9 @@ function exerciseCatalogToWorkoutItem(ex={}){
       setCustomWorkouts(list);
       setWorkout(copiedWorkout.id);
       setScreen("criar");
-      setNewWorkout({name:label, items, editingId:copiedWorkout.id, editingKey:null, editingWorkoutKey:copiedWorkout.id, editingIndex:list.length-1});
+      const initial = {name:label, items, editingId:copiedWorkout.id, editingKey:null, editingWorkoutKey:copiedWorkout.id, editingIndex:list.length-1};
+      workoutEditorBaselineRef.current = initial;
+      setNewWorkout(initial);
       setShowWorkoutEditor(true);
       return;
     }
@@ -2735,7 +2970,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
   }
 
   function cancelEditWorkout(){
-    if((newWorkout.name || newWorkout.items.length) && !confirm("Descartar alterações não salvas?")) return;
+    if(!bypassDirtyGuardRef.current && workoutEditorDirty) {
+      requestProtectedAction(cancelEditWorkout);
+      return;
+    }
     const workoutKey = newWorkout.editingWorkoutKey || newWorkout.editingKey || "";
     suppressNextNavigationPush();
     setNavigationStack([]);
@@ -2941,6 +3179,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
   }
 
   async function signOutAccount(){
+    if(!bypassDirtyGuardRef.current && activeDirtyScope()) {
+      requestProtectedAction(signOutAccount);
+      return;
+    }
     setAuthBusy(true);
     setAuthMessage("");
     try{
@@ -4116,7 +4358,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
   function openAssignment(workoutItem){
     if(!workoutItem?.id) return;
     setAssignmentWorkoutId(workoutItem.id);
-    setAssignmentSelection({self:false, students:{}});
+    setAssignmentSelection(restoreControlledDraft("workout-assignment", workoutItem.id, {self:false, students:{}}));
     setShowWorkoutEditor(false);
     requestAnimationFrame(()=>document.getElementById("assign-workout")?.scrollIntoView({block:"start", behavior:"smooth"}));
   }
@@ -4220,6 +4462,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
     try{
       for(const copy of copies) await dataService.saveWorkout(copy);
       setCustomWorkouts(current => [...current, ...copies]);
+      removeEditorDraft(globalThis.localStorage, currentDraftKey("workout-assignment", assignmentWorkoutId));
       closeAssignment();
       notify(`Treino atribuído para ${copies.length} destino${copies.length > 1 ? "s" : ""}.`);
     } catch(error) {
@@ -4420,6 +4663,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
   }
 
   function changeMode(mode){
+    if(!bypassDirtyGuardRef.current && activeDirtyScope()) {
+      requestProtectedAction(()=>changeMode(mode));
+      return;
+    }
     if(mode === "treinador" && !canUseCoachMode) return;
     const nextMode = mode === "treinador" ? "treinador" : "atleta";
     if(nextMode === "atleta") {
@@ -4453,6 +4700,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
   }
 
   function navigateScreen(nextScreen, options={}){
+    if(!bypassDirtyGuardRef.current && activeDirtyScope()) {
+      requestProtectedAction(()=>navigateScreen(nextScreen, options));
+      return;
+    }
     const fromNav = options.fromNav === true;
     setScreen(nextScreen);
     setSelectedStudentId("");
@@ -4656,6 +4907,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
     "Treino Tonon";
 
   function handleInternalBack(){
+    if(!bypassDirtyGuardRef.current && activeDirtyScope()) {
+      requestProtectedAction(handleInternalBack);
+      return;
+    }
     if(editingWorkoutExerciseIndex !== null) {
       closeWorkoutExerciseEditor();
       return;
@@ -4668,7 +4923,6 @@ function exerciseCatalogToWorkoutItem(ex={}){
     if(appMode === "treinador" && showWorkoutEditor) {
       const workoutKey = newWorkout.editingWorkoutKey || newWorkout.editingKey || "";
       if(workoutKey) {
-        if((newWorkout.name || newWorkout.items.length) && !confirm("Descartar alterações não salvas?")) return;
         suppressNextNavigationPush();
         setNavigationStack([]);
         setShowWorkoutLibrary(false);
@@ -4693,7 +4947,6 @@ function exerciseCatalogToWorkoutItem(ex={}){
     }
     const previous = navigationStack[navigationStack.length - 1];
     if(previous){
-      if(showWorkoutEditor && (newWorkout.name || newWorkout.items.length) && !confirm("Descartar alterações não salvas?")) return;
       if(showWorkoutEditor){
         setNewWorkout(blankWorkout);
         setNewExercise(blankExercise);
@@ -5263,7 +5516,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
         </section> : showStudentBodyForm || studentDetailView === "bodyForm" ? <section className="studentProfile internalDetail compactStudentProfile">
           <section className="studentSection compactStudentSection">
             <h3>Dados corporais</h3>
-            <form className="accountForm bodyRecordForm" onSubmit={event=>addStudentBody(event, selectedStudentProfile)}>
+            <form id="student-body-form" className="accountForm bodyRecordForm" onSubmit={event=>addStudentBody(event, selectedStudentProfile)} onInputCapture={()=>markDirty("student-body")} onChangeCapture={()=>markDirty("student-body")}>
               <input type="hidden" name="bodyFatOverrideMode" value="methodOnly" />
               <BodyRecordFields profileBodyEditor />
               <button><Save size={18}/> Salvar registro corporal</button>
@@ -5307,7 +5560,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
             </div>
             <ActionMenu id={`student-admin-${selectedStudentProfile.id || selectedStudentProfile.studentEmail}`} label="Ações administrativas" className="adminStudentMenu">
                 {selectedStudentProfile.isSelf ? <button type="button" disabled>Perfil próprio</button> : <>
-                  <button type="button" onClick={()=>{setStudentMessage(""); setEditingStudentLink(selectedStudentProfile);}}>Editar aluno</button>
+                  <button type="button" onClick={()=>openStudentAdminEditor(selectedStudentProfile)}>Editar aluno</button>
                   <button type="button" className="danger" onClick={()=>setEndingStudentLink(selectedStudentProfile)}>Encerrar vínculo</button>
                 </>}
             </ActionMenu>
@@ -5324,7 +5577,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
               </div>;
             })()}
             <div className="dualActions">
-              <button type="button" className="ghost small" onClick={()=>{setStudentDetailView("bodyForm"); setShowStudentBodyForm(true);}}><Scale size={18}/> Registrar dados corporais</button>
+              <button type="button" className="ghost small" onClick={()=>openStudentBodyEditor(selectedStudentProfile)}><Scale size={18}/> Registrar dados corporais</button>
               <button type="button" className="ghost small" onClick={()=>setStudentDetailView("bodyHistory")}><ClipboardList size={18}/> Histórico corporal</button>
             </div>
           </section>
@@ -5562,7 +5815,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
           <span>{link.studentName || link.studentEmail}</span>
         </label>)}
         <div className="createActions">
-          <button type="button" className="ghost" onClick={closeAssignment}>Cancelar</button>
+          <button type="button" className="ghost" onClick={()=>closeDirtyScope("workout-assignment", closeAssignment)}>Cancelar</button>
           <button type="button" onClick={assignWorkoutCopies}><Save size={18}/> Atribuir treino</button>
         </div>
       </section>}
@@ -5868,7 +6121,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
       </> : <>
       {!showExerciseEditor && <div className="pageTitleRow">
         <h2 className="pageTitle">Exercícios</h2>
-        {!showExerciseEditor && <button type="button" onClick={()=>{resetExerciseForm(); setShowExerciseEditor(true); requestAnimationFrame(()=>window.scrollTo({top:0, behavior:"smooth"}));}}><PlusCircle size={18}/> Novo exercício</button>}
+        {!showExerciseEditor && <button type="button" onClick={startNewExerciseEditor}><PlusCircle size={18}/> Novo exercício</button>}
       </div>}
 
       {showExerciseEditor && <form className="formCard" id="exercise-editor" onSubmit={saveLibraryExercise}>
@@ -6055,7 +6308,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
       </> : showProfileBodyEditor ? <>
         <section className="formCard">
           <h3>Dados corporais</h3>
-          <form className="accountForm" onSubmit={addBody}>
+          <form id="profile-body-form" className="accountForm" onSubmit={addBody} onInputCapture={()=>markDirty("profile-body")} onChangeCapture={()=>markDirty("profile-body")}>
             <input type="hidden" name="bodyFatOverrideMode" value="methodOnly" />
             <BodyRecordFields includeDate={false} profileBodyEditor />
             <button>Salvar dados corporais</button>
@@ -6088,10 +6341,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
           <h3>Conta</h3>
           <div className="recordLine"><b>Nome conectado</b><span>{currentUser?.name || currentUserDisplayName || "Usuário"}</span></div>
           <div className="recordLine"><b>E-mail conectado</b><span>{currentUser?.email || "Conta local"}</span></div>
-          {showNameEditor ? <form className="accountForm" onSubmit={saveProfile}>
+          {showNameEditor ? <form id="profile-name-form" className="accountForm" onSubmit={saveProfile} onInputCapture={()=>markDirty("profile-name")} onChangeCapture={()=>markDirty("profile-name")}>
             <input name="name" defaultValue={currentUser?.name || profile.name || ""} required placeholder="Nome" />
-            <div className="createActions"><button type="button" className="ghost" onClick={()=>setShowNameEditor(false)}>Cancelar</button><button>Salvar nome</button></div>
-          </form> : <button type="button" className="ghost" onClick={()=>setShowNameEditor(true)}>Editar nome</button>}
+            <div className="createActions"><button type="button" className="ghost" onClick={()=>closeDirtyScope("profile-name", ()=>setShowNameEditor(false))}>Cancelar</button><button>Salvar nome</button></div>
+          </form> : <button type="button" className="ghost" onClick={openProfileNameEditor}>Editar nome</button>}
           <button type="button" className="danger" onClick={signOutAccount} disabled={authBusy || !currentUser}>Sair da conta</button>
           {authMessage && <p className="feedbackMessage">{authMessage}</p>}
         </section>
@@ -6104,7 +6357,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
             <div><b>Altura</b><span>{currentProfileHeight === "—" ? "—" : `${currentProfileHeight} cm`}</span></div>
             <div><b>BF</b><span>{currentProfileBf === "—" ? "—" : `${currentProfileBf}%`}</span></div>
           </div>
-          <button type="button" className="ghost" onClick={()=>setShowProfileBodyEditor(true)}><Scale size={18}/> Atualizar dados</button>
+          <button type="button" className="ghost" onClick={openProfileBodyEditor}><Scale size={18}/> Atualizar dados</button>
         </section>
 
         <section className="formCard">
@@ -6125,8 +6378,20 @@ function exerciseCatalogToWorkoutItem(ex={}){
       </>}
     </main>}
 
+    {pendingNavigation && <div className="modal dirtyGuardModal" role="presentation">
+      <div className="modalCard" role="dialog" aria-modal="true" aria-labelledby="dirty-guard-title" aria-describedby="dirty-guard-description">
+        <h2 id="dirty-guard-title">Alterações não salvas</h2>
+        <p id="dirty-guard-description" className="muted">Você alterou {dirtyScopeLabel(pendingNavigation.scope)}. Escolha o que fazer antes de sair.</p>
+        <div className="draftGuardActions">
+          <button type="button" onClick={()=>resolvePendingNavigation("save")}><Save size={18}/> Salvar rascunho</button>
+          <button type="button" className="danger" onClick={()=>resolvePendingNavigation("discard")}><Trash2 size={18}/> Descartar</button>
+          <button type="button" className="ghost" onClick={()=>resolvePendingNavigation("continue")}>Continuar editando</button>
+        </div>
+      </div>
+    </div>}
+
     {appMode === "treinador" && editingStudentLink && <div className="modal">
-      <form className="modalCard studentEditModal" onSubmit={saveStudentAdminInfo}>
+      <form id="student-admin-form" className="modalCard studentEditModal" onSubmit={saveStudentAdminInfo} onInputCapture={()=>markDirty("student-admin")} onChangeCapture={()=>markDirty("student-admin")}>
         <h2>Editar aluno</h2>
         <section className="skinfoldBox">
           <h4>Dados básicos</h4>
@@ -6150,7 +6415,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
           <textarea name="notes" placeholder="Restrições, lesões, recomendações ou informações relevantes" defaultValue={editingStudentLink.notes || ""} />
         </section>
         <div className="finishActions">
-          <button type="button" className="ghost" onClick={()=>setEditingStudentLink(null)}>Cancelar</button>
+          <button type="button" className="ghost" onClick={()=>closeDirtyScope("student-admin", ()=>setEditingStudentLink(null))}>Cancelar</button>
           <button type="submit"><Save size={18}/> Salvar</button>
         </div>
         {studentMessage && <p className="feedbackMessage">{studentMessage}</p>}
