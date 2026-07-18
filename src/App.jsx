@@ -5463,7 +5463,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
   }
 
   return <div className={`app ${themeClass} mode-${appMode} ${isInternalScreen ? "internalMode" : "primaryMode"} screen-${renderScreen}`}>
-    <header className="top">
+    <header className={`top ${canUseCoachMode ? "hasModeSwitch" : "hasRoleBadge"}`}>
       {isInternalScreen ? <>
       <button type="button" className="backButton topBackButton" onClick={handleInternalBack} aria-label="Voltar"><ArrowLeft size={19}/></button>
       <div className="brandBlock internalTitleBlock">

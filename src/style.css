@@ -2189,6 +2189,7 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
 
 @media(max-width:420px){
   .top{grid-template-columns:minmax(0,1fr) 124px}
+  .top.hasRoleBadge{grid-template-columns:minmax(0,1fr) auto}
   .internalMode .top{grid-template-columns:auto minmax(0,1fr) auto}
   .headerLogo{width:34px;min-width:34px;height:34px}
   .compactModeSwitch{width:124px;min-width:124px}
@@ -2199,6 +2200,14 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
   .statStrip .card{padding:12px}
   .card h3{font-size:19px}
   .activeWorkoutHero h2{font-size:24px}
+}
+
+@media(max-width:360px){
+  .mode-atleta .calendarHeaderRow{grid-template-columns:40px minmax(0,1fr) 40px;gap:6px}
+  .mode-atleta .calendarHeaderRow .iconBtn{width:40px;min-width:40px;min-height:40px;padding:8px}
+  .mode-atleta .calendarWeekdays,
+  .mode-atleta .calendarGrid{gap:4px}
+  .mode-atleta .day{min-width:0;min-height:34px}
 }
 
 .toastRegion{
