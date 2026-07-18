@@ -1,7 +1,6 @@
 function email(value){
   return String(value || "").trim().toLowerCase();
 }
-
 function number(value){
   const parsed = Number(String(value ?? "").replace(",", ".").match(/-?\d+(?:\.\d+)?/)?.[0]);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -126,4 +125,3 @@ export function buildTrainerAnalytics(sessions, options={}){
     exerciseRecords:[...recordMap.values()].sort((a,b)=>b.load - a.load).slice(0,8),
   };
 }
-

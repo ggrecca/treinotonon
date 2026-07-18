@@ -6,10 +6,8 @@ export function deriveSyncState({isCloud, online, bootstrapState, retrying, pend
   if(Number(pendingCount) > 0) return "pending-sync";
   return "loaded";
 }
-
 export function canRunRemoteMutation({isCloud, online, bootstrapState, retrying}){
   if(bootstrapState !== "loaded" || retrying) return false;
   if(isCloud && !online) return false;
   return true;
 }
-

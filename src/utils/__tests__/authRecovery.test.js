@@ -34,4 +34,3 @@ describe("password recovery helpers", ()=>{
     expect(validateNewPassword("senha-segura", "senha-segura")).toBe("");
   });
 });
-

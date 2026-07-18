@@ -4,7 +4,6 @@ function safePart(value, fallback){
   const text = String(value || fallback || "").trim();
   return encodeURIComponent(text || fallback || "unknown");
 }
-
 function stableValue(value){
   if(Array.isArray(value)) return value.map(stableValue);
   if(value && typeof value === "object") {
@@ -49,4 +48,3 @@ export function removeEditorDraft(storage, key){
     // Draft cleanup must never block a confirmed save or discard.
   }
 }
-

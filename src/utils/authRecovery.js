@@ -9,7 +9,6 @@ function locationUrl(locationLike){
     return null;
   }
 }
-
 function hashParams(url){
   return new URLSearchParams(String(url?.hash || "").replace(/^#/, ""));
 }
@@ -54,4 +53,3 @@ export function validateNewPassword(password, confirmation){
   if(password !== confirmation) return "As senhas não coincidem.";
   return "";
 }
-
