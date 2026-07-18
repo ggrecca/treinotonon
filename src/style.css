@@ -223,6 +223,10 @@ h4{font-size:14px;margin-bottom:8px}
 .syncBanner span{color:var(--color-text-muted);font-size:11px;line-height:1.35}
 .syncBanner.load-error,.syncBanner.offline{border-color:color-mix(in srgb,var(--color-warning) 50%,var(--color-border))}
 @media(max-width:420px){.syncBanner{grid-template-columns:auto minmax(0,1fr)}.syncBanner > button{grid-column:1/-1;width:100%}}
+.insightTabs{margin:0 0 12px}
+.insightContextPanel > div{display:grid;gap:2px}
+.insightContextPanel > div > span{color:var(--color-text-muted);font-size:12px}
+.studentInsightsEntry{border-color:color-mix(in srgb,var(--color-primary) 38%,var(--color-border))}
 .brandBlock{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px;align-items:center;min-width:0}
 .brandBlock p{margin:2px 0 0;color:var(--color-text-muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .brandText{display:grid;min-width:0}

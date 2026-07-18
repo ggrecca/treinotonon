@@ -19,6 +19,7 @@ import { WorkoutSwitcher } from "./components/WorkoutSwitcher";
 import { buildPasswordRecoveryRedirect, cleanPasswordRecoveryUrl, readPasswordRecoveryLocation, validateNewPassword } from "./utils/authRecovery";
 import { editorDraftKey, editorValuesDiffer, readEditorDraft, removeEditorDraft, writeEditorDraft } from "./utils/editorDrafts";
 import { canRunRemoteMutation, deriveSyncState } from "./utils/syncState";
+import { buildExerciseEvolution, buildExerciseSummary, buildTrainerAnalytics, sessionsForSubject } from "./utils/trainerAnalytics";
 import "./style.css";
 
 const today = (value=new Date()) => {
@@ -4031,79 +4032,6 @@ function exerciseCatalogToWorkoutItem(ex={}){
     setWorkoutLibraryTag("Todos");
   }
 
-  const allExerciseNames = useMemo(()=>[...new Set(sessions.flatMap(s => (s.items || []).map(i=>i.exercise)))].sort(), [sessions]);
-
-  const trainerSelectedHistory = useMemo(()=>{
-    if(!selectedExercise) return [];
-    const rows = [];
-    sessions.forEach(s => (s.items || []).forEach(i => {
-      if(i.exercise === selectedExercise && i.load) rows.push({date:s.date, load:numericLoad(i.load), raw:i.load, rpe:i.rpe || "", note:i.note || ""});
-    }));
-    return rows.reverse();
-  },[sessions, selectedExercise]);
-
-  const selectedExerciseSummary = useMemo(()=>{
-    if(!trainerSelectedHistory.length) return null;
-    const validLoads = trainerSelectedHistory.map(h=>h.load).filter(Boolean);
-    const last = trainerSelectedHistory[trainerSelectedHistory.length - 1];
-    const rpes = trainerSelectedHistory.map(h=>Number(String(h.rpe || "").replace(",", "."))).filter(Boolean);
-    return {
-      last,
-      best:validLoads.length ? Math.max(...validLoads) : 0,
-      avgRpe:rpes.length ? (rpes.reduce((a,b)=>a+b,0)/rpes.length).toFixed(1) : "—",
-      count:trainerSelectedHistory.length
-    };
-  },[trainerSelectedHistory]);
-
-  const weeklyVolumeTrend = useMemo(()=>{
-    const now = new Date();
-    const rows = Array.from({length:8},(_,idx)=>{
-      const start = new Date(now);
-      start.setDate(now.getDate() - now.getDay() - (7*(7-idx)));
-      start.setHours(0,0,0,0);
-      const end = new Date(start); end.setDate(start.getDate()+7);
-      return {label:`${String(start.getDate()).padStart(2,"0")}/${String(start.getMonth()+1).padStart(2,"0")}`, start, end, volume:0, sessions:0};
-    });
-    sessions.forEach(s=>{
-      const d = parseSessionDate(s.date);
-      const row = rows.find(r=>d>=r.start && d<r.end);
-      if(row){
-        row.sessions += 1;
-        (s.items || []).forEach(i=>{ if(i.done) row.volume += numericLoad(i.load); });
-      }
-    });
-    return rows.map(({label, volume, sessions})=>({semana:label, volume, treinos:sessions}));
-  },[sessions]);
-
-  const groupVolumeStats = useMemo(()=>{
-    const meta = new Map(fullLibrary.map(e=>[String(e.name || "").toLowerCase(), e]));
-    const map = {};
-    sessions.forEach(s => (s.items || []).forEach(i => {
-      if(!i.done && !i.load) return;
-      const group = i.group || meta.get(String(i.exercise || "").toLowerCase())?.group || "Outro";
-      if(!map[group]) map[group] = {group, volume:0, count:0};
-      map[group].volume += numericLoad(i.load);
-      map[group].count += 1;
-    }));
-    return Object.values(map).sort((a,b)=>b.volume-a.volume);
-  },[sessions, fullLibrary]);
-
-  const workoutFrequencyStats = useMemo(()=>{
-    const map = {};
-    sessions.forEach(s=>{
-      const label = s.workoutLabel || workoutLabels[s.workout] || s.workout || "Treino";
-      map[label] = (map[label] || 0) + 1;
-    });
-    return Object.entries(map).map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count).slice(0,8);
-  },[sessions, workoutLabels]);
-
-  const adherenceStats = useMemo(()=>{
-    let done = 0, total = 0, volume = 0;
-    sessions.forEach(s => (s.items || []).forEach(i => { total += 1; if(i.done){ done += 1; volume += numericLoad(i.load); } }));
-    const adherence = total ? Math.round((done/total)*100) : 0;
-    return {done, total, adherence, volume};
-  },[sessions]);
-
   function normalizeHistorySession(s){
     const items = (s.items || []).map(item=>{
       const rawSets = Array.isArray(item.sets) && item.sets.length ? item.sets : (item.load || item.reps ? [{load:item.load || "", reps:item.reps || ""}] : []);
@@ -4222,9 +4150,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
   const trainerStudentRows = useMemo(()=>{
     return trainerLinks.map(link => {
       const studentEmail = normalizeEmail(link.studentEmail);
-      const studentSessions = allHistorySessions.filter(session =>
-        session.studentId === link.studentId || normalizeEmail(session.studentEmail) === studentEmail
-      );
+      const studentSessions = sessionsForSubject(allHistorySessions, link);
       const studentBody = body.filter(record =>
         record.studentId === link.studentId || record.userId === link.studentId || normalizeEmail(record.studentEmail || record.userEmail) === studentEmail
       );
@@ -4250,12 +4176,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
       if(record.recordedBy) return record.recordedBy === currentUserId;
       return normalizeEmail(record.userEmail) === currentUserEmail || !record.coachId;
     });
-    const selfSessions = allHistorySessions.filter(session => {
-      if(session.studentId) return session.studentId === currentUserId;
-      if(session.userId) return session.userId === currentUserId;
-      if(session.studentEmail) return normalizeEmail(session.studentEmail) === currentUserEmail;
-      return false;
-    });
+    const selfSessions = sessionsForSubject(allHistorySessions, {studentId:currentUserId, studentEmail:currentUserEmail, isSelf:true});
     const selfWorkouts = customWorkouts.filter(w => (w.type || "personal") === "personal" && isCurrentUserWorkoutOwner(w));
     return {
       id:"__self__",
@@ -4300,6 +4221,49 @@ function exerciseCatalogToWorkoutItem(ex={}){
     if(selectedStudent.isSelf) return trainerSelfRow;
     return trainerStudentRows.find(row=>row.id === selectedStudent.id) || selectedStudent;
   },[trainerStudentRows, selectedStudent, trainerSelfRow]);
+
+  const trainerInsightAllowed = !!selectedStudentProfile && (selectedStudentProfile.isSelf || (selectedStudentProfile.status === "active" && !!selectedStudentProfile.studentId));
+  const trainerInsightSessions = useMemo(()=>trainerInsightAllowed
+    ? sessionsForSubject(allHistorySessions, selectedStudentProfile)
+    : [],[trainerInsightAllowed, allHistorySessions, selectedStudentProfile]);
+  const trainerGroupLookup = useMemo(()=>Object.fromEntries(fullLibrary.map(exercise=>[
+    String(exercise.name || "").toLowerCase(),
+    exercise.group || exercise.primaryGroup || "Outro"
+  ])),[fullLibrary]);
+  const trainerInsightAnalytics = useMemo(()=>buildTrainerAnalytics(trainerInsightSessions, {groupLookup:trainerGroupLookup}),[trainerInsightSessions, trainerGroupLookup]);
+  const allExerciseNames = useMemo(()=>[...new Set(trainerInsightSessions.flatMap(session=>(session.items || []).map(item=>item.exercise || item.name).filter(Boolean)))].sort(),[trainerInsightSessions]);
+  const trainerSelectedHistory = useMemo(()=>buildExerciseEvolution(trainerInsightSessions, selectedExercise),[trainerInsightSessions, selectedExercise]);
+  const selectedExerciseSummary = useMemo(()=>buildExerciseSummary(trainerSelectedHistory),[trainerSelectedHistory]);
+  const weeklyVolumeTrend = trainerInsightAnalytics.weeklyVolumeTrend;
+  const groupVolumeStats = trainerInsightAnalytics.groupVolumeStats;
+  const workoutFrequencyStats = trainerInsightAnalytics.workoutFrequencyStats;
+  const adherenceStats = {
+    done:trainerInsightAnalytics.completion.done,
+    total:trainerInsightAnalytics.completion.total,
+    adherence:trainerInsightAnalytics.completion.percent,
+    volume:trainerInsightAnalytics.completion.volume,
+  };
+  const trainerExerciseRecords = trainerInsightAnalytics.exerciseRecords;
+
+  useEffect(()=>{
+    if(selectedExercise && !allExerciseNames.includes(selectedExercise)) setSelectedExercise("");
+  },[allExerciseNames, selectedExercise]);
+
+  function navigateStudentInsight(nextScreen){
+    if(!trainerInsightAllowed) {
+      notify("Selecione um aluno ativo para abrir os insights.", "warning");
+      return;
+    }
+    setStudentDetailView("");
+    setSelectedBodyRecord(null);
+    setOpenSession(null);
+    setScreen(nextScreen === "analises" ? "analises" : "evolucao");
+  }
+
+  function returnToStudentAction(view){
+    setScreen("alunos");
+    setStudentDetailView(view || "");
+  }
 
   const trainerDashboardStats = useMemo(()=>{
     const recentLimit = Date.now() - 7*24*60*60*1000;
@@ -5061,6 +5025,12 @@ function exerciseCatalogToWorkoutItem(ex={}){
       restoreViewSnapshot(previous);
       return;
     }
+    if(screen === "evolucao" || screen === "analises") {
+      suppressNextNavigationPush();
+      setScreen("alunos");
+      setStudentDetailView("");
+      return;
+    }
     if(showWorkoutEditor) {
       if(editingWorkoutExerciseIndex !== null || showWorkoutLibrary){
         setEditingWorkoutExerciseIndex(null);
@@ -5699,6 +5669,17 @@ function exerciseCatalogToWorkoutItem(ex={}){
             </div>
           </section>
 
+          <section className="studentSection compactStudentSection studentInsightsEntry">
+            <h3>Insights</h3>
+            {trainerInsightAllowed ? <>
+              <p className="emptyHint">Métricas isoladas de {selectedStudentProfile.studentName || selectedStudentProfile.studentEmail || "este aluno"}.</p>
+              <div className="dualActions">
+                <button type="button" className="ghost small" onClick={()=>navigateStudentInsight("evolucao")}><History size={18}/> Evolução</button>
+                <button type="button" className="ghost small" onClick={()=>navigateStudentInsight("analises")}><BarChart3 size={18}/> Análises</button>
+              </div>
+            </> : <p className="emptyHint">Os insights ficam disponíveis depois que o aluno aceita o convite.</p>}
+          </section>
+
           <section className="studentSection compactStudentSection">
             <h3>Treinos</h3>
             {(selectedStudentProfile.workouts || []).length===0 && <p className="emptyHint">Nenhum treino atribuído.</p>}
@@ -6316,11 +6297,20 @@ function exerciseCatalogToWorkoutItem(ex={}){
     </main>}
 
     {renderScreen==="evolucao" && appMode === "treinador" && <main>
-      <h2 className="pageTitle">Evolução</h2>
-      <section className="coachPanel">
-        <div><small>Controle de carga</small><b>Escolha um exercício para ver histórico, melhor marca e RPE registrado.</b></div>
+      <h2 className="pageTitle">Evolução{trainerInsightAllowed ? ` · ${selectedStudentProfile.studentName || selectedStudentProfile.studentEmail || "Aluno"}` : ""}</h2>
+      {!trainerInsightAllowed ? <section className="emptyState">
+        <b>Selecione um aluno para ver a evolução.</b>
+        <span>Os insights nunca combinam dados de pessoas diferentes.</span>
+        <button type="button" onClick={()=>navigateScreen("alunos")}>Abrir alunos</button>
+      </section> : <>
+      <section className="coachPanel insightContextPanel">
+        <div><small>Aluno selecionado</small><b>{selectedStudentProfile.studentName || selectedStudentProfile.studentEmail || "Aluno"}</b><span>{selectedStudentProfile.studentEmail || "Perfil próprio"}</span></div>
         <span>{allExerciseNames.length} exercícios</span>
       </section>
+      <div className="segmentedControl insightTabs" aria-label="Insights do aluno">
+        <button type="button" className="active" onClick={()=>navigateStudentInsight("evolucao")}>Evolução</button>
+        <button type="button" className="ghost" onClick={()=>navigateStudentInsight("analises")}>Análises</button>
+      </div>
       <section className="chartCard">
         <h3>Histórico por exercício</h3>
         <select value={selectedExercise} onChange={e=>setSelectedExercise(e.target.value)}>
@@ -6357,22 +6347,33 @@ function exerciseCatalogToWorkoutItem(ex={}){
       </section>}
 
       <section className="chartCard">
-        <h3>🏆 Recordes gerais</h3>
-        {exerciseRecords.length===0 && <p className="muted">Salve treinos com cargas para gerar recordes.</p>}
-        {exerciseRecords.map((r,idx)=><div className="recordLine ranking" key={r.exercise}><b><span className="rank">{idx===0 ? "🥇" : idx===1 ? "🥈" : idx===2 ? "🥉" : idx+1}</span> {r.exercise}</b><span>{r.load} kg {r.rpe ? `• RPE ${r.rpe}` : ""}</span></div>)}
+        <h3>Recordes do aluno</h3>
+        {trainerExerciseRecords.length===0 && <p className="muted">Salve treinos com cargas para gerar recordes.</p>}
+        {trainerExerciseRecords.map((r,idx)=><div className="recordLine ranking" key={r.exercise}><b><span className="rank">{idx + 1}</span> {r.exercise}</b><span>{r.load} kg {r.rpe ? `• RPE ${r.rpe}` : ""}</span></div>)}
       </section>
+      {trainerInsightSessions.length===0 && <section className="emptyState slim"><b>Nenhuma sessão deste aluno.</b><span>Atribua um treino para começar a acompanhar a evolução.</span><button type="button" onClick={()=>returnToStudentAction("workoutAssign")}>Atribuir treino</button></section>}
+      </>}
     </main>}
 
     {renderScreen==="analises" && appMode === "treinador" && <main>
-      <h2 className="pageTitle">Análises</h2>
-      <section className="coachPanel">
-        <div><small>Leitura de semana</small><b>Observe aderência, volume e distribuição por grupo muscular antes de ajustar o plano.</b></div>
-        <span>{weeklyStats.count} treinos/semana</span>
+      <h2 className="pageTitle">Análises{trainerInsightAllowed ? ` · ${selectedStudentProfile.studentName || selectedStudentProfile.studentEmail || "Aluno"}` : ""}</h2>
+      {!trainerInsightAllowed ? <section className="emptyState">
+        <b>Selecione um aluno para ver as análises.</b>
+        <span>Nenhuma métrica agregada da carteira é exibida sem contexto explícito.</span>
+        <button type="button" onClick={()=>navigateScreen("alunos")}>Abrir alunos</button>
+      </section> : <>
+      <section className="coachPanel insightContextPanel">
+        <div><small>Aluno selecionado</small><b>{selectedStudentProfile.studentName || selectedStudentProfile.studentEmail || "Aluno"}</b><span>{selectedStudentProfile.studentEmail || "Perfil próprio"}</span></div>
+        <span>{trainerInsightAnalytics.weeklyCount} treinos/semana</span>
       </section>
+      <div className="segmentedControl insightTabs" aria-label="Insights do aluno">
+        <button type="button" className="ghost" onClick={()=>navigateStudentInsight("evolucao")}>Evolução</button>
+        <button type="button" className="active" onClick={()=>navigateStudentInsight("analises")}>Análises</button>
+      </div>
       <section className="grid2">
-        <Card title="Sessões salvas" value={`${sessions.length}`} sub="histórico total" />
-        <Card title="Aderência" value={`${adherenceStats.adherence}%`} sub={`${adherenceStats.done}/${adherenceStats.total} exercícios concluídos`} />
-        <Card title="Volume total" value={`${adherenceStats.volume.toLocaleString("pt-BR")} kg`} sub="cargas concluídas" />
+        <Card title="Sessões salvas" value={`${trainerInsightAnalytics.sessionCount}`} sub="somente deste aluno" />
+        <Card title="Conclusão" value={`${adherenceStats.adherence}%`} sub={`${adherenceStats.done}/${adherenceStats.total} exercícios concluídos`} />
+        <Card title="Volume total" value={`${Math.round(adherenceStats.volume).toLocaleString("pt-BR")} kg`} sub="carga × repetições" />
         <Card title="Grupos ativos" value={`${groupVolumeStats.length}`} sub="com registros salvos" />
       </section>
 
@@ -6409,8 +6410,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
       <section className="chartCard">
         <h3>Leitura rápida</h3>
-        <p className="muted">Use esta tela para verificar se a semana está equilibrada: frequência, volume total, grupos mais treinados e aderência ao plano.</p>
+        <p className="muted">Use esta tela para verificar frequência, volume real, grupos mais treinados e conclusão dos exercícios deste aluno.</p>
       </section>
+      {trainerInsightSessions.length===0 && <section className="emptyState slim"><b>Nenhuma sessão deste aluno.</b><span>Atribua um treino para começar a gerar análises.</span><button type="button" onClick={()=>returnToStudentAction("workoutAssign")}>Atribuir treino</button></section>}
+      </>}
     </main>}
 
     {renderScreen==="dados" && <main>
