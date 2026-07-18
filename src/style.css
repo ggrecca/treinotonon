@@ -202,6 +202,27 @@ h4{font-size:14px;margin-bottom:8px}
   background:transparent;
   text-align:center;
 }
+.syncGate{display:grid;justify-items:center;gap:12px;text-align:center}
+.syncGate > svg{width:28px;height:28px;color:var(--color-primary)}
+.syncGate > button{width:100%}
+.syncBanner{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  margin:0 0 12px;
+  padding:10px 12px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-lg);
+  background:var(--color-card-elevated);
+  color:var(--color-text);
+}
+.syncBanner > svg{width:20px;height:20px;color:var(--color-warning)}
+.syncBanner > div{display:grid;gap:2px;min-width:0}
+.syncBanner b{font-size:13px}
+.syncBanner span{color:var(--color-text-muted);font-size:11px;line-height:1.35}
+.syncBanner.load-error,.syncBanner.offline{border-color:color-mix(in srgb,var(--color-warning) 50%,var(--color-border))}
+@media(max-width:420px){.syncBanner{grid-template-columns:auto minmax(0,1fr)}.syncBanner > button{grid-column:1/-1;width:100%}}
 .brandBlock{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px;align-items:center;min-width:0}
 .brandBlock p{margin:2px 0 0;color:var(--color-text-muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .brandText{display:grid;min-width:0}

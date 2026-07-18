@@ -6,7 +6,7 @@ import {
   Dumbbell, BarChart3, Scale, CheckCircle2, Circle, Save, Trash2, TimerReset,
   Play, Pause, History, PlusCircle, ClipboardList, X, Copy, Edit3, ArrowUp,
   ArrowDown, Settings2, Eye, EyeOff, Users, UserPlus, ArrowLeft, ArrowRight,
-  LoaderCircle
+  LoaderCircle, RefreshCw, WifiOff, AlertTriangle
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from "recharts";
 import { authService, configurationError, isSupabaseConfigured } from "./services/authService";
@@ -18,6 +18,7 @@ import { DashboardSwitcher } from "./components/DashboardSwitcher";
 import { WorkoutSwitcher } from "./components/WorkoutSwitcher";
 import { buildPasswordRecoveryRedirect, cleanPasswordRecoveryUrl, readPasswordRecoveryLocation, validateNewPassword } from "./utils/authRecovery";
 import { editorDraftKey, editorValuesDiffer, readEditorDraft, removeEditorDraft, writeEditorDraft } from "./utils/editorDrafts";
+import { canRunRemoteMutation, deriveSyncState } from "./utils/syncState";
 import "./style.css";
 
 const today = (value=new Date()) => {
@@ -672,6 +673,12 @@ function App(){
     return recovery.requested ? {phase:"checking", message:""} : {phase:"idle", message:""};
   });
   const [dataMode,setDataMode]=useState("local");
+  const [bootstrapState,setBootstrapState]=useState("loading");
+  const [loadError,setLoadError]=useState("");
+  const [networkOnline,setNetworkOnline]=useState(()=>globalThis.navigator?.onLine !== false);
+  const [syncRetrying,setSyncRetrying]=useState(false);
+  const [pendingSyncCount,setPendingSyncCount]=useState(0);
+  const hasSafeDataRef = useRef(false);
   const [bodyMessage,setBodyMessage]=useState("");
   const [coachStudents,setCoachStudents]=useState([]);
   const [studentSearch,setStudentSearch]=useState("");
@@ -731,13 +738,67 @@ function App(){
       const nextMode = role === "coach" && data.appMode === "treinador" ? "treinador" : "atleta";
       setAppMode(nextMode);
     }
+    hasSafeDataRef.current = true;
   }
 
-  async function refreshAppData(){
-    const data = await dataService.getAppData();
-    applyAppData(data);
-    setDataMode(await dataService.getMode());
-    return data;
+  async function refreshAppData(options={}){
+    if(options.retrying) setSyncRetrying(true);
+    try {
+      const data = await dataService.getAppData();
+      applyAppData(data);
+      setDataMode(await dataService.getMode());
+      setLoadError("");
+      setBootstrapState("loaded");
+      return data;
+    } catch(error) {
+      setLoadError(error?.message || "Não foi possível carregar seus dados.");
+      setBootstrapState("error");
+      throw error;
+    } finally {
+      if(options.retrying) setSyncRetrying(false);
+    }
+  }
+
+  async function loadApplication(isAlive=()=>true, options={}){
+    const recoveryReturn = readPasswordRecoveryLocation();
+    if(options.retrying) setSyncRetrying(true);
+    else if(!hasSafeDataRef.current) setBootstrapState("loading");
+    setLoadError("");
+    try {
+      if(isSupabaseConfigured) setDataMode("cloud");
+      const user = await authService.getCurrentUser();
+      if(!isAlive()) return;
+      setCurrentUser(user);
+      if(recoveryReturn.requested && !recoveryReturn.errorMessage) {
+        setPasswordRecovery(user
+          ? {phase:"ready", message:""}
+          : {phase:"invalid", message:"Este link de recuperação é inválido, expirou ou já foi usado. Solicite um novo link."});
+      }
+      if(isSupabaseConfigured && !user){
+        setBootstrapState("loaded");
+        return;
+      }
+      const [data, mode] = await Promise.all([dataService.getAppData(), dataService.getMode()]);
+      if(!isAlive()) return;
+      applyAppData(data, {syncMode:true});
+      setDataMode(mode);
+      setBootstrapState("loaded");
+    } catch(error) {
+      if(!isAlive()) return;
+      if(!configurationError) console.error("Erro ao carregar dados iniciais:", error);
+      setLoadError(error?.message || "Não foi possível carregar seus dados.");
+      setBootstrapState("error");
+      if(recoveryReturn.requested) {
+        setPasswordRecovery({phase:"invalid", message:"Não foi possível validar o link agora. Verifique sua conexão ou solicite um novo link."});
+      }
+    } finally {
+      if(isAlive()) setAuthReady(true);
+      if(options.retrying) setSyncRetrying(false);
+    }
+  }
+
+  function retryApplicationLoad(){
+    void loadApplication(()=>true, {retrying:true});
   }
 
   useEffect(()=>{
@@ -751,35 +812,18 @@ function App(){
 
   useEffect(()=>{
     let alive = true;
-    (async()=>{
-      const recoveryReturn = readPasswordRecoveryLocation();
-      try {
-        const user = await authService.getCurrentUser();
-        if(!alive) return;
-        setCurrentUser(user);
-        if(recoveryReturn.requested && !recoveryReturn.errorMessage) {
-          setPasswordRecovery(user
-            ? {phase:"ready", message:""}
-            : {phase:"invalid", message:"Este link de recuperação é inválido, expirou ou já foi usado. Solicite um novo link."});
-        }
-        if(isSupabaseConfigured && !user){
-          setDataMode("cloud");
-          return;
-        }
-        const [data, mode] = await Promise.all([dataService.getAppData(), dataService.getMode()]);
-        if(!alive) return;
-        applyAppData(data, {syncMode:true});
-        setDataMode(mode);
-      } catch(error) {
-        if(!configurationError) console.error("Erro ao carregar dados iniciais:", error);
-        if(recoveryReturn.requested) {
-          setPasswordRecovery({phase:"invalid", message:"Não foi possível validar o link agora. Verifique sua conexão ou solicite um novo link."});
-        }
-      } finally {
-        if(alive) setAuthReady(true);
-      }
-    })();
+    void loadApplication(()=>alive);
     return () => { alive = false; };
+  },[]);
+
+  useEffect(()=>{
+    const updateOnline = () => setNetworkOnline(globalThis.navigator?.onLine !== false);
+    window.addEventListener("online", updateOnline);
+    window.addEventListener("offline", updateOnline);
+    return () => {
+      window.removeEventListener("online", updateOnline);
+      window.removeEventListener("offline", updateOnline);
+    };
   },[]);
 
   const currentUserId = currentUser?.id || profile.userId || "local-user";
@@ -793,12 +837,31 @@ function App(){
   const exerciseEditorDirty = showExerciseEditor && editorValuesDiffer(exerciseForm, exerciseEditorBaselineRef.current);
   const assignmentDirty = !!assignmentWorkoutId && (assignmentSelection.self || Object.values(assignmentSelection.students || {}).some(Boolean));
   const hasUnsavedChanges = workoutEditorDirty || exerciseEditorDirty || assignmentDirty || Object.values(dirtyScopes).some(Boolean);
+  const isCloudData = isSupabaseConfigured || dataMode === "cloud";
+  const globalSyncState = deriveSyncState({
+    isCloud:isCloudData,
+    online:networkOnline,
+    bootstrapState,
+    retrying:syncRetrying,
+    pendingCount:pendingSyncCount,
+    hasSafeData:hasSafeDataRef.current,
+  });
+  const remoteMutationsAllowed = canRunRemoteMutation({isCloud:isCloudData, online:networkOnline, bootstrapState, retrying:syncRetrying});
   const professionalScreens = useMemo(()=>new Set(["alunos","exercicios","evolucao","analises"]),[]);
   const athleteScreens = useMemo(()=>new Set(["dashboard","criar","treino","historico","dados"]),[]);
   const lastRoleGuardUserRef = useRef("");
 
   function markDirty(scope){
     setDirtyScopes(current=>current[scope] ? current : {...current, [scope]:true});
+  }
+
+  function ensureMutationAllowed(){
+    if(remoteMutationsAllowed) return true;
+    const message = globalSyncState === "offline"
+      ? "Sem conexão com a nuvem. Seus dados carregados continuam disponíveis, mas esta ação precisa de internet."
+      : "Aguarde a atualização dos dados antes de fazer esta alteração.";
+    notify(message, "warning");
+    return false;
   }
 
   function clearDirty(scope){
@@ -1724,6 +1787,7 @@ function App(){
   }
 
   async function deleteSession(id){
+    if(!ensureMutationAllowed()) return;
     if(!confirm("Excluir esta sessão do histórico?")) return;
     try{
       await dataService.deleteWorkoutSession(id);
@@ -1739,6 +1803,7 @@ function App(){
 
   async function addBody(e){
     e.preventDefault();
+    if(!ensureMutationAllowed()) return;
     const form = e.currentTarget;
     const f = new FormData(form);
     const record = buildBodyRecordFromForm(f, {fallbackAge: profile.age});
@@ -1846,6 +1911,7 @@ function App(){
 
   async function addStudentBody(e, student){
     e.preventDefault();
+    if(!ensureMutationAllowed()) return;
     if(!student?.studentId) {
       setStudentMessage("O aluno precisa aceitar o convite antes de receber registros corporais.");
       return;
@@ -1878,6 +1944,7 @@ function App(){
   }
 
   async function deleteBodyRecord(record, index){
+    if(!ensureMutationAllowed()) return false;
     if(!canManageBodyRecord(record)){
       const message = "Você pode excluir apenas registros corporais criados por você.";
       setBodyMessage(message);
@@ -1950,6 +2017,7 @@ function App(){
   }
 
   async function createStudentInvite(studentEmail, extra={}){
+    if(!ensureMutationAllowed()) return;
     if(!studentEmail) return setStudentMessage("Informe o e-mail do aluno.");
     const link = {
       id:makeId(),
@@ -2025,6 +2093,7 @@ function App(){
   }
 
   async function answerCoachInvite(link, accepted){
+    if(!ensureMutationAllowed()) return;
     if(!link?.id) {
       notify("Convite inválido. Recarregue o app e tente novamente.", "info");
       return;
@@ -2065,6 +2134,7 @@ function App(){
   }
 
   async function updateStudentStatus(link, status){
+    if(!ensureMutationAllowed()) return;
     if(status === "active"){
       setStudentMessage("Somente o aluno pode ativar o vínculo aceitando o convite.");
       return;
@@ -2085,6 +2155,7 @@ function App(){
   }
 
   async function removeStudentLink(link){
+    if(!ensureMutationAllowed()) return;
     try{
       await dataService.deleteCoachStudent(link.id);
       setCoachStudents(current => current.filter(item=>item.id !== link.id));
@@ -2099,6 +2170,7 @@ function App(){
 
   async function saveStudentAdminInfo(event){
     event.preventDefault();
+    if(!ensureMutationAllowed()) return;
     if(!editingStudentLink?.id) return;
     const form = event.currentTarget;
     const data = new FormData(form);
@@ -2126,6 +2198,7 @@ function App(){
 
   async function saveProfile(e){
     e.preventDefault();
+    if(!ensureMutationAllowed()) return;
     const f = new FormData(e.currentTarget);
     const p = {...profile, name:String(f.get("name") || "").trim(), age:String(f.get("age") ?? profile.age ?? "").trim()};
     if(!p.name){ notify("Informe seu nome.", "error"); return; }
@@ -2288,6 +2361,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
   async function saveLibraryExercise(e){
     e.preventDefault();
+    if(!ensureMutationAllowed()) return;
     const {editingName, editingId, ...exerciseData} = exerciseForm;
     const normalized = catalogExercise({...exerciseData, id:exerciseData.id || editingId || makeId()});
     if(!normalized.name) return alert("Informe o nome do exercício.");
@@ -2359,6 +2433,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
   }
 
   async function deleteUserLibraryExercise(exercise){
+    if(!ensureMutationAllowed()) return;
     const exerciseItem = typeof exercise === "object" && exercise ? exercise : {name:exercise};
     const normalizedName = String(exerciseItem.name || exercise || "").trim();
     if(!normalizedName) return;
@@ -2542,6 +2617,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
   async function saveCustomWorkout(){
     if(appMode !== "treinador") return;
+    if(!ensureMutationAllowed()) return;
     if(!newWorkout.name.trim()) return alert("Dê um nome para o treino.");
     if(newWorkout.items.length === 0) return alert("Adicione pelo menos um exercício.");
     const incompleteSegmentedExercise = newWorkout.items.find(item=>isRestPauseType(getExerciseType(item)) && segmentedRepValues(item).filter(Boolean).length < 2);
@@ -2708,6 +2784,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
   async function duplicateWorkout(key){
     if(appMode !== "treinador") return;
+    if(!ensureMutationAllowed()) return;
     if(baseWorkoutGroups[key]){
       const label = `${allWorkoutLabels[key]} - cópia`;
       const items = groupsToCustomItems(allWorkouts[key] || []);
@@ -2830,6 +2907,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
   }
 
   async function archiveWorkout(key){
+    if(!ensureMutationAllowed()) return;
     if(appMode !== "treinador") return;
     if(baseWorkoutGroups[key]){
       const hidden = hiddenBaseWorkouts.includes(key) ? hiddenBaseWorkouts : [...hiddenBaseWorkouts, key];
@@ -2848,6 +2926,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
   }
 
   async function reactivateWorkout(key){
+    if(!ensureMutationAllowed()) return;
     if(appMode !== "treinador") return;
     if(baseWorkoutGroups[key]){
       const hidden = hiddenBaseWorkouts.filter(item => item !== key);
@@ -2865,6 +2944,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
   }
 
   async function archiveWorkoutByKey(key, options={}){
+    if(!ensureMutationAllowed()) return;
     if(appMode !== "treinador") return;
     const workoutKey = String(key || "");
     if(!workoutKey) return;
@@ -2914,6 +2994,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
   }
 
   async function deleteWorkoutSafely(key, options={}){
+    if(!ensureMutationAllowed()) return;
     if(appMode !== "treinador") return;
     const workoutKey = String(key || "");
     const idx = customWorkoutIndexForKey(workoutKey);
@@ -3740,6 +3821,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
   }
 
   async function saveActiveSession(session){
+    if(!ensureMutationAllowed()) return;
     const summary = summarizeActiveSession(session);
     try {
       await dataService.saveWorkoutSession(summary);
@@ -4364,6 +4446,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
   }
 
   async function assignWorkoutToStudent(workoutItem, student){
+    if(!ensureMutationAllowed()) return;
     if(!workoutItem?.id || !student?.studentId) {
       alert("O aluno precisa aceitar o convite antes de receber treinos.");
       return;
@@ -4413,6 +4496,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
   }
 
   async function assignWorkoutCopies(){
+    if(!ensureMutationAllowed()) return;
     if(!assignmentSourceWorkout) return;
     const selectedLinks = activeAssignableStudents.filter(link => assignmentSelection.students?.[link.id]);
     if(!assignmentSelection.self && selectedLinks.length === 0) {
@@ -4818,8 +4902,24 @@ function exerciseCatalogToWorkoutItem(ex={}){
     </div>;
   }
 
-  if(isSupabaseConfigured && !authReady){
-    return <div className={`app ${themeClass}`}><section className="formCard accountCard"><h2>Entrar</h2><p className="muted">Carregando sessão...</p></section></div>;
+  if(!authReady || globalSyncState === "loading" || (globalSyncState === "retrying" && !hasSafeDataRef.current)){
+    return <div className={`app authGate ${themeClass}`}><section className="formCard accountCard syncGate" aria-busy="true">
+      <LoaderCircle className="inlineSpinner" aria-hidden="true"/>
+      <h2>Carregando seus dados</h2>
+      <p className="muted">Validando a sessão e preparando uma versão segura das informações.</p>
+    </section></div>;
+  }
+
+  if(!hasSafeDataRef.current && (globalSyncState === "load-error" || globalSyncState === "offline")){
+    return <div className={`app authGate ${themeClass}`}><section className="formCard accountCard syncGate" role="alert">
+      {globalSyncState === "offline" ? <WifiOff aria-hidden="true"/> : <AlertTriangle aria-hidden="true"/>}
+      <h2>{globalSyncState === "offline" ? "Sem conexão" : "Não foi possível carregar"}</h2>
+      <p className="muted">{globalSyncState === "offline" ? "Conecte-se à internet para validar sua sessão e carregar os dados da nuvem." : loadError || "Tente novamente em instantes."}</p>
+      <button type="button" onClick={retryApplicationLoad} disabled={!networkOnline || syncRetrying} aria-busy={syncRetrying}>
+        {syncRetrying ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <RefreshCw aria-hidden="true"/>}
+        {syncRetrying ? "Tentando novamente..." : "Tentar novamente"}
+      </button>
+    </section></div>;
   }
 
   if(isSupabaseConfigured && !currentUser){
@@ -5278,6 +5378,23 @@ function exerciseCatalogToWorkoutItem(ex={}){
       </div> : <div className="roleBadge">Aluno</div>}
       </>}
     </header>
+
+    {globalSyncState !== "loaded" && <section className={`syncBanner ${globalSyncState}`} role={globalSyncState === "load-error" ? "alert" : "status"} aria-live="polite">
+      {globalSyncState === "offline" ? <WifiOff aria-hidden="true"/> : globalSyncState === "load-error" ? <AlertTriangle aria-hidden="true"/> : <LoaderCircle className="inlineSpinner" aria-hidden="true"/>}
+      <div>
+        <b>{globalSyncState === "offline" ? "Sem conexão com a nuvem" : globalSyncState === "load-error" ? "Falha ao atualizar os dados" : globalSyncState === "retrying" ? "Tentando novamente" : "Sincronizando alterações"}</b>
+        <span>{globalSyncState === "offline"
+          ? "Os dados já carregados e o treino em andamento continuam disponíveis. Alterações remotas estão pausadas."
+          : globalSyncState === "load-error"
+            ? "Mantivemos a última versão segura carregada. Tente atualizar novamente."
+            : globalSyncState === "retrying"
+              ? "Mantendo a última versão segura enquanto verificamos a nuvem."
+              : `${pendingSyncCount} alteração${pendingSyncCount === 1 ? "" : "ões"} pendente${pendingSyncCount === 1 ? "" : "s"}.`}</span>
+      </div>
+      {(globalSyncState === "load-error" || globalSyncState === "offline") && <button type="button" className="ghost small" onClick={retryApplicationLoad} disabled={!networkOnline || syncRetrying}>
+        <RefreshCw aria-hidden="true"/> Tentar novamente
+      </button>}
+    </section>}
 
     {renderScreen==="dashboard" && <main className={appMode === "treinador" ? "trainerDashboardScreen" : "athleteDashboardScreen"}>
       {appMode === "treinador" ? <>
