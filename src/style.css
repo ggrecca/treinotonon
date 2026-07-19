@@ -930,6 +930,7 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
   align-items:center;
   border-radius:var(--radius-md);
 }
+.libraryCardOpen{display:grid;min-width:0}
 .libraryCard.rich b{
   overflow:hidden;
   text-overflow:ellipsis;
@@ -1017,6 +1018,40 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
 .studentsScreen .compactStudentCard{
   padding:11px 12px;
   cursor:pointer;
+}
+.studentsScreen .studentCardOpen,
+.workoutsScreen .workoutCardOpen,
+.libraryCardOpen{
+  min-height:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  color:inherit;
+  font:inherit;
+  text-align:left;
+}
+.studentsScreen .studentCardOpen{
+  display:grid;
+  gap:5px;
+  width:100%;
+}
+.studentsScreen .studentCardOpen:hover,
+.workoutsScreen .workoutCardOpen:hover,
+.libraryCardOpen:hover{
+  border-color:transparent;
+  background:transparent;
+}
+.studentsScreen .studentCardOpen:active,
+.workoutsScreen .workoutCardOpen:active,
+.libraryCardOpen:active{transform:none}
+.studentsScreen .studentCardOpen:focus-visible,
+.workoutsScreen .workoutCardOpen:focus-visible,
+.libraryCardOpen:focus-visible{
+  outline:2px solid var(--tt-color-primary);
+  outline-offset:3px;
+  box-shadow:none;
 }
 .studentsScreen .compactStudentCard .studentCardTop span{
   color:var(--color-text-secondary);
@@ -1181,6 +1216,7 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
   font-size:15px;
   line-height:1.18;
 }
+.workoutsScreen .workoutCardOpen{display:block;width:100%}
 .workoutsScreen .workoutListCard small{
   display:block;
   margin-top:2px;
@@ -1296,7 +1332,7 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
 }
 .fixedActionMenuPanel{
   position:fixed;
-  z-index:9999;
+  z-index:var(--tt-z-dropdown);
   display:grid !important;
   gap:5px;
   padding:7px;

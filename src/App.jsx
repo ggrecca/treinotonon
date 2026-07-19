@@ -31,6 +31,7 @@ import { buildInviteDeepLink, buildInviteMailtoHref, buildInviteShareText, clean
 import { athleteOnboardingSteps, finishOnboarding, mergeOnboardingProgress, readOnboardingState, trainerOnboardingSteps } from "./utils/onboarding";
 import { mergeUiHistoryState, readUiHistoryState, uiHistoryDirection } from "./utils/uiHistory";
 import { registerPwa } from "./pwa/registerPwa";
+import { APP_VERSION } from "./config/release";
 import "./style.css";
 import "./design-system/styles/design-system.css";
 
@@ -40,8 +41,6 @@ const today = (value=new Date()) => {
   return new Date(date.getTime() - offset).toISOString().slice(0,10);
 };
 const APP_NAME = "Treino Tonon";
-const APP_VERSION = "1.0.0";
-const APP_RELEASE_LABEL = "Julho de 2026";
 const TYPES = ["NORMAL", "PROG", "CONJ", "REST PAUSE", "DROP SET"];
 const EXECUTION_METHODS = [
   {value:"NORMAL", label:"Normal", description:"Mesma meta em todas as séries."},
@@ -609,9 +608,9 @@ function cloneWorkoutItemsForAssignment(items){
 function ProductFooter(){
   return <footer className="productFooter" aria-label="Informações do aplicativo">
     <div className="productFooterMark" aria-hidden="true">TT</div>
-    <p className="productFooterVersion">Treino Tonon <span>·</span> Versão {APP_VERSION} <span>·</span> {APP_RELEASE_LABEL}</p>
-    <p className="productFooterCopyright">© 2026 Gustavo Grecca Garcia. Todos os direitos reservados.</p>
-    <p className="productFooterCredit">Criado por Gustavo Grecca Garcia em parceria com ChatGPT.</p>
+    <p className="productFooterVersion">Treino Tonon — versão {APP_VERSION}</p>
+    <p className="productFooterCredit">Criado por Gustavo G. Garcia<br/>em parceria com Vitor Tonon</p>
+    <p className="productFooterCopyright">© 2026 Todos os direitos reservados</p>
   </footer>;
 }
 
@@ -5106,17 +5105,11 @@ function exerciseCatalogToWorkoutItem(ex={}){
   }
 
   const themeClass = theme === "light" ? "theme-light" : "theme-dark";
-  const bodyChartTooltip = theme === "light"
-    ? {
-        contentStyle:{background:"#ffffff", border:"1px solid #c8d4e1", borderRadius:12, color:"#172331", boxShadow:"0 12px 28px rgba(21,34,50,.12)"},
-        labelStyle:{color:"#172331", fontWeight:900},
-        itemStyle:{color:"#263c52", fontWeight:800}
-      }
-    : {
-        contentStyle:{background:"#071527", border:"1px solid rgba(75,220,255,.32)", borderRadius:12, color:"#eff6ff", boxShadow:"0 14px 34px rgba(0,0,0,.34)"},
-        labelStyle:{color:"#d9fbff", fontWeight:900},
-        itemStyle:{color:"#cfe3ff", fontWeight:800}
-      };
+  const bodyChartTooltip = {
+    contentStyle:{background:"var(--tt-color-surface)", border:"var(--tt-border-default)", borderRadius:"var(--tt-radius-md)", color:"var(--tt-color-text)", boxShadow:"var(--tt-shadow-md)"},
+    labelStyle:{color:"var(--tt-color-text)", fontWeight:900},
+    itemStyle:{color:"var(--tt-color-text-secondary)", fontWeight:800}
+  };
 
   const TimerCard = ({sticky=false}) => <section className={`timerCard ${sticky ? "stickyTimer" : ""}`}>
     <button className="timerDisplay" onClick={editTimerSetpoint} title="Clique para alterar o tempo">
@@ -6398,9 +6391,8 @@ function exerciseCatalogToWorkoutItem(ex={}){
             const lastTrainingLabel = row.lastSession
               ? formatDateTime(parseSessionDate(row.lastSession.date))
               : "—";
-            return <section key={row.id} className="studentCard compactStudentCard" role="button" tabIndex={0} onClick={openStudent} onKeyDown={event=>{
-              if(event.key === "Enter" || event.key === " ") openStudent();
-            }}>
+            return <section key={row.id} className="studentCard compactStudentCard">
+              <button type="button" className="studentCardOpen" onClick={openStudent}>
               <div className="studentCardTop">
                 <b>{row.studentName || "Aluno"}</b>
                 <span>{activeLink ? `${row.workouts.length} treino${row.workouts.length === 1 ? "" : "s"}` : inviteMeta?.label || "Convite"}</span>
@@ -6408,7 +6400,8 @@ function exerciseCatalogToWorkoutItem(ex={}){
               <small>{activeLink
                 ? `Último treino: ${lastTrainingLabel}`
                 : `Convite atualizado: ${formatDateTime(row.updatedAt || row.createdAt)}`}</small>
-              <button type="button" className="ghost small" onClick={event=>{event.stopPropagation(); openStudent();}}>Abrir</button>
+              </button>
+              <button type="button" className="ghost small" onClick={openStudent}>Abrir</button>
             </section>
           })}
         </section>}
@@ -6623,10 +6616,8 @@ function exerciseCatalogToWorkoutItem(ex={}){
           const isNextWorkout = appMode !== "treinador" && !isTodayWorkout && k === athleteWorkoutSchedule.next;
           const isSuggestedWorkout = appMode !== "treinador" && !isTodayWorkout && !isNextWorkout && k === athleteWorkoutSchedule.suggested;
           const isActionMenuOpen = openActionMenuId === `workout-list-${k}`;
-          return <div className={`sessionCard workoutListCard tappable ${isTodayWorkout ? "isTodayWorkout" : ""} ${isNextWorkout ? "isNextWorkout" : ""} ${isActionMenuOpen ? "actionMenuOpen" : ""}`} key={k} role="button" tabIndex={0} onClick={()=>{setSelectedWorkoutExerciseIndex(null); openWorkout();}} onKeyDown={event=>{
-            if(event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedWorkoutExerciseIndex(null); openWorkout(); }
-          }}>
-          <div className="workoutCardContent">
+          return <div className={`sessionCard workoutListCard tappable ${isTodayWorkout ? "isTodayWorkout" : ""} ${isNextWorkout ? "isNextWorkout" : ""} ${isActionMenuOpen ? "actionMenuOpen" : ""}`} key={k}>
+          <button type="button" className="workoutCardContent workoutCardOpen" onClick={()=>{setSelectedWorkoutExerciseIndex(null); openWorkout();}}>
             <div className="workoutCardTitle"><strong>{resolved.label}</strong>{isTodayWorkout && <span>Hoje</span>}{isNextWorkout && <span>Próximo</span>}{isSuggestedWorkout && <span>Sugerido</span>}</div>
             <div className="workoutCardMeta">
               {frequency && <small>{frequency}</small>}
@@ -6635,10 +6626,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
               {lastExecution && <small>Última execução: {formatRelativeOrShortDate(parseSessionDate(lastExecution.date))}</small>}
               {appMode === "treinador" && objective && <small>{objective}</small>}
             </div>
-          </div>
+          </button>
           <div className="managerActions">
-            {appMode !== "treinador" && <button type="button" className="ghost small" onClick={(event)=>{event.stopPropagation(); openWorkout();}}>Ver treino</button>}
-            {appMode === "treinador" && <button type="button" onClick={(event)=>{event.stopPropagation(); openWorkout();}}>Abrir</button>}
+            {appMode !== "treinador" && <button type="button" className="ghost small" onClick={openWorkout}>Ver treino</button>}
+            {appMode === "treinador" && <button type="button" onClick={openWorkout}>Abrir</button>}
             {appMode === "treinador" && <ActionMenu id={`workout-list-${k}`} label="Ações do treino">
                 {workoutArchiveView === "archived" ? <>
                   <button type="button" onClick={()=>reactivateWorkout(k)}>Restaurar</button>
@@ -6986,17 +6977,17 @@ function exerciseCatalogToWorkoutItem(ex={}){
           emptyState={<p className="emptyHint">Nenhum exercício encontrado com esses filtros.</p>}
           renderItem={ex=>{
             const exerciseDetailId = String(ex.id || libraryKey(ex));
-            return <div className="libraryCard rich tappable" onClick={()=>setSelectedExerciseDetailId(exerciseDetailId)}>
-              <div>
+            return <div className="libraryCard rich tappable">
+              <button type="button" className="libraryCardOpen" onClick={()=>setSelectedExerciseDetailId(exerciseDetailId)} aria-label={`Abrir detalhes de ${ex.name}`}>
                 <b>{ex.name}</b>
                 <span>{ex.category || ex.group || "Outro"} · {ex.primaryGroup || ex.group || "Outro"}</span>
-                {!!normalizeList(ex.equipmentList || ex.equipment).length && <div className="chipRow compactChips">{normalizeList(ex.equipmentList || ex.equipment).slice(0,4).map(tag=><small className="libraryChip" key={tag}>{tag}</small>)}</div>}
-                {!!exerciseChipTags(ex).length && <div className="chipRow compactChips">{exerciseChipTags(ex).map(tag=><small className="libraryChip subtleChip" key={tag}>{tag}</small>)}</div>}
+                {!!normalizeList(ex.equipmentList || ex.equipment).length && <span className="chipRow compactChips">{normalizeList(ex.equipmentList || ex.equipment).slice(0,4).map(tag=><small className="libraryChip" key={tag}>{tag}</small>)}</span>}
+                {!!exerciseChipTags(ex).length && <span className="chipRow compactChips">{exerciseChipTags(ex).map(tag=><small className="libraryChip subtleChip" key={tag}>{tag}</small>)}</span>}
                 {(ex.technicalNotes || ex.notes) && <em className="libraryNote">{ex.technicalNotes || ex.notes}</em>}
-              </div>
+              </button>
               <div className="managerActions">
-                <button className="ghost iconBtn" type="button" title="Editar exercício" onClick={(event)=>{event.stopPropagation(); editLibraryExercise(ex);}}><Edit3 size={16}/></button>
-                <button className="danger iconBtn" type="button" title="Excluir exercício" disabled={isActionPending(`delete-exercise:${ex.id || normalizeExerciseName(ex.name)}`)} aria-busy={isActionPending(`delete-exercise:${ex.id || normalizeExerciseName(ex.name)}`)} onClick={(event)=>{event.stopPropagation(); deleteUserLibraryExercise(ex);}}>{isActionPending(`delete-exercise:${ex.id || normalizeExerciseName(ex.name)}`) ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Trash2 size={16}/>}</button>
+                <button className="ghost iconBtn" type="button" title="Editar exercício" onClick={()=>editLibraryExercise(ex)}><Edit3 size={16}/></button>
+                <button className="danger iconBtn" type="button" title="Excluir exercício" disabled={isActionPending(`delete-exercise:${ex.id || normalizeExerciseName(ex.name)}`)} aria-busy={isActionPending(`delete-exercise:${ex.id || normalizeExerciseName(ex.name)}`)} onClick={()=>deleteUserLibraryExercise(ex)}>{isActionPending(`delete-exercise:${ex.id || normalizeExerciseName(ex.name)}`) ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Trash2 size={16}/>}</button>
               </div>
             </div>
           }}
@@ -7208,6 +7199,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
           </label>
         </section>
       </>}
+      <ProductFooter />
     </main>}
 
     {pendingNavigation && <Dialog open title="Alterações não salvas" description={`Você alterou ${dirtyScopeLabel(pendingNavigation.scope)}. Escolha o que fazer antes de sair.`} backdropClassName="dirtyGuardModal" showClose={false} closeOnEscape={false} closeOnBackdrop={false} actions={<div className="draftGuardActions"><button type="button" onClick={()=>resolvePendingNavigation("save")}><Save size={18}/> Salvar rascunho</button><button type="button" className="danger" onClick={()=>resolvePendingNavigation("discard")}><Trash2 size={18}/> Descartar</button><button type="button" className="ghost" onClick={()=>resolvePendingNavigation("continue")}>Continuar editando</button></div>} />}
