@@ -15,7 +15,7 @@ import { dataService } from "./services/dataService";
 import { EXERCISE_LIBRARY } from "./data/exerciseLibrary";
 import { buildRepPlan, expandRepTargetsForSets, isDropSetType, isRestPauseType, isSegmentedRepType, normalizeRepTargets, parseDropTargets, parseRepTargets, parseSingleRepTarget, repTargetLabelsForEditing, setRepTargetLabelForEditing, targetLabel } from "./utils/repTargets";
 import { Card } from "./components/Card";
-import { Badge, Button, Card as DesignSystemCard } from "./design-system";
+import { Badge, Button, Card as DesignSystemCard, Input, Select, Textarea } from "./design-system";
 import { AppDialog } from "./components/AppDialog";
 import { OnboardingPanel } from "./components/OnboardingPanel";
 import { VirtualList } from "./components/VirtualList";
@@ -3717,10 +3717,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
             <button type="button" className={signUpRole === "coach" ? "active" : "ghost"} onClick={()=>{setSignUpRole("coach"); clearAuthMessage();}} disabled={authBusy}>Sou treinador</button>
           </div>
         </section>}
-        {accountMode === "signUp" && !passwordResetMode && <input name="name" placeholder="Nome" required onChange={clearAuthMessage} />}
-        <input name="email" type="email" placeholder="Email" defaultValue={currentUser?.email || ""} onChange={clearAuthMessage} required disabled={authBusy} />
+        {accountMode === "signUp" && !passwordResetMode && <Input name="name" placeholder="Nome" required onChange={clearAuthMessage} />}
+        <Input name="email" type="email" placeholder="Email" defaultValue={currentUser?.email || ""} onChange={clearAuthMessage} required disabled={authBusy} />
         {!passwordResetMode && <div className="passwordField">
-          <input name="password" type={showAuthPassword ? "text" : "password"} placeholder="Senha" autoComplete={accountMode === "signUp" ? "new-password" : "current-password"} onChange={clearAuthMessage} required disabled={authBusy} />
+          <Input name="password" type={showAuthPassword ? "text" : "password"} placeholder="Senha" autoComplete={accountMode === "signUp" ? "new-password" : "current-password"} onChange={clearAuthMessage} required disabled={authBusy} />
           <button type="button" className="ghost passwordToggle" onClick={()=>setShowAuthPassword(value=>!value)} aria-label={showAuthPassword ? "Ocultar senha" : "Mostrar senha"} disabled={authBusy}>
             {showAuthPassword ? <EyeOff size={17}/> : <Eye size={17}/>}
           </button>
@@ -3760,12 +3760,12 @@ function exerciseCatalogToWorkoutItem(ex={}){
       <p className="muted">Use pelo menos 8 caracteres e confirme a senha antes de salvar.</p>
       <form className="accountForm" onSubmit={submitNewPassword} aria-busy={authBusy || phase === "updating"}>
         <div className="passwordField">
-          <input name="newPassword" type={showAuthPassword ? "text" : "password"} placeholder="Nova senha" autoComplete="new-password" required disabled={authBusy || phase === "updating"} />
+          <Input name="newPassword" type={showAuthPassword ? "text" : "password"} placeholder="Nova senha" autoComplete="new-password" required disabled={authBusy || phase === "updating"} />
           <button type="button" className="ghost passwordToggle" onClick={()=>setShowAuthPassword(value=>!value)} aria-label={showAuthPassword ? "Ocultar senha" : "Mostrar senha"} disabled={authBusy || phase === "updating"}>
             {showAuthPassword ? <EyeOff size={17}/> : <Eye size={17}/>}
           </button>
         </div>
-        <input name="confirmPassword" type={showAuthPassword ? "text" : "password"} placeholder="Confirme a nova senha" autoComplete="new-password" required disabled={authBusy || phase === "updating"} />
+        <Input name="confirmPassword" type={showAuthPassword ? "text" : "password"} placeholder="Confirme a nova senha" autoComplete="new-password" required disabled={authBusy || phase === "updating"} />
         {passwordRecovery.message && <p className="feedbackMessage error" role="alert">{passwordRecovery.message}</p>}
         <button disabled={authBusy || phase === "updating"} aria-busy={authBusy || phase === "updating"}>
           {(authBusy || phase === "updating") && <LoaderCircle className="buttonSpinner" aria-hidden="true"/>}
@@ -5843,20 +5843,20 @@ function exerciseCatalogToWorkoutItem(ex={}){
             {set.drops?.length ? <div className="executionDropList">
               {set.drops.map((drop,dropIdx)=><div className={`executionDropRow ${drop.done ? "done" : ""}`} key={dropIdx}>
                 <div className="executionDropTitle"><b>{restPauseExecution ? (dropIdx === 0 ? "Série principal" : `Mini-série ${dropIdx}`) : `Drop ${dropIdx + 1}`}</b><small>Meta {drop.plannedReps || targetLabel(drop.plannedRepTarget) || "—"} reps</small></div>
-                <label><span>Carga</span><div className="executionInputWithUnit"><input inputMode="decimal" aria-label={`Carga da etapa ${dropIdx + 1}`} placeholder="0" disabled={done} value={drop.load || ""} onChange={event=>updatePerformedDrop(currentExecutionExerciseIndex,setIdx,dropIdx,{load:event.target.value})}/><em>kg</em></div></label>
-                <label><span>Reps</span><input inputMode="numeric" aria-label={`Repetições da etapa ${dropIdx + 1}`} placeholder="0" disabled={done} value={drop.reps || ""} onChange={event=>updatePerformedDrop(currentExecutionExerciseIndex,setIdx,dropIdx,{reps:event.target.value})}/></label>
+                <label><span>Carga</span><div className="executionInputWithUnit"><Input inputMode="decimal" aria-label={`Carga da etapa ${dropIdx + 1}`} placeholder="0" disabled={done} value={drop.load || ""} onChange={event=>updatePerformedDrop(currentExecutionExerciseIndex,setIdx,dropIdx,{load:event.target.value})}/><em>kg</em></div></label>
+                <label><span>Reps</span><Input inputMode="numeric" aria-label={`Repetições da etapa ${dropIdx + 1}`} placeholder="0" disabled={done} value={drop.reps || ""} onChange={event=>updatePerformedDrop(currentExecutionExerciseIndex,setIdx,dropIdx,{reps:event.target.value})}/></label>
                 <button type="button" className={`executionCheckButton compact ${drop.done ? "done" : ""}`} disabled={done} onClick={()=>togglePerformedDrop(currentExecutionExerciseIndex,setIdx,dropIdx)} aria-label={drop.done ? `Reabrir ${segmentName.toLowerCase()}` : `Concluir ${segmentName.toLowerCase()}`}>{drop.done ? <CheckCircle2 size={20}/> : <Circle size={20}/>}</button>
               </div>)}
               <button type="button" className={`executionCheckButton full ${set.done ? "done" : ""}`} disabled={done} onClick={()=>togglePerformedSet(currentExecutionExerciseIndex,setIdx)}>{set.done ? <CheckCircle2 size={18}/> : <Circle size={18}/>} {set.done ? "Série concluída" : "Concluir série completa"}</button>
             </div> : <div className="executionSetInputs">
-              <label><span>Carga</span><div className="executionInputWithUnit"><input inputMode="decimal" aria-label={`Carga da série ${setIdx + 1}`} placeholder="0" disabled={done} value={set.load || ""} onChange={event=>updatePerformedSet(currentExecutionExerciseIndex,setIdx,{load:event.target.value})}/><em>kg</em></div></label>
-              <label><span>Repetições</span><input inputMode="numeric" aria-label={`Repetições da série ${setIdx + 1}`} placeholder="0" disabled={done} value={set.reps || ""} onChange={event=>updatePerformedSet(currentExecutionExerciseIndex,setIdx,{reps:event.target.value})}/></label>
+              <label><span>Carga</span><div className="executionInputWithUnit"><Input inputMode="decimal" aria-label={`Carga da série ${setIdx + 1}`} placeholder="0" disabled={done} value={set.load || ""} onChange={event=>updatePerformedSet(currentExecutionExerciseIndex,setIdx,{load:event.target.value})}/><em>kg</em></div></label>
+              <label><span>Repetições</span><Input inputMode="numeric" aria-label={`Repetições da série ${setIdx + 1}`} placeholder="0" disabled={done} value={set.reps || ""} onChange={event=>updatePerformedSet(currentExecutionExerciseIndex,setIdx,{reps:event.target.value})}/></label>
               <button type="button" className={`executionCheckButton ${set.done ? "done" : ""}`} disabled={done} onClick={()=>togglePerformedSet(currentExecutionExerciseIndex,setIdx)}>{set.done ? <CheckCircle2 size={21}/> : <Circle size={21}/>}<span>{set.done ? "Concluída" : "Concluir"}</span></button>
             </div>}
           </article>)}
         </div>
 
-        <label className="executionRpeField"><span>RPE do exercício</span><input inputMode="numeric" min="1" max="10" placeholder="1 a 10" disabled={done} value={activeExecutionState?.rpe || ""} onChange={event=>patchSessionExercise(currentExecutionExerciseIndex, exercise=>({...exercise, rpe:event.target.value}))}/></label>
+        <label className="executionRpeField"><span>RPE do exercício</span><Input inputMode="numeric" min="1" max="10" placeholder="1 a 10" disabled={done} value={activeExecutionState?.rpe || ""} onChange={event=>patchSessionExercise(currentExecutionExerciseIndex, exercise=>({...exercise, rpe:event.target.value}))}/></label>
 
         <div className="executionExerciseActions">
           {done ? <>
@@ -6166,7 +6166,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
         </ResponsiveContainer></> : <p className="emptyHint">Sem medidas no período.</p>}
       </section>
       <section className="chartCard evolutionSection"><h3>Desempenho</h3>{evolutionVolumeTrend.length ? <ResponsiveContainer width="100%" height={170}><BarChart data={evolutionVolumeTrend}><CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" /><XAxis dataKey="semana" stroke="var(--color-text-muted)" /><YAxis stroke="var(--color-text-muted)" /><Tooltip contentStyle={bodyChartTooltip.contentStyle} /><Bar dataKey="volume" fill="var(--color-primary)" radius={[6,6,0,0]} /></BarChart></ResponsiveContainer> : <p className="emptyHint">Sem desempenho no período.</p>}{exerciseRecords.slice(0,3).map(record=><div className="recordLine" key={record.exercise}><b>{record.exercise}</b><span>{record.load} kg</span></div>)}</section>
-      <section className="evolutionSection"><div className="sectionHeaderRow"><h3>Histórico</h3><select value={historyFilter} onChange={event=>setHistoryFilter(event.target.value)}><option value="todos">Todos os treinos</option>{workoutKeys.map(k=><option key={k} value={k}>{workoutLabels[k]}</option>)}</select></div>
+      <section className="evolutionSection"><div className="sectionHeaderRow"><h3>Histórico</h3><Select value={historyFilter} onChange={event=>setHistoryFilter(event.target.value)}><option value="todos">Todos os treinos</option>{workoutKeys.map(k=><option key={k} value={k}>{workoutLabels[k]}</option>)}</Select></div>
       {filteredHistorySessions.length===0 && <section className="emptyState">
         <b>Nenhum treino no período.</b>
       </section>}
@@ -6311,9 +6311,9 @@ function exerciseCatalogToWorkoutItem(ex={}){
             <div><h2>Novo convite</h2><p className="muted">O atleta deve entrar com o mesmo e-mail informado aqui.</p></div>
           </div>
           <form className="accountForm" onSubmit={inviteStudent} aria-busy={isActionPending("create-invite")}>
-            <label><span>E-mail do aluno</span><input name="studentEmail" type="email" inputMode="email" autoComplete="email" placeholder="aluno@exemplo.com" required /></label>
-            <label><span>Objetivo (opcional)</span><input name="objective" placeholder="Ex.: hipertrofia" /></label>
-            <label><span>Observações (opcional)</span><textarea name="notes" placeholder="Contexto útil para o acompanhamento" /></label>
+            <label><span>E-mail do aluno</span><Input name="studentEmail" type="email" inputMode="email" autoComplete="email" placeholder="aluno@exemplo.com" required /></label>
+            <label><span>Objetivo (opcional)</span><Input name="objective" placeholder="Ex.: hipertrofia" /></label>
+            <label><span>Observações (opcional)</span><Textarea name="notes" placeholder="Contexto útil para o acompanhamento" /></label>
             <button disabled={isActionPending("create-invite")} aria-busy={isActionPending("create-invite")}>
               {isActionPending("create-invite") ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <UserPlus size={18}/>}
               {isActionPending("create-invite") ? "Criando…" : "Criar convite"}
@@ -6340,18 +6340,18 @@ function exerciseCatalogToWorkoutItem(ex={}){
         </div>
 
         <section className="formCard">
-          <input value={studentSearch} onChange={e=>setStudentSearch(e.target.value)} placeholder="Pesquisar por nome ou e-mail" />
+          <Input value={studentSearch} onChange={e=>setStudentSearch(e.target.value)} placeholder="Pesquisar por nome ou e-mail" />
         </section>
 
         <section className="studentSortRow">
           <label>
             <span>Ordenar</span>
-            <select value={studentSort} onChange={event=>setStudentSort(event.currentTarget.value)}>
+            <Select value={studentSort} onChange={event=>setStudentSort(event.currentTarget.value)}>
               <option value="name">Nome</option>
               <option value="last">Último acesso</option>
               <option value="recent">Mais recente</option>
               <option value="oldest">Mais antigo</option>
-            </select>
+            </Select>
           </label>
         </section>
 
@@ -6532,17 +6532,17 @@ function exerciseCatalogToWorkoutItem(ex={}){
         {newWorkout.editingWorkoutKey && <button type="button" className="danger" disabled={isActionPending(`delete-workout:${newWorkout.editingId || newWorkout.editingWorkoutKey}`)} aria-busy={isActionPending(`delete-workout:${newWorkout.editingId || newWorkout.editingWorkoutKey}`)} onClick={()=>deleteWorkoutSafely(newWorkout.editingWorkoutKey)}>{isActionPending(`delete-workout:${newWorkout.editingId || newWorkout.editingWorkoutKey}`) ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Trash2 size={18}/>} {isActionPending(`delete-workout:${newWorkout.editingId || newWorkout.editingWorkoutKey}`) ? "Excluindo…" : "Excluir treino"}</button>}
       </div>}
       {!showWorkoutEditor && !assignmentWorkoutId && appMode === "treinador" && <section className="formCard compactWorkoutSearch">
-        <input value={workoutSearch} onChange={e=>setWorkoutSearch(e.target.value)} placeholder="Pesquisar por nome, objetivo ou exercício" />
+        <Input value={workoutSearch} onChange={e=>setWorkoutSearch(e.target.value)} placeholder="Pesquisar por nome, objetivo ou exercício" />
       </section>}
       {!showWorkoutEditor && !assignmentWorkoutId && appMode === "treinador" && <section className="studentSortRow">
         <label>
           <span>Ordenar</span>
-          <select value={workoutSort} onChange={event=>setWorkoutSort(event.currentTarget.value)}>
+          <Select value={workoutSort} onChange={event=>setWorkoutSort(event.currentTarget.value)}>
             <option value="name">Nome</option>
             <option value="recent">Mais recente</option>
             <option value="oldest">Mais antigo</option>
             <option value="objective">Objetivo</option>
-          </select>
+          </Select>
         </label>
       </section>}
       {!showWorkoutEditor && !assignmentWorkoutId && appMode === "treinador" && <section className="filterRow archiveFilterRow">
@@ -6648,7 +6648,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
         <section className="formCard exerciseSelectorScreen">
           <div className="exerciseSelectorToolbar">
             <div className="exerciseSelectorSearch">
-              <input autoFocus value={workoutLibrarySearch} onChange={e=>setWorkoutLibrarySearch(e.target.value)} placeholder="Buscar exercício" />
+              <Input autoFocus value={workoutLibrarySearch} onChange={e=>setWorkoutLibrarySearch(e.target.value)} placeholder="Buscar exercício" />
               {workoutLibrarySearch && <button type="button" className="ghost iconBtn" aria-label="Limpar busca" onClick={()=>setWorkoutLibrarySearch("")}><X size={16}/></button>}
             </div>
             <button type="button" className={`ghost exerciseFilterToggle ${workoutLibraryFiltersOpen ? "active" : ""}`} onClick={()=>setWorkoutLibraryFiltersOpen(open=>!open)}>
@@ -6659,27 +6659,27 @@ function exerciseCatalogToWorkoutItem(ex={}){
             <div className="exerciseFilterGrid compactFilters">
               <label>
                 <span>Categoria</span>
-                <select value={workoutLibraryCategory} onChange={e=>setWorkoutLibraryCategory(e.currentTarget.value)}>
+                <Select value={workoutLibraryCategory} onChange={e=>setWorkoutLibraryCategory(e.currentTarget.value)}>
                   {libraryGroups.map(option=><option key={option} value={option}>{option === "Todos" ? "Todas" : option}</option>)}
-                </select>
+                </Select>
               </label>
               <label>
                 <span>Grupo principal</span>
-                <select value={workoutLibraryPrimaryGroup} onChange={e=>setWorkoutLibraryPrimaryGroup(e.currentTarget.value)}>
+                <Select value={workoutLibraryPrimaryGroup} onChange={e=>setWorkoutLibraryPrimaryGroup(e.currentTarget.value)}>
                   {libraryPrimaryGroups.map(option=><option key={option} value={option}>{option === "Todos" ? "Todos" : option}</option>)}
-                </select>
+                </Select>
               </label>
               <label>
                 <span>Equipamento</span>
-                <select value={workoutLibraryEquipment} onChange={e=>setWorkoutLibraryEquipment(e.currentTarget.value)}>
+                <Select value={workoutLibraryEquipment} onChange={e=>setWorkoutLibraryEquipment(e.currentTarget.value)}>
                   {libraryEquipments.map(option=><option key={option} value={option}>{option === "Todos" ? "Todos" : option}</option>)}
-                </select>
+                </Select>
               </label>
               <label>
                 <span>Tipo/tag</span>
-                <select value={workoutLibraryTag} onChange={e=>setWorkoutLibraryTag(e.currentTarget.value)}>
+                <Select value={workoutLibraryTag} onChange={e=>setWorkoutLibraryTag(e.currentTarget.value)}>
                   {libraryTags.map(option=><option key={option} value={option}>{option === "Todos" ? "Todos" : option}</option>)}
-                </select>
+                </Select>
               </label>
             </div>
             {workoutLibraryActiveFilterCount > 0 && <button type="button" className="ghost small" onClick={clearWorkoutExerciseFilters}>Limpar filtros</button>}
@@ -6732,9 +6732,9 @@ function exerciseCatalogToWorkoutItem(ex={}){
             <section className="exercisePrescriptionSection">
               <h4>Prescrição</h4>
               <div className="exercisePrescriptionGrid">
-                <label><span>Séries</span><input inputMode="numeric" value={exercise.sets || ""} onChange={e=>updatePreviewItem(editingWorkoutExerciseIndex,{sets:e.target.value})} placeholder="3" /></label>
-                <label><span>Carga sugerida</span><input inputMode="decimal" value={exercise.load || ""} onChange={e=>updatePreviewItem(editingWorkoutExerciseIndex,{load:e.target.value})} placeholder="Opcional" /></label>
-                <label><span>Descanso</span><input value={exercise.rest || ""} onChange={e=>updatePreviewItem(editingWorkoutExerciseIndex,{rest:e.target.value})} placeholder="00:50" /></label>
+                <label><span>Séries</span><Input inputMode="numeric" value={exercise.sets || ""} onChange={e=>updatePreviewItem(editingWorkoutExerciseIndex,{sets:e.target.value})} placeholder="3" /></label>
+                <label><span>Carga sugerida</span><Input inputMode="decimal" value={exercise.load || ""} onChange={e=>updatePreviewItem(editingWorkoutExerciseIndex,{load:e.target.value})} placeholder="Opcional" /></label>
+                <label><span>Descanso</span><Input value={exercise.rest || ""} onChange={e=>updatePreviewItem(editingWorkoutExerciseIndex,{rest:e.target.value})} placeholder="00:50" /></label>
               </div>
             </section>
 
@@ -6746,7 +6746,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
                 </button>)}
               </div>
               {methodRepHint(exercise) && <p className="repHint methodHint">{methodRepHint(exercise)}</p>}
-              {method === "NORMAL" && <label className="standardRepsField"><span>Repetições</span><input value={exercise.reps || ""} onChange={e=>updatePreviewItem(editingWorkoutExerciseIndex,{reps:e.target.value})} placeholder="Ex.: 10 ou 8-12" /></label>}
+              {method === "NORMAL" && <label className="standardRepsField"><span>Repetições</span><Input value={exercise.reps || ""} onChange={e=>updatePreviewItem(editingWorkoutExerciseIndex,{reps:e.target.value})} placeholder="Ex.: 10 ou 8-12" /></label>}
               {method === "PROG" && <RepTargetsEditor
                 exercise={{...exercise, useRepTargetsBySet:true}}
                 forced
@@ -6779,7 +6779,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
                 : previousExercise && <button type="button" className="ghost small" onClick={()=>linkPreviewToPreviousConjugate(editingWorkoutExerciseIndex)}>Combinar com anterior</button>}
             </section>
 
-            <label className="exerciseNotesField"><span>Observações</span><textarea value={exercise.notes || ""} onChange={e=>updatePreviewItem(editingWorkoutExerciseIndex,{notes:e.currentTarget.value})} placeholder="Orientações para a execução" /></label>
+            <label className="exerciseNotesField"><span>Observações</span><Textarea value={exercise.notes || ""} onChange={e=>updatePreviewItem(editingWorkoutExerciseIndex,{notes:e.currentTarget.value})} placeholder="Orientações para a execução" /></label>
             <div className="createActions exerciseEditorActions">
               <button type="button" className="danger" onClick={()=>{removePreviewItem(editingWorkoutExerciseIndex); closeWorkoutExerciseEditor();}}>Excluir</button>
               <button type="button" onClick={closeWorkoutExerciseEditor}><Save size={18}/> Concluir</button>
@@ -6789,22 +6789,22 @@ function exerciseCatalogToWorkoutItem(ex={}){
       </> : <>
         <section className="formCard">
           <label>Nome do treino</label>
-          <input value={newWorkout.name} onChange={e=>setNewWorkout({...newWorkout, name:e.target.value})} placeholder="Ex.: Treino D, Pernas leve, Mobilidade" />
+          <Input value={newWorkout.name} onChange={e=>setNewWorkout({...newWorkout, name:e.target.value})} placeholder="Ex.: Treino D, Pernas leve, Mobilidade" />
           <div className="formGrid">
             <label>
               Objetivo
-              <select value={newWorkout.objective || ""} onChange={e=>setNewWorkout({...newWorkout, objective:e.target.value})}>
+              <Select value={newWorkout.objective || ""} onChange={e=>setNewWorkout({...newWorkout, objective:e.target.value})}>
                 <option value="">Selecione</option>
                 {OBJECTIVES.map(item=><option key={item} value={item}>{item}</option>)}
-              </select>
+              </Select>
             </label>
             <label>
               Frequência
-              <input value={newWorkout.frequency || ""} onChange={e=>setNewWorkout({...newWorkout, frequency:e.target.value})} placeholder="Ex.: Seg • Qua • Sex" />
+              <Input value={newWorkout.frequency || ""} onChange={e=>setNewWorkout({...newWorkout, frequency:e.target.value})} placeholder="Ex.: Seg • Qua • Sex" />
             </label>
           </div>
           <label>Observações</label>
-          <textarea value={newWorkout.notes || ""} onChange={e=>setNewWorkout({...newWorkout, notes:e.target.value})} placeholder="Observações gerais do treino" />
+          <Textarea value={newWorkout.notes || ""} onChange={e=>setNewWorkout({...newWorkout, notes:e.target.value})} placeholder="Observações gerais do treino" />
           {appMode === "treinador" && <p className="emptyHint">Salve como treino-base. Depois use Atribuir treino para gerar cópias individuais para você ou alunos ativos.</p>}
         </section>
 
@@ -6822,9 +6822,9 @@ function exerciseCatalogToWorkoutItem(ex={}){
                   </div>
                 </div>
                 <div className="conjugateKindRow">
-                  <select value={group.conjugateKind || "Bi-set"} onChange={event=>updatePreviewConjugateKind(group.blockId,event.currentTarget.value)}>
+                  <Select value={group.conjugateKind || "Bi-set"} onChange={event=>updatePreviewConjugateKind(group.blockId,event.currentTarget.value)}>
                     <option>Bi-set</option><option>Tri-set</option><option>Supersérie</option><option>Circuito</option>
-                  </select>
+                  </Select>
                   <button type="button" className="ghost small" onClick={()=>dissolvePreviewConjugateBlock(group.blockId)}>Desfazer bloco</button>
                 </div>
                 {group.entries.map(({item,index},position)=><div className="workoutExerciseCard conjugateExerciseCard" key={item.workoutExerciseId || item.id || index}>
@@ -6910,18 +6910,18 @@ function exerciseCatalogToWorkoutItem(ex={}){
       </div>}
 
       {showExerciseEditor && <form className="formCard" id="exercise-editor" onSubmit={saveLibraryExercise}>
-        <input value={exerciseForm.name} onChange={e=>updateExerciseFormField("name", e.currentTarget.value)} placeholder="Nome do exercício" />
+        <Input value={exerciseForm.name} onChange={e=>updateExerciseFormField("name", e.currentTarget.value)} placeholder="Nome do exercício" />
         <div className="formGrid">
-          <input value={exerciseForm.category || ""} onChange={e=>updateExerciseFormField("category", e.currentTarget.value)} placeholder="Categoria" />
-          <input value={exerciseForm.primaryGroup || exerciseForm.group || ""} onChange={e=>{
+          <Input value={exerciseForm.category || ""} onChange={e=>updateExerciseFormField("category", e.currentTarget.value)} placeholder="Categoria" />
+          <Input value={exerciseForm.primaryGroup || exerciseForm.group || ""} onChange={e=>{
             const value = e.currentTarget.value;
             setExerciseForm(current => ({...current, primaryGroup:value, group:value}));
           }} placeholder="Grupo muscular principal" />
         </div>
-        <input value={normalizeList(exerciseForm.secondaryGroups).join(", ")} onChange={e=>updateExerciseFormField("secondaryGroups", e.currentTarget.value)} placeholder="Grupos secundários separados por vírgula" />
-        <input value={normalizeList(exerciseForm.equipmentList || exerciseForm.equipment).join(", ")} onChange={e=>updateExerciseFormField("equipmentList", e.currentTarget.value)} placeholder="Equipamentos separados por vírgula" />
-        <input value={normalizeList(exerciseForm.tags).join(", ")} onChange={e=>updateExerciseFormField("tags", e.currentTarget.value)} placeholder="Tags técnicas separadas por vírgula" />
-        <textarea name="technicalNotes" value={exerciseForm.technicalNotes || exerciseForm.notes || ""} onChange={e=>updateExerciseFormField("technicalNotes", e.currentTarget.value)} placeholder="Informações técnicas do exercício" />
+        <Input value={normalizeList(exerciseForm.secondaryGroups).join(", ")} onChange={e=>updateExerciseFormField("secondaryGroups", e.currentTarget.value)} placeholder="Grupos secundários separados por vírgula" />
+        <Input value={normalizeList(exerciseForm.equipmentList || exerciseForm.equipment).join(", ")} onChange={e=>updateExerciseFormField("equipmentList", e.currentTarget.value)} placeholder="Equipamentos separados por vírgula" />
+        <Input value={normalizeList(exerciseForm.tags).join(", ")} onChange={e=>updateExerciseFormField("tags", e.currentTarget.value)} placeholder="Tags técnicas separadas por vírgula" />
+        <Textarea name="technicalNotes" value={exerciseForm.technicalNotes || exerciseForm.notes || ""} onChange={e=>updateExerciseFormField("technicalNotes", e.currentTarget.value)} placeholder="Informações técnicas do exercício" />
         <div className="createActions">
           <button type="button" className="ghost" disabled={isActionPending("save-exercise")} onClick={closeExerciseEditor}>Cancelar</button>
           <button disabled={isActionPending("save-exercise")} aria-busy={isActionPending("save-exercise")}>
@@ -6932,31 +6932,31 @@ function exerciseCatalogToWorkoutItem(ex={}){
       </form>}
 
       {!showExerciseEditor && <section className="formCard exerciseLibraryPanel" id="exercise-library-list">
-        <input value={librarySearch} onChange={e=>setLibrarySearch(e.target.value)} placeholder="Pesquisar por nome, categoria, grupo ou tag" />
+        <Input value={librarySearch} onChange={e=>setLibrarySearch(e.target.value)} placeholder="Pesquisar por nome, categoria, grupo ou tag" />
         <div className="exerciseFilterGrid">
           <label>
             <span>Categoria</span>
-            <select value={libraryGroup} onChange={e=>setLibraryGroup(e.currentTarget.value)}>
+            <Select value={libraryGroup} onChange={e=>setLibraryGroup(e.currentTarget.value)}>
               {libraryGroups.map(option=><option key={option} value={option}>{option === "Todos" ? "Todas as categorias" : option}</option>)}
-            </select>
+            </Select>
           </label>
           <label>
             <span>Grupo principal</span>
-            <select value={libraryPrimaryGroup} onChange={e=>setLibraryPrimaryGroup(e.currentTarget.value)}>
+            <Select value={libraryPrimaryGroup} onChange={e=>setLibraryPrimaryGroup(e.currentTarget.value)}>
               {libraryPrimaryGroups.map(option=><option key={option} value={option}>{option === "Todos" ? "Todos os grupos" : option}</option>)}
-            </select>
+            </Select>
           </label>
           <label>
             <span>Equipamento</span>
-            <select value={libraryEquipment} onChange={e=>setLibraryEquipment(e.currentTarget.value)}>
+            <Select value={libraryEquipment} onChange={e=>setLibraryEquipment(e.currentTarget.value)}>
               {libraryEquipments.map(option=><option key={option} value={option}>{option === "Todos" ? "Todos os equipamentos" : option}</option>)}
-            </select>
+            </Select>
           </label>
           <label>
             <span>Tipo/tag</span>
-            <select value={libraryTag} onChange={e=>setLibraryTag(e.currentTarget.value)}>
+            <Select value={libraryTag} onChange={e=>setLibraryTag(e.currentTarget.value)}>
               {libraryTags.map(option=><option key={option} value={option}>{option === "Todos" ? "Todas as tags" : option}</option>)}
-            </select>
+            </Select>
           </label>
         </div>
         <div className="sectionHeaderRow compactHeader">
@@ -7012,10 +7012,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
       </div>
       <section className="chartCard">
         <h3>Histórico por exercício</h3>
-        <select value={selectedExercise} onChange={e=>setSelectedExercise(e.target.value)}>
+        <Select value={selectedExercise} onChange={e=>setSelectedExercise(e.target.value)}>
           <option value="">Selecione um exercício</option>
           {allExerciseNames.map(e=><option key={e}>{e}</option>)}
-        </select>
+        </Select>
         {selectedExerciseSummary && <section className="grid2 compactGrid">
           <Card title="Última carga" value={`${selectedExerciseSummary.last.raw || selectedExerciseSummary.last.load} kg`} sub={selectedExerciseSummary.last.date} />
           <Card title="Melhor carga" value={`${selectedExerciseSummary.best} kg`} sub={`${selectedExerciseSummary.count} registros`} />
@@ -7164,7 +7164,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
           <div className="recordLine"><b>Nome conectado</b><span>{currentUser?.name || currentUserDisplayName || "Usuário"}</span></div>
           <div className="recordLine"><b>E-mail conectado</b><span>{currentUser?.email || "Conta local"}</span></div>
           {showNameEditor ? <form id="profile-name-form" className="accountForm" onSubmit={saveProfile} onInputCapture={()=>markDirty("profile-name")} onChangeCapture={()=>markDirty("profile-name")}>
-            <input name="name" defaultValue={currentUser?.name || profile.name || ""} required placeholder="Nome" />
+            <Input name="name" defaultValue={currentUser?.name || profile.name || ""} required placeholder="Nome" />
             <div className="createActions"><button type="button" className="ghost" disabled={isActionPending("save-profile")} onClick={()=>closeDirtyScope("profile-name", ()=>setShowNameEditor(false))}>Cancelar</button><button disabled={isActionPending("save-profile")} aria-busy={isActionPending("save-profile")}>{isActionPending("save-profile") && <LoaderCircle className="buttonSpinner" aria-hidden="true"/>}{isActionPending("save-profile") ? "Salvando…" : "Salvar nome"}</button></div>
           </form> : <button type="button" className="ghost" onClick={openProfileNameEditor}>Editar nome</button>}
           <button type="button" className="danger" onClick={signOutAccount} disabled={authBusy || !currentUser}>Sair da conta</button>
@@ -7217,11 +7217,11 @@ function exerciseCatalogToWorkoutItem(ex={}){
         <h2>Editar aluno</h2>
         <section className="skinfoldBox">
           <h4>Dados básicos</h4>
-          <input name="studentName" placeholder="Nome" defaultValue={editingStudentLink.studentName || ""} />
+          <Input name="studentName" placeholder="Nome" defaultValue={editingStudentLink.studentName || ""} />
         </section>
         <section className="skinfoldBox">
           <h4>Objetivo</h4>
-          <select name="objective" defaultValue={editingStudentLink.objective || ""}>
+          <Select name="objective" defaultValue={editingStudentLink.objective || ""}>
             <option value="">Selecionar objetivo</option>
             <option value="Hipertrofia">Hipertrofia</option>
             <option value="Emagrecimento">Emagrecimento</option>
@@ -7230,11 +7230,11 @@ function exerciseCatalogToWorkoutItem(ex={}){
             <option value="Saúde">Saúde</option>
             <option value="Reabilitação">Reabilitação</option>
             <option value="Outro">Outro</option>
-          </select>
+          </Select>
         </section>
         <section className="skinfoldBox">
           <h4>Observações</h4>
-          <textarea name="notes" placeholder="Restrições, lesões, recomendações ou informações relevantes" defaultValue={editingStudentLink.notes || ""} />
+          <Textarea name="notes" placeholder="Restrições, lesões, recomendações ou informações relevantes" defaultValue={editingStudentLink.notes || ""} />
         </section>
         <div className="finishActions">
           <button type="button" className="ghost" disabled={isActionPending(`save-student:${editingStudentLink.id}`)} onClick={()=>closeDirtyScope("student-admin", ()=>setEditingStudentLink(null))}>Cancelar</button>
@@ -7264,7 +7264,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
         <div className="restQuickActions">
           {[30,45,60,90,120].map(seconds=><button type="button" className="ghost" key={seconds} onClick={()=>applyRestDuration(seconds)}>{seconds} s</button>)}
         </div>
-        <label className="inlineField"><span>Personalizado (segundos)</span><input inputMode="numeric" value={restCustomSeconds} onChange={event=>setRestCustomSeconds(event.target.value)} placeholder="Ex.: 75" /></label>
+        <label className="inlineField"><span>Personalizado (segundos)</span><Input inputMode="numeric" value={restCustomSeconds} onChange={event=>setRestCustomSeconds(event.target.value)} placeholder="Ex.: 75" /></label>
         <div className="finishActions">
           <button type="button" onClick={()=>restCustomSeconds && applyRestDuration(restCustomSeconds)}>Aplicar</button>
           <button type="button" className="ghost" onClick={()=>setShowRestPicker(false)}>Cancelar</button>
@@ -7409,61 +7409,61 @@ function BodyRecordFields({includeDate=false, profileBodyEditor=false}){
     {children}
   </section>;
   if(profileBodyEditor) return <>
-    {includeDate && <input name="date" type="date" defaultValue={today()} />}
+    {includeDate && <Input name="date" type="date" defaultValue={today()} />}
     <Section title="Dados básicos" defaultOpen>
       <div className="formGrid">
-        <select name="sex" value={values.sex || ""} onChange={patch}>
+        <Select name="sex" value={values.sex || ""} onChange={patch}>
           <option value="">Sexo</option>
           <option value="male">Masculino</option>
           <option value="female">Feminino</option>
-        </select>
-        <input name="age" placeholder="Idade" inputMode="numeric" onChange={patch} />
-        <input name="peso" placeholder="Peso (kg)" inputMode="decimal" onChange={patch} />
-        <input name="height" placeholder="Altura (cm)" inputMode="decimal" onChange={patch} />
+        </Select>
+        <Input name="age" placeholder="Idade" inputMode="numeric" onChange={patch} />
+        <Input name="peso" placeholder="Peso (kg)" inputMode="decimal" onChange={patch} />
+        <Input name="height" placeholder="Altura (cm)" inputMode="decimal" onChange={patch} />
       </div>
     </Section>
     <Section title="Medidas">
       <div className="formGrid">
-        <input name="neck" placeholder="Pescoço (cm)" inputMode="decimal" onChange={patch} />
-        <input name="shoulder" placeholder="Ombro (cm)" inputMode="decimal" onChange={patch} />
-        <input name="cintura" placeholder="Cintura (cm)" inputMode="decimal" onChange={patch} />
-        <input name="hip" placeholder="Quadril (cm)" inputMode="decimal" onChange={patch} />
-        <input name="chest" placeholder="Peito/tórax (cm)" inputMode="decimal" onChange={patch} />
-        <input name="abdomen" placeholder="Abdômen (cm)" inputMode="decimal" onChange={patch} />
-        <input name="arm" placeholder="Braço (cm)" inputMode="decimal" onChange={patch} />
-        <input name="forearm" placeholder="Antebraço (cm)" inputMode="decimal" onChange={patch} />
-        <input name="thigh" placeholder="Coxa (cm)" inputMode="decimal" onChange={patch} />
-        <input name="calf" placeholder="Panturrilha (cm)" inputMode="decimal" onChange={patch} />
+        <Input name="neck" placeholder="Pescoço (cm)" inputMode="decimal" onChange={patch} />
+        <Input name="shoulder" placeholder="Ombro (cm)" inputMode="decimal" onChange={patch} />
+        <Input name="cintura" placeholder="Cintura (cm)" inputMode="decimal" onChange={patch} />
+        <Input name="hip" placeholder="Quadril (cm)" inputMode="decimal" onChange={patch} />
+        <Input name="chest" placeholder="Peito/tórax (cm)" inputMode="decimal" onChange={patch} />
+        <Input name="abdomen" placeholder="Abdômen (cm)" inputMode="decimal" onChange={patch} />
+        <Input name="arm" placeholder="Braço (cm)" inputMode="decimal" onChange={patch} />
+        <Input name="forearm" placeholder="Antebraço (cm)" inputMode="decimal" onChange={patch} />
+        <Input name="thigh" placeholder="Coxa (cm)" inputMode="decimal" onChange={patch} />
+        <Input name="calf" placeholder="Panturrilha (cm)" inputMode="decimal" onChange={patch} />
       </div>
-      <textarea name="notes" placeholder="Observações do registro" />
+      <Textarea name="notes" placeholder="Observações do registro" />
     </Section>
     <Section title="Dobras cutâneas / Adipômetro">
       <div className="formGrid">
-        <input name="skinfoldChest" placeholder="Peitoral (mm)" inputMode="decimal" onChange={patch} />
-        <input name="skinfoldAbdominal" placeholder="Abdominal (mm)" inputMode="decimal" onChange={patch} />
-        <input name="skinfoldThigh" placeholder="Coxa (mm)" inputMode="decimal" onChange={patch} />
-        <input name="skinfoldTriceps" placeholder="Tríceps (mm)" inputMode="decimal" onChange={patch} />
-        <input name="skinfoldSubscapular" placeholder="Subescapular (mm)" inputMode="decimal" onChange={patch} />
-        <input name="skinfoldSuprailiac" placeholder="Supra-ilíaca (mm)" inputMode="decimal" onChange={patch} />
-        <input name="skinfoldMidaxillary" placeholder="Axilar média (mm)" inputMode="decimal" onChange={patch} />
-        <input name="skinfoldCalf" placeholder="Panturrilha (mm)" inputMode="decimal" onChange={patch} />
+        <Input name="skinfoldChest" placeholder="Peitoral (mm)" inputMode="decimal" onChange={patch} />
+        <Input name="skinfoldAbdominal" placeholder="Abdominal (mm)" inputMode="decimal" onChange={patch} />
+        <Input name="skinfoldThigh" placeholder="Coxa (mm)" inputMode="decimal" onChange={patch} />
+        <Input name="skinfoldTriceps" placeholder="Tríceps (mm)" inputMode="decimal" onChange={patch} />
+        <Input name="skinfoldSubscapular" placeholder="Subescapular (mm)" inputMode="decimal" onChange={patch} />
+        <Input name="skinfoldSuprailiac" placeholder="Supra-ilíaca (mm)" inputMode="decimal" onChange={patch} />
+        <Input name="skinfoldMidaxillary" placeholder="Axilar média (mm)" inputMode="decimal" onChange={patch} />
+        <Input name="skinfoldCalf" placeholder="Panturrilha (mm)" inputMode="decimal" onChange={patch} />
       </div>
-      <textarea name="skinfoldNotes" placeholder="Observações do teste de adipômetro" />
+      <Textarea name="skinfoldNotes" placeholder="Observações do teste de adipômetro" />
     </Section>
     <Section title="Percentual de gordura (BF)" defaultOpen>
-      <select name="bodyFatMethod" value={values.bodyFatMethod || "manual"} onChange={patch}>
+      <Select name="bodyFatMethod" value={values.bodyFatMethod || "manual"} onChange={patch}>
         <option value="manual">Manual</option>
         <option value="jp3">Jackson & Pollock 3 dobras</option>
         <option value="jp7">Jackson & Pollock 7 dobras</option>
         <option value="navy">Navy / Circunferências</option>
-      </select>
+      </Select>
       <label>
         <span>BF calculado</span>
-        <input readOnly value={bfResult.calculated ? `${bfResult.calculated}%` : "—"} aria-label="BF calculado" />
+        <Input readOnly value={bfResult.calculated ? `${bfResult.calculated}%` : "—"} aria-label="BF calculado" />
       </label>
       {values.bodyFatMethod === "manual" && <label>
           <span>BF manual</span>
-          <input name="bodyFatManual" placeholder="BF manual (%)" inputMode="decimal" onChange={patch} />
+          <Input name="bodyFatManual" placeholder="BF manual (%)" inputMode="decimal" onChange={patch} />
           <small>Informe o BF manual para salvar o valor final.</small>
         </label>}
       <p className="bfPreview">
@@ -7476,22 +7476,22 @@ function BodyRecordFields({includeDate=false, profileBodyEditor=false}){
     </Section>
   </>;
   return <>
-    {includeDate && <input name="date" type="date" defaultValue={today()} />}
+    {includeDate && <Input name="date" type="date" defaultValue={today()} />}
     {!profileBodyEditor && <section className="skinfoldBox">
       <h4>Percentual de gordura</h4>
       <div className="formGrid">
-        <select name="sex" value={values.sex || ""} onChange={patch}>
+        <Select name="sex" value={values.sex || ""} onChange={patch}>
           <option value="">Sexo</option>
           <option value="male">Masculino</option>
           <option value="female">Feminino</option>
-        </select>
-        <select name="bodyFatMethod" value={values.bodyFatMethod || "manual"} onChange={patch}>
+        </Select>
+        <Select name="bodyFatMethod" value={values.bodyFatMethod || "manual"} onChange={patch}>
           <option value="manual">Manual</option>
           <option value="jp3">Jackson & Pollock 3 dobras</option>
           <option value="jp7">Jackson & Pollock 7 dobras</option>
           <option value="navy">Navy / Circunferências</option>
-        </select>
-        {!profileBodyEditor && <input name="bodyFatManual" placeholder="BF manual (%)" inputMode="decimal" onChange={patch} />}
+        </Select>
+        {!profileBodyEditor && <Input name="bodyFatManual" placeholder="BF manual (%)" inputMode="decimal" onChange={patch} />}
         {!profileBodyEditor && <label className="toggleLine">
           <input type="checkbox" name="useManualBodyFat" checked={!!values.useManualBodyFat} onChange={patch} disabled={values.bodyFatMethod === "manual"} />
           <span>Usar BF manual</span>
@@ -7507,49 +7507,49 @@ function BodyRecordFields({includeDate=false, profileBodyEditor=false}){
       </p>
     </section>}
     <div className="formGrid">
-      <input name="peso" placeholder="Peso (kg)" inputMode="decimal" onChange={patch} />
-      <input name="height" placeholder="Altura (cm)" inputMode="decimal" onChange={patch} />
-      <input name="age" placeholder="Idade" inputMode="numeric" onChange={patch} />
-      <input name="neck" placeholder="Pescoço (cm)" inputMode="decimal" onChange={patch} />
-      <input name="shoulder" placeholder="Ombro (cm)" inputMode="decimal" onChange={patch} />
-      <input name="cintura" placeholder="Cintura (cm)" inputMode="decimal" onChange={patch} />
-      <input name="hip" placeholder="Quadril (cm)" inputMode="decimal" onChange={patch} />
-      <input name="chest" placeholder="Peito/tórax (cm)" inputMode="decimal" onChange={patch} />
-      <input name="abdomen" placeholder="Abdômen (cm)" inputMode="decimal" onChange={patch} />
-      <input name="arm" placeholder="Braço (cm)" inputMode="decimal" onChange={patch} />
-      <input name="forearm" placeholder="Antebraço (cm)" inputMode="decimal" onChange={patch} />
-      <input name="thigh" placeholder="Coxa (cm)" inputMode="decimal" onChange={patch} />
-      <input name="calf" placeholder="Panturrilha (cm)" inputMode="decimal" onChange={patch} />
+      <Input name="peso" placeholder="Peso (kg)" inputMode="decimal" onChange={patch} />
+      <Input name="height" placeholder="Altura (cm)" inputMode="decimal" onChange={patch} />
+      <Input name="age" placeholder="Idade" inputMode="numeric" onChange={patch} />
+      <Input name="neck" placeholder="Pescoço (cm)" inputMode="decimal" onChange={patch} />
+      <Input name="shoulder" placeholder="Ombro (cm)" inputMode="decimal" onChange={patch} />
+      <Input name="cintura" placeholder="Cintura (cm)" inputMode="decimal" onChange={patch} />
+      <Input name="hip" placeholder="Quadril (cm)" inputMode="decimal" onChange={patch} />
+      <Input name="chest" placeholder="Peito/tórax (cm)" inputMode="decimal" onChange={patch} />
+      <Input name="abdomen" placeholder="Abdômen (cm)" inputMode="decimal" onChange={patch} />
+      <Input name="arm" placeholder="Braço (cm)" inputMode="decimal" onChange={patch} />
+      <Input name="forearm" placeholder="Antebraço (cm)" inputMode="decimal" onChange={patch} />
+      <Input name="thigh" placeholder="Coxa (cm)" inputMode="decimal" onChange={patch} />
+      <Input name="calf" placeholder="Panturrilha (cm)" inputMode="decimal" onChange={patch} />
     </div>
-    <textarea name="notes" placeholder="Observações do registro" />
+    <Textarea name="notes" placeholder="Observações do registro" />
     <section className="skinfoldBox">
       <h4>Dobras cutâneas / Adipômetro</h4>
       <div className="formGrid">
-        <input name="skinfoldChest" placeholder="Peitoral (mm)" inputMode="decimal" onChange={patch} />
-        <input name="skinfoldAbdominal" placeholder="Abdominal (mm)" inputMode="decimal" onChange={patch} />
-        <input name="skinfoldThigh" placeholder="Coxa (mm)" inputMode="decimal" onChange={patch} />
-        <input name="skinfoldTriceps" placeholder="Tríceps (mm)" inputMode="decimal" onChange={patch} />
-        <input name="skinfoldSubscapular" placeholder="Subescapular (mm)" inputMode="decimal" onChange={patch} />
-        <input name="skinfoldSuprailiac" placeholder="Supra-ilíaca (mm)" inputMode="decimal" onChange={patch} />
-        <input name="skinfoldMidaxillary" placeholder="Axilar média (mm)" inputMode="decimal" onChange={patch} />
-        <input name="skinfoldCalf" placeholder="Panturrilha (mm)" inputMode="decimal" onChange={patch} />
+        <Input name="skinfoldChest" placeholder="Peitoral (mm)" inputMode="decimal" onChange={patch} />
+        <Input name="skinfoldAbdominal" placeholder="Abdominal (mm)" inputMode="decimal" onChange={patch} />
+        <Input name="skinfoldThigh" placeholder="Coxa (mm)" inputMode="decimal" onChange={patch} />
+        <Input name="skinfoldTriceps" placeholder="Tríceps (mm)" inputMode="decimal" onChange={patch} />
+        <Input name="skinfoldSubscapular" placeholder="Subescapular (mm)" inputMode="decimal" onChange={patch} />
+        <Input name="skinfoldSuprailiac" placeholder="Supra-ilíaca (mm)" inputMode="decimal" onChange={patch} />
+        <Input name="skinfoldMidaxillary" placeholder="Axilar média (mm)" inputMode="decimal" onChange={patch} />
+        <Input name="skinfoldCalf" placeholder="Panturrilha (mm)" inputMode="decimal" onChange={patch} />
       </div>
-      <textarea name="skinfoldNotes" placeholder="Observações do teste de adipômetro" />
+      <Textarea name="skinfoldNotes" placeholder="Observações do teste de adipômetro" />
     </section>
     {profileBodyEditor && <section className="skinfoldBox">
       <h4>BF</h4>
       <div className="formGrid">
-        <select name="sex" value={values.sex || ""} onChange={patch}>
+        <Select name="sex" value={values.sex || ""} onChange={patch}>
           <option value="">Sexo</option>
           <option value="male">Masculino</option>
           <option value="female">Feminino</option>
-        </select>
-        <select name="bodyFatMethod" value={values.bodyFatMethod || "manual"} onChange={patch}>
+        </Select>
+        <Select name="bodyFatMethod" value={values.bodyFatMethod || "manual"} onChange={patch}>
           <option value="manual">Manual</option>
           <option value="jp3">Jackson & Pollock 3 dobras</option>
           <option value="jp7">Jackson & Pollock 7 dobras</option>
           <option value="navy">Navy / Circunferências</option>
-        </select>
+        </Select>
       </div>
       <p className="bfPreview">
         {values.bodyFatMethod === "manual"
@@ -7558,7 +7558,7 @@ function BodyRecordFields({includeDate=false, profileBodyEditor=false}){
             ? `BF calculado: ${bfResult.calculated}%${bfResult.skinfoldSum ? ` · soma ${bfResult.skinfoldSum} mm` : ""}${bfResult.density ? ` · densidade ${bfResult.density}` : ""}`
             : bfResult.message || "Preencha as medidas necessárias para este método."}
       </p>
-      {values.bodyFatMethod === "manual" && <input name="bodyFatManual" placeholder="BF manual (%)" inputMode="decimal" onChange={patch} />}
+      {values.bodyFatMethod === "manual" && <Input name="bodyFatManual" placeholder="BF manual (%)" inputMode="decimal" onChange={patch} />}
     </section>}
   </>
 }
@@ -7580,8 +7580,8 @@ function RepTargetsEditor({exercise, onToggle, onChange, onLoadChange=()=>{}, fo
       <div className="repTargetsGrid prescriptionTargetsGrid">
         {Array.from({length:count},(_,idx)=><div className="prescriptionTargetRow" key={idx}>
           <b>Série {idx+1}</b>
-          <label><span>Repetições</span><input value={labels[idx] || ""} onChange={e=>onChange(idx, e.currentTarget.value)} placeholder="12 ou 10-12" /></label>
-          <label><span>Carga</span><div className="executionInputWithUnit"><input inputMode="decimal" value={loads[idx] || ""} onChange={e=>onLoadChange(idx, e.currentTarget.value)} placeholder="Opcional"/><em>kg</em></div></label>
+          <label><span>Repetições</span><Input value={labels[idx] || ""} onChange={e=>onChange(idx, e.currentTarget.value)} placeholder="12 ou 10-12" /></label>
+          <label><span>Carga</span><div className="executionInputWithUnit"><Input inputMode="decimal" value={loads[idx] || ""} onChange={e=>onLoadChange(idx, e.currentTarget.value)} placeholder="Opcional"/><em>kg</em></div></label>
         </div>)}
       </div>
       <p className="repHint">Defina as repetições e, quando necessário, uma carga diferente em cada série.</p>
@@ -7600,8 +7600,8 @@ function DropSetTargetsEditor({exercise, onChange, onAdd, onRemove}){
       <div className="segmentedRepsGrid">
         {row.map((cell,segmentIndex)=><div className="dropTargetRow" key={segmentIndex}>
           <span>Drop {segmentIndex + 1}</span>
-          <label><span>Repetições</span><input value={cell.reps || ""} onChange={event=>onChange(setIndex,segmentIndex,"reps",event.currentTarget.value)} placeholder={segmentIndex === 0 ? "Ex.: 12" : "Ex.: 8"}/></label>
-          <label><span>Carga</span><div className="executionInputWithUnit"><input inputMode="decimal" value={cell.load || ""} onChange={event=>onChange(setIndex,segmentIndex,"load",event.currentTarget.value)} placeholder="Opcional"/><em>kg</em></div></label>
+          <label><span>Repetições</span><Input value={cell.reps || ""} onChange={event=>onChange(setIndex,segmentIndex,"reps",event.currentTarget.value)} placeholder={segmentIndex === 0 ? "Ex.: 12" : "Ex.: 8"}/></label>
+          <label><span>Carga</span><div className="executionInputWithUnit"><Input inputMode="decimal" value={cell.load || ""} onChange={event=>onChange(setIndex,segmentIndex,"load",event.currentTarget.value)} placeholder="Opcional"/><em>kg</em></div></label>
           {segmentCount > 2 && <button type="button" className="ghost iconBtn" aria-label="Remover drop" onClick={()=>onRemove(segmentIndex)}><X size={14}/></button>}
         </div>)}
       </div>
@@ -7619,7 +7619,7 @@ function SegmentedRepsEditor({exercise, restPause=false, onChange, onAdd, onRemo
     <div className="segmentedRepsGrid">
       {values.map((value,index)=><label key={index}>
         <span>{restPause ? (index === 0 ? "Série principal" : `Mini-série ${index}`) : `Drop ${index + 1}`}</span>
-        <div><input value={value} onChange={event=>onChange(index,event.currentTarget.value)} placeholder={index === 0 ? "Ex.: 12" : "Ex.: 6"} />{values.length > 2 && <button type="button" className="ghost iconBtn" aria-label="Remover etapa" onClick={()=>onRemove(index)}><X size={14}/></button>}</div>
+        <div><Input value={value} onChange={event=>onChange(index,event.currentTarget.value)} placeholder={index === 0 ? "Ex.: 12" : "Ex.: 6"} />{values.length > 2 && <button type="button" className="ghost iconBtn" aria-label="Remover etapa" onClick={()=>onRemove(index)}><X size={14}/></button>}</div>
       </label>)}
     </div>
     <button type="button" className="ghost small addSegmentButton" onClick={onAdd}><PlusCircle size={15}/> {restPause ? "Adicionar mini-série" : "Adicionar drop"}</button>
