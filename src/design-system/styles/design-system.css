@@ -12,6 +12,7 @@
 .tt-button--danger { background: var(--tt-color-danger); border-color: var(--tt-color-danger); }
 .tt-button--sm { min-height: 36px; padding: var(--tt-space-2) var(--tt-space-3); }
 .tt-button--lg { min-height: 52px; padding: var(--tt-space-4) var(--tt-space-5); }
+.tt-button--icon-only { min-width: 44px; padding-inline: var(--tt-space-2); }
 .tt-input { color: var(--tt-color-text); display: grid; font: var(--tt-font-body-small); gap: var(--tt-space-2); }
 .tt-input__label { font: 700 var(--tt-font-label); letter-spacing: .02em; }
 .tt-input__control { background: var(--tt-color-surface); border: var(--tt-border-default); border-radius: var(--tt-radius-md); color: inherit; min-height: 44px; padding: var(--tt-space-3); }
