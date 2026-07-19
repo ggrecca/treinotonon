@@ -23,6 +23,8 @@
 .tt-input__error { color: var(--tt-color-danger); font: var(--tt-font-caption); }
 .tt-card { background: var(--tt-color-card); border: var(--tt-border-default); border-radius: var(--tt-radius-lg); box-shadow: var(--tt-shadow-sm); padding: var(--tt-space-4); }
 .tt-card--elevated { box-shadow: var(--tt-shadow-md); }
+.tt-card--interactive { cursor: pointer; }
+.tt-card--interactive:focus-visible { box-shadow: none; outline: 2px solid var(--tt-color-primary); outline-offset: 2px; }
 .tt-badge, .tt-chip { align-items: center; border: 1px solid transparent; border-radius: var(--tt-radius-pill); display: inline-flex; font: 700 var(--tt-font-caption); gap: var(--tt-space-1); line-height: 1; padding: 6px var(--tt-space-2); }
 .tt-badge--neutral, .tt-chip { background: color-mix(in srgb, var(--tt-color-muted) 14%, transparent); color: var(--tt-color-text-secondary); }
 .tt-badge--info { background: color-mix(in srgb, var(--tt-color-info) 12%, var(--tt-color-card)); border-color: color-mix(in srgb, var(--tt-color-info) 38%, var(--tt-color-border)); color: color-mix(in srgb, var(--tt-color-info) 55%, var(--tt-color-text)); font-weight: 900; }
