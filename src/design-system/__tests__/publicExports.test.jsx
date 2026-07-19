@@ -1,4 +1,4 @@
-import {describe, expect, it} from "vitest";
+import {describe, expect, it, vi} from "vitest";
 import {renderToStaticMarkup} from "react-dom/server";
 import React from "react";
 import {
@@ -27,5 +27,14 @@ describe("design system public API", () => {
     expect(danger).toContain("disabled");
     expect(loading).toContain('aria-busy="true"');
     expect(iconOnly).toContain("tt-button--icon-only");
+  });
+
+  it("forwards one caller-owned click handler without changing its event contract", () => {
+    const onClick = vi.fn();
+    const element = Button({children: "Abrir", onClick});
+
+    expect(element.props.onClick).toBe(onClick);
+    element.props.onClick();
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 });
