@@ -1,0 +1,44 @@
+@import "../tokens/tokens.css";
+
+/* Escopo opt-in: não afeta o aplicativo até ser importado e aplicado. */
+.tt-ui { color: var(--tt-color-text); font-family: var(--tt-font-family); }
+.tt-ui *, .tt-ui *::before, .tt-ui *::after { box-sizing: border-box; }
+.tt-ui :focus-visible { outline: 0; box-shadow: var(--tt-focus-ring); }
+.tt-button { align-items: center; background: var(--tt-color-primary); border: 1px solid var(--tt-color-primary); border-radius: var(--tt-radius-md); color: #fff; cursor: pointer; display: inline-flex; font: 700 var(--tt-font-button); gap: var(--tt-space-2); justify-content: center; min-height: 44px; padding: var(--tt-space-3) var(--tt-space-4); transition: var(--tt-transition-colors); }
+.tt-button:hover { background: var(--tt-color-primary-hover); border-color: var(--tt-color-primary-hover); }
+.tt-button:disabled { cursor: not-allowed; opacity: var(--tt-opacity-disabled); }
+.tt-button--secondary { background: var(--tt-color-secondary); border-color: var(--tt-color-secondary); }
+.tt-button--ghost { background: transparent; border-color: transparent; color: var(--tt-color-primary); }
+.tt-button--danger { background: var(--tt-color-danger); border-color: var(--tt-color-danger); }
+.tt-button--sm { min-height: 36px; padding: var(--tt-space-2) var(--tt-space-3); }
+.tt-button--lg { min-height: 52px; padding: var(--tt-space-4) var(--tt-space-5); }
+.tt-input { color: var(--tt-color-text); display: grid; font: var(--tt-font-body-small); gap: var(--tt-space-2); }
+.tt-input__label { font: 700 var(--tt-font-label); letter-spacing: .02em; }
+.tt-input__control { background: var(--tt-color-surface); border: var(--tt-border-default); border-radius: var(--tt-radius-md); color: inherit; min-height: 44px; padding: var(--tt-space-3); }
+.tt-input__hint { color: var(--tt-color-muted); font: var(--tt-font-caption); }
+.tt-input__error { color: var(--tt-color-danger); font: var(--tt-font-caption); }
+.tt-card { background: var(--tt-color-card); border: var(--tt-border-default); border-radius: var(--tt-radius-lg); box-shadow: var(--tt-shadow-sm); padding: var(--tt-space-4); }
+.tt-card--elevated { box-shadow: var(--tt-shadow-md); }
+.tt-badge, .tt-chip { align-items: center; border: 1px solid transparent; border-radius: var(--tt-radius-pill); display: inline-flex; font: 700 var(--tt-font-caption); gap: var(--tt-space-1); line-height: 1; padding: 6px var(--tt-space-2); }
+.tt-badge--neutral, .tt-chip { background: color-mix(in srgb, var(--tt-color-muted) 14%, transparent); color: var(--tt-color-text-secondary); }
+.tt-badge--success { background: color-mix(in srgb, var(--tt-color-success) 16%, transparent); color: var(--tt-color-success); }
+.tt-badge--warning { background: color-mix(in srgb, var(--tt-color-warning) 16%, transparent); color: var(--tt-color-warning); }
+.tt-badge--danger { background: color-mix(in srgb, var(--tt-color-danger) 16%, transparent); color: var(--tt-color-danger); }
+.tt-chip { background: transparent; border-color: var(--tt-color-border); cursor: pointer; }
+.tt-chip--selected { background: color-mix(in srgb, var(--tt-color-primary) 14%, transparent); border-color: var(--tt-color-primary); color: var(--tt-color-primary); }
+.tt-dialog-backdrop, .tt-bottom-sheet-backdrop { align-items: center; background: var(--tt-color-overlay); display: flex; inset: 0; justify-content: center; padding: var(--tt-space-4); position: fixed; z-index: var(--tt-z-dialog); }
+.tt-dialog { background: var(--tt-color-surface); border: var(--tt-border-default); border-radius: var(--tt-radius-lg); box-shadow: var(--tt-shadow-lg); max-width: 32rem; padding: var(--tt-space-6); width: min(100%, 32rem); }
+.tt-dialog__header, .tt-dialog__actions { display: flex; gap: var(--tt-space-3); justify-content: space-between; }
+.tt-dialog__content { margin: var(--tt-space-4) 0; }
+.tt-bottom-sheet-backdrop { align-items: end; padding: 0; }
+.tt-bottom-sheet { background: var(--tt-color-surface); border-radius: var(--tt-radius-lg) var(--tt-radius-lg) 0 0; max-width: 48rem; padding: var(--tt-space-5); width: 100%; }
+.tt-bottom-sheet__handle { background: var(--tt-color-border); border-radius: var(--tt-radius-pill); height: 4px; margin: 0 auto var(--tt-space-4); width: 40px; }
+.tt-toast-region { bottom: var(--tt-space-4); display: grid; gap: var(--tt-space-2); position: fixed; right: var(--tt-space-4); width: min(24rem, calc(100vw - 32px)); z-index: var(--tt-z-dialog); }
+.tt-toast { align-items: start; background: var(--tt-color-surface); border: var(--tt-border-default); border-left: 4px solid var(--tt-color-info); border-radius: var(--tt-radius-md); box-shadow: var(--tt-shadow-md); display: flex; gap: var(--tt-space-3); padding: var(--tt-space-3); }
+.tt-toast--success { border-left-color: var(--tt-color-success); }.tt-toast--warning { border-left-color: var(--tt-color-warning); }.tt-toast--danger { border-left-color: var(--tt-color-danger); }
+.tt-tabs { border-bottom: var(--tt-border-default); display: flex; gap: var(--tt-space-2); overflow-x: auto; }
+.tt-tabs__tab { background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--tt-color-muted); cursor: pointer; font: 700 var(--tt-font-button); min-height: 44px; padding: var(--tt-space-3) var(--tt-space-2); white-space: nowrap; }
+.tt-tabs__tab--active { border-bottom-color: var(--tt-color-primary); color: var(--tt-color-primary); }
+.tt-loading { align-items: center; display: inline-flex; gap: var(--tt-space-2); font: var(--tt-font-body-small); }.tt-loading__spinner { animation: tt-spin var(--tt-duration-slow) linear infinite; border: 2px solid var(--tt-color-border); border-radius: 50%; border-top-color: var(--tt-color-primary); height: 18px; width: 18px; }@keyframes tt-spin { to { transform: rotate(360deg); } }
+.tt-skeleton { animation: tt-pulse 1.4s ease-in-out infinite; background: color-mix(in srgb, var(--tt-color-muted) 16%, transparent); border-radius: var(--tt-radius-sm); display: block; }@keyframes tt-pulse { 50% { opacity: .55; } }
+.tt-empty-state { align-items: center; color: var(--tt-color-muted); display: grid; gap: var(--tt-space-2); justify-items: center; padding: var(--tt-space-8); text-align: center; }.tt-empty-state__title { color: var(--tt-color-text); font: 700 var(--tt-font-title); margin: 0; }.tt-empty-state__description { font: var(--tt-font-body-small); margin: 0; }

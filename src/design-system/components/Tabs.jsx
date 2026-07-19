@@ -1,0 +1,2 @@
+import React from "react";
+export function Tabs({tabs = [], value, onChange, ariaLabel = "Abas"}) { return <div className="tt-tabs" role="tablist" aria-label={ariaLabel}>{tabs.map(tab=><button key={tab.value} id={`tt-tab-${tab.value}`} type="button" role="tab" aria-selected={value === tab.value} className={`tt-tabs__tab ${value === tab.value ? "tt-tabs__tab--active" : ""}`} onClick={()=>onChange?.(tab.value)} disabled={tab.disabled}>{tab.label}</button>)}</div>; }
