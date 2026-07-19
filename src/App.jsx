@@ -6606,7 +6606,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
       {!showWorkoutEditor && !assignmentWorkoutId && <section
         className="exerciseGroup workoutModelsList"
-        {...(appMode === "treinador" ? {id: `workout-archive-panel-${workoutArchiveView}`, role: "tabpanel", "aria-labelledby": `workout-archive-tabs-tab-${workoutArchiveView}`, tabIndex: 0} : {})}
+        {...(appMode === "treinador" ? {id: `workout-archive-panel-${workoutArchiveView}`, role: "tabpanel", "aria-labelledby": `workout-archive-tabs-tab-${workoutArchiveView}`} : {})}
       >
         {appMode === "treinador" && trainerWorkoutArchiveCounts.active + trainerWorkoutArchiveCounts.archived === 0 && <section className="emptyState slim">
           <b>Você ainda não possui treinos.</b>

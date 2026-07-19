@@ -63,5 +63,5 @@ export function Tabs({tabs = [], value, onChange, ariaLabel = "Abas", id, panelI
 }
 
 export function TabsContent({as: Component = "div", id, labelledBy, children, className = "", ...props}) {
-  return <Component {...props} id={id} role="tabpanel" aria-labelledby={labelledBy} tabIndex={0} className={`tt-tabs__content ${className}`.trim()}>{children}</Component>;
+  return <Component {...props} id={id} role="tabpanel" aria-labelledby={labelledBy} className={`tt-tabs__content ${className}`.trim()}>{children}</Component>;
 }
