@@ -6,7 +6,8 @@ import {
   Dumbbell, BarChart3, Scale, CheckCircle2, Circle, Save, Trash2, TimerReset,
   Play, Pause, History, PlusCircle, ClipboardList, X, Copy, Edit3, ArrowUp,
   ArrowDown, Settings2, Eye, EyeOff, Users, UserPlus, ArrowLeft, ArrowRight,
-  LoaderCircle, RefreshCw, WifiOff, AlertTriangle, AlertCircle, Info
+  LoaderCircle, RefreshCw, WifiOff, AlertTriangle, AlertCircle, Info, Mail,
+  Share2, CalendarDays, ChevronRight, CheckCircle, Ban
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from "recharts";
 import { authService, configurationError, isSupabaseConfigured } from "./services/authService";
@@ -14,6 +15,9 @@ import { dataService } from "./services/dataService";
 import { EXERCISE_LIBRARY } from "./data/exerciseLibrary";
 import { buildRepPlan, expandRepTargetsForSets, isDropSetType, isRestPauseType, isSegmentedRepType, normalizeRepTargets, parseDropTargets, parseRepTargets, parseSingleRepTarget, repTargetLabelsForEditing, setRepTargetLabelForEditing, targetLabel } from "./utils/repTargets";
 import { Card } from "./components/Card";
+import { AppDialog } from "./components/AppDialog";
+import { OnboardingPanel } from "./components/OnboardingPanel";
+import { VirtualList } from "./components/VirtualList";
 import { DashboardSwitcher } from "./components/DashboardSwitcher";
 import { WorkoutSwitcher } from "./components/WorkoutSwitcher";
 import { buildPasswordRecoveryRedirect, cleanPasswordRecoveryUrl, readPasswordRecoveryLocation, validateNewPassword } from "./utils/authRecovery";
@@ -22,6 +26,10 @@ import { canRunRemoteMutation, deriveSyncState } from "./utils/syncState";
 import { buildExerciseEvolution, buildExerciseSummary, buildTrainerAnalytics, sessionsForSubject } from "./utils/trainerAnalytics";
 import { enqueueToast } from "./utils/toasts";
 import { executeAssignmentBatch, mergeAssignmentsById } from "./utils/assignmentBatch";
+import { buildInviteDeepLink, buildInviteMailtoHref, buildInviteShareText, cleanInviteDeepLink, deriveInviteExpiresAt, deriveInviteStatus, getInviteStatusMeta, readInviteDeepLink } from "./utils/invitations";
+import { athleteOnboardingSteps, finishOnboarding, mergeOnboardingProgress, readOnboardingState, trainerOnboardingSteps } from "./utils/onboarding";
+import { mergeUiHistoryState, readUiHistoryState, uiHistoryDirection } from "./utils/uiHistory";
+import { registerPwa } from "./pwa/registerPwa";
 import "./style.css";
 
 const today = (value=new Date()) => {
@@ -176,6 +184,12 @@ function formatRelativeOrShortDate(value){
   if(diffDays === -1) return "Ontem";
   if(diffDays > -7 && diffDays < 0) return `Há ${Math.abs(diffDays)} dias`;
   return formatShortDate(date);
+}
+
+function formatDateTime(value){
+  const date = new Date(value);
+  if(Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("pt-BR", {dateStyle:"short", timeStyle:"short"});
 }
 
 function formatCompactDurationLabel(value){
@@ -642,6 +656,7 @@ function App(){
   const [workoutLibraryEquipment,setWorkoutLibraryEquipment]=useState("Todos");
   const [workoutLibraryTag,setWorkoutLibraryTag]=useState("Todos");
   const [workoutLibraryFiltersOpen,setWorkoutLibraryFiltersOpen]=useState(false);
+  const [workoutLibrarySelection,setWorkoutLibrarySelection]=useState([]);
   const [activeSession,setActiveSession]=useState(null);
   const activeSessionHydratedRef = useRef(false);
   const activeSessionUserRef = useRef("");
@@ -686,6 +701,7 @@ function App(){
   const [coachStudents,setCoachStudents]=useState([]);
   const [studentSearch,setStudentSearch]=useState("");
   const [studentSort,setStudentSort]=useState("name");
+  const [studentListMode,setStudentListMode]=useState("all");
   const [workoutSearch,setWorkoutSearch]=useState("");
   const [workoutSort,setWorkoutSort]=useState("name");
   const [workoutArchiveView,setWorkoutArchiveView]=useState("active");
@@ -708,6 +724,10 @@ function App(){
   const [showProfileBodyEditor,setShowProfileBodyEditor]=useState(false);
   const [showInviteForm,setShowInviteForm]=useState(false);
   const [generatedInvite,setGeneratedInvite]=useState(null);
+  const [appDialog,setAppDialog]=useState(null);
+  const [onboardingState,setOnboardingState]=useState(null);
+  const [onboardingDismissed,setOnboardingDismissed]=useState(false);
+  const [requestedInvite,setRequestedInvite]=useState(()=>readInviteDeepLink());
   const [navigationStack,setNavigationStack]=useState([]);
   const [openActionMenuId,setOpenActionMenuId]=useState("");
   const [athleteCalendarCursor,setAthleteCalendarCursor]=useState(()=>monthCursor(new Date()));
@@ -722,6 +742,15 @@ function App(){
   const bypassDirtyGuardRef = useRef(false);
   const restoringNavigationRef = useRef(false);
   const suppressNextNavigationPushRef = useRef(false);
+  const dialogResolverRef = useRef(null);
+  const historyIndexRef = useRef(0);
+  const historyReadyRef = useRef(false);
+  const ignoreNextHistoryPopRef = useRef(false);
+  const bypassNextHistoryGuardRef = useRef(false);
+  const historyBackHandlerRef = useRef(null);
+  const historySnapshotsRef = useRef(new Map());
+  const viewScrollPositionsRef = useRef(new Map());
+  const restoreScrollRef = useRef(null);
 
   function applyAppData(data, options={}){
     setSessions(data.sessions);
@@ -825,6 +854,14 @@ function App(){
   },[]);
 
   useEffect(()=>{
+    void registerPwa({
+      onOfflineReady:()=>notify("Aplicativo pronto para reabrir sem conexão.", "success"),
+      onUpdateAvailable:()=>notify("Uma nova versão ficará disponível ao fechar e abrir o aplicativo.", "info", {duration:0}),
+      onError:error=>console.error("Não foi possível registrar o modo PWA:", error),
+    });
+  },[]);
+
+  useEffect(()=>{
     const updateOnline = () => setNetworkOnline(globalThis.navigator?.onLine !== false);
     window.addEventListener("online", updateOnline);
     window.addEventListener("offline", updateOnline);
@@ -841,6 +878,7 @@ function App(){
   const currentUserSelfLabel = `${currentUserDisplayName} (Eu)`;
   const currentUserRole = normalizeAccountRole(currentUser?.role || profile.role);
   const canUseCoachMode = currentUserRole === "coach";
+  const onboardingMode = appMode === "treinador" ? "trainer" : "athlete";
   const workoutEditorDirty = showWorkoutEditor && editorValuesDiffer(newWorkout, workoutEditorBaselineRef.current);
   const exerciseEditorDirty = showExerciseEditor && editorValuesDiffer(exerciseForm, exerciseEditorBaselineRef.current);
   const assignmentDirty = !!assignmentWorkoutId && (assignmentSelection.self || Object.values(assignmentSelection.students || {}).some(Boolean));
@@ -858,6 +896,12 @@ function App(){
   const professionalScreens = useMemo(()=>new Set(["alunos","exercicios","evolucao","analises"]),[]);
   const athleteScreens = useMemo(()=>new Set(["dashboard","criar","treino","historico","dados"]),[]);
   const lastRoleGuardUserRef = useRef("");
+
+  useEffect(()=>{
+    if(!authReady || bootstrapState !== "loaded") return;
+    setOnboardingState(readOnboardingState(globalThis.localStorage, currentUserId, onboardingMode));
+    setOnboardingDismissed(false);
+  },[authReady, bootstrapState, currentUserId, onboardingMode]);
 
   function markDirty(scope){
     setDirtyScopes(current=>current[scope] ? current : {...current, [scope]:true});
@@ -895,6 +939,26 @@ function App(){
       setPendingSyncCount(current=>Math.max(0, current - 1));
     }
   }
+
+  function requestAppDialog(dialog){
+    if(dialogResolverRef.current) dialogResolverRef.current(false);
+    return new Promise(resolve=>{
+      dialogResolverRef.current = resolve;
+      setAppDialog(dialog);
+    });
+  }
+
+  function resolveAppDialog(result){
+    const resolve = dialogResolverRef.current;
+    dialogResolverRef.current = null;
+    setAppDialog(null);
+    resolve?.(result);
+  }
+
+  useEffect(()=>()=>{
+    dialogResolverRef.current?.(false);
+    dialogResolverRef.current = null;
+  },[]);
 
   function clearDirty(scope){
     setDirtyScopes(current=>current[scope] ? {...current, [scope]:false} : current);
@@ -1084,7 +1148,7 @@ function App(){
   ),[coachStudents, currentUserId, currentUserEmail]);
 
   const pendingCoachInvites = useMemo(()=>coachStudents.filter(link =>
-    link.status === "pending" && normalizeEmail(link.studentEmail) === currentUserEmail
+    deriveInviteStatus(link) === "pending" && normalizeEmail(link.studentEmail) === currentUserEmail
   ),[coachStudents, currentUserEmail]);
 
   useEffect(()=>{
@@ -1097,6 +1161,29 @@ function App(){
     const nextInvite = pendingCoachInvites.find(link => !dismissedInviteIds.includes(link.id));
     if(nextInvite) setInviteModalLink(nextInvite);
   },[appMode, pendingCoachInvites, dismissedInviteIds, inviteModalLink]);
+
+  useEffect(()=>{
+    if(!authReady || bootstrapState !== "loaded" || !requestedInvite.requested) return;
+    if(isSupabaseConfigured && !currentUser) return;
+    if(requestedInvite.invalid) {
+      notify("O link de convite está incompleto ou inválido.", "warning");
+      cleanRequestedInvite();
+      return;
+    }
+    const link = coachStudents.find(item=>String(item.id || "").toLowerCase() === requestedInvite.inviteId);
+    if(!link) {
+      notify("Este convite não foi encontrado para a conta atual.", "warning");
+      cleanRequestedInvite();
+      return;
+    }
+    if(normalizeEmail(link.studentEmail) !== currentUserEmail) {
+      notify("Entre com o mesmo e-mail que recebeu o convite.", "warning");
+      cleanRequestedInvite();
+      return;
+    }
+    setAppMode("atleta");
+    setInviteModalLink(link);
+  },[authReady, bootstrapState, requestedInvite, coachStudents, currentUser, currentUserEmail]);
 
   const trainerLinks = useMemo(()=>coachStudents.filter(link => link.coachId === currentUserId || normalizeEmail(link.coachEmail) === currentUserEmail),[coachStudents, currentUserId, currentUserEmail]);
   const activeTrainerLinks = useMemo(()=>trainerLinks.filter(link=>link.status === "active"),[trainerLinks]);
@@ -1328,6 +1415,7 @@ function App(){
       openSession,
       assignmentWorkoutId,
       showWorkoutEditor,
+      showWorkoutLibrary,
       showExerciseEditor
     };
   }
@@ -1348,6 +1436,7 @@ function App(){
       snapshot.openSession?.id || snapshot.openSession?.date || "",
       snapshot.assignmentWorkoutId || "",
       snapshot.showWorkoutEditor ? "workout-editor" : "",
+      snapshot.showWorkoutLibrary ? "workout-library" : "",
       snapshot.showExerciseEditor ? "exercise-editor" : ""
     ].join("|");
   }
@@ -1371,6 +1460,7 @@ function App(){
       snapshot.openSession?.items ||
       snapshot.assignmentWorkoutId ||
       snapshot.showWorkoutEditor ||
+      snapshot.showWorkoutLibrary ||
       snapshot.showExerciseEditor ||
       !allowedMainScreens.includes(snapshot.screen)
     );
@@ -1413,6 +1503,7 @@ function App(){
     if(!snapshot) return;
     const canRestoreWorkoutEditor = appMode === "treinador" && !!snapshot.showWorkoutEditor;
     restoringNavigationRef.current = true;
+    restoreScrollRef.current = Math.max(0, Number(snapshot.scrollY) || 0);
     setScreen(snapshot.screen || "dashboard");
     setSelectedStudentId(snapshot.selectedStudentId || "");
     setStudentDetailView(snapshot.studentDetailView || "");
@@ -1435,6 +1526,77 @@ function App(){
 
   const previousViewRef = useRef(null);
 
+  historyBackHandlerRef.current = targetState=>{
+    const target = readUiHistoryState(targetState);
+    if(!target) {
+      handleInternalBack({fromHistory:true});
+      return;
+    }
+    const targetSnapshot = historySnapshotsRef.current.get(target.index);
+    const dirtyScope = activeDirtyScope();
+    const staysInsideDirtyEditor = (
+      dirtyScope === "workout-editor" && showWorkoutEditor && (
+        targetSnapshot?.showWorkoutEditor || showWorkoutLibrary || editingWorkoutExerciseIndex !== null
+      )
+    ) || (
+      dirtyScope === "exercise-editor" && showExerciseEditor && targetSnapshot?.showExerciseEditor
+    );
+    if(!bypassNextHistoryGuardRef.current && dirtyScope && !staysInsideDirtyEditor) {
+      ignoreNextHistoryPopRef.current = true;
+      globalThis.history?.go?.(1);
+      requestProtectedAction(()=>{
+        bypassNextHistoryGuardRef.current = true;
+        globalThis.history?.back?.();
+      });
+      return;
+    }
+    bypassNextHistoryGuardRef.current = false;
+    historyIndexRef.current = target.index;
+    if(targetSnapshot) {
+      const stack = [];
+      for(let index=0; index<target.index; index+=1){
+        const snapshot = historySnapshotsRef.current.get(index);
+        if(snapshot) stack.push(snapshot);
+      }
+      setNavigationStack(stack);
+      restoreViewSnapshot(targetSnapshot);
+      return;
+    }
+    handleInternalBack({fromHistory:true});
+  };
+
+  useEffect(()=>{
+    const snapshot = {...viewSnapshot(), scrollY:globalThis.scrollY || 0};
+    const key = viewKey(snapshot);
+    historyIndexRef.current = 0;
+    historySnapshotsRef.current = new Map([[0,snapshot]]);
+    globalThis.history?.replaceState?.(mergeUiHistoryState(globalThis.history.state, 0, key), "");
+    historyReadyRef.current = true;
+
+    const handlePopState = event=>{
+      const target = readUiHistoryState(event.state);
+      if(ignoreNextHistoryPopRef.current) {
+        ignoreNextHistoryPopRef.current = false;
+        if(target) historyIndexRef.current = target.index;
+        return;
+      }
+      const direction = uiHistoryDirection(historyIndexRef.current, event.state);
+      if(direction === "same") return;
+      historyBackHandlerRef.current?.(event.state);
+    };
+    const rememberScroll = ()=>{
+      const keyNow = previousViewRef.current?.key;
+      if(keyNow) viewScrollPositionsRef.current.set(keyNow, globalThis.scrollY || 0);
+    };
+    globalThis.addEventListener?.("popstate", handlePopState);
+    globalThis.addEventListener?.("scroll", rememberScroll, {passive:true});
+    return ()=>{
+      historyReadyRef.current = false;
+      globalThis.removeEventListener?.("popstate", handlePopState);
+      globalThis.removeEventListener?.("scroll", rememberScroll);
+    };
+  },[]);
+
   useEffect(()=>{
     const snapshot = viewSnapshot();
     const key = viewKey(snapshot);
@@ -1442,14 +1604,31 @@ function App(){
     const previous = previousViewRef.current;
     if(restoringNavigationRef.current || suppressNextNavigationPushRef.current){
       suppressNextNavigationPushRef.current = false;
+      const currentIndex = historyIndexRef.current;
+      const currentSnapshot = {...snapshot, scrollY:viewScrollPositionsRef.current.get(key) || 0};
+      historySnapshotsRef.current.set(currentIndex, currentSnapshot);
+      if(historyReadyRef.current) globalThis.history?.replaceState?.(mergeUiHistoryState(globalThis.history.state, currentIndex, key), "");
       previousViewRef.current = {key, snapshot, internal};
       return;
     }
     if(previous && internal && previous.key !== key){
-      setNavigationStack(stack => [...stack, previous.snapshot]);
+      const previousSnapshot = {...previous.snapshot, scrollY:viewScrollPositionsRef.current.get(previous.key) || 0};
+      setNavigationStack(stack => [...stack, previousSnapshot]);
+      if(historyReadyRef.current) {
+        const nextIndex = historyIndexRef.current + 1;
+        const currentSnapshot = {...snapshot, scrollY:0};
+        historyIndexRef.current = nextIndex;
+        historySnapshotsRef.current.set(nextIndex, currentSnapshot);
+        globalThis.history?.pushState?.(mergeUiHistoryState(globalThis.history.state, nextIndex, key), "");
+      }
     }
     if(previous && !internal && previous.internal){
       setNavigationStack([]);
+    }
+    if(previous && !internal && !previous.internal && previous.key !== key && historyReadyRef.current){
+      const currentIndex = historyIndexRef.current;
+      historySnapshotsRef.current.set(currentIndex, {...snapshot, scrollY:0});
+      globalThis.history?.replaceState?.(mergeUiHistoryState(globalThis.history.state, currentIndex, key), "");
     }
     previousViewRef.current = {key, snapshot, internal};
   },[
@@ -1478,9 +1657,13 @@ function App(){
   },[workouts, allWorkouts, workout]);
 
   useLayoutEffect(()=>{
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-    window.scrollTo({top:0, left:0, behavior:"auto"});
+    const restoreTop = restoreScrollRef.current;
+    const top = restoreTop === null ? 0 : restoreTop;
+    if(restoreTop !== null) viewScrollPositionsRef.current.set(viewKey(), top);
+    document.documentElement.scrollTop = top;
+    document.body.scrollTop = top;
+    window.scrollTo({top, left:0, behavior:"auto"});
+    restoreScrollRef.current = null;
   },[
     screen,
     appMode,
@@ -1835,7 +2018,13 @@ function App(){
 
   async function deleteSession(id){
     if(!ensureMutationAllowed()) return;
-    if(!confirm("Excluir esta sessão do histórico?")) return;
+    const confirmed = await requestAppDialog({
+      variant:"danger",
+      title:"Excluir sessão?",
+      description:"Esta sessão será removida do histórico e não poderá ser recuperada.",
+      confirmLabel:"Excluir sessão",
+    });
+    if(!confirmed) return;
     return runPendingAction(`delete-session:${id}`, async()=>{
     try{
       await dataService.deleteWorkoutSession(id);
@@ -2004,7 +2193,13 @@ function App(){
       setStudentMessage(message);
       return false;
     }
-    if(!confirm("Excluir este registro de dados corporais?")) return false;
+    const confirmed = await requestAppDialog({
+      variant:"danger",
+      title:"Excluir registro corporal?",
+      description:"O registro será removido do histórico desta pessoa.",
+      confirmLabel:"Excluir registro",
+    });
+    if(!confirmed) return false;
     return runPendingAction(`delete-body:${record?.id || index}`, async()=>{
     const next = record?.id
       ? body.filter(item => item.id !== record.id)
@@ -2113,30 +2308,68 @@ function App(){
     if(savedLink) form.reset();
   }
 
-  async function generateInviteFromButton(){
-    const email = normalizeEmail(prompt("E-mail do aluno"));
-    if(!email) {
-      setStudentMessage("Informe o e-mail do aluno para gerar o convite.");
-      return;
-    }
-    await createStudentInvite(email);
+  function cleanRequestedInvite(){
+    if(!requestedInvite.requested) return;
+    const cleanUrl = cleanInviteDeepLink(globalThis.location);
+    if(cleanUrl) globalThis.history?.replaceState?.(globalThis.history.state, "", cleanUrl);
+    setRequestedInvite({requested:false, inviteId:"", invalid:false});
   }
 
-  function inviteShareText(link){
-    const code = String(link?.id || "");
-    return `Convite Treino Tonon: ${code}`;
+  function inviteLifecycleDate(link){
+    return link?.updatedAt || link?.createdAt || "";
   }
 
   async function copyInvite(link){
-    const text = inviteShareText(link);
-    await navigator.clipboard?.writeText(text);
-    notify("Convite copiado.", "info");
+    const text = buildInviteShareText(link, globalThis.location);
+    if(!text) return notify("Não foi possível gerar o link deste convite.", "error");
+    try {
+      if(!navigator.clipboard?.writeText) throw new Error("Clipboard indisponível");
+      await navigator.clipboard.writeText(text);
+      notify("Link do convite copiado.", "success");
+    } catch {
+      notify("Não foi possível copiar automaticamente. Use a opção de compartilhar ou e-mail.", "warning");
+    }
   }
 
-  function shareInvite(link){
-    const text = inviteShareText(link);
-    if(navigator.share) navigator.share({text}).catch(()=>{});
-    else void copyInvite(link);
+  async function shareInvite(link){
+    const text = buildInviteShareText(link, globalThis.location);
+    const url = buildInviteDeepLink(link, globalThis.location);
+    if(!text || !url) return notify("Não foi possível gerar o link deste convite.", "error");
+    if(!navigator.share) return copyInvite(link);
+    try {
+      await navigator.share({title:"Convite Treino Tonon", text, url});
+    } catch(error) {
+      if(error?.name !== "AbortError") notify("Não foi possível compartilhar agora.", "warning");
+    }
+  }
+
+  async function resendInvite(link){
+    if(!ensureMutationAllowed()) return;
+    if(!link?.id || link.status !== "pending") return notify("Somente convites pendentes podem ser reenviados.", "warning");
+    return runPendingAction(`resend-invite:${link.id}`, async()=>{
+      try {
+        const savedLink = await dataService.refreshCoachInvite(link);
+        setCoachStudents(current=>current.map(item=>item.id === link.id ? savedLink : item));
+        setGeneratedInvite(savedLink);
+        notify("Convite renovado por mais 7 dias.", "success");
+      } catch(error) {
+        console.error("Erro ao reenviar convite:", error);
+        notify(error?.message || "Não foi possível reenviar o convite.", "error");
+      }
+    });
+  }
+
+  async function cancelInvite(link){
+    if(!link?.id || link.status !== "pending") return;
+    const confirmed = await requestAppDialog({
+      variant:"danger",
+      title:"Cancelar convite?",
+      description:`${link.studentEmail || "O destinatário"} não poderá mais aceitar este link.`,
+      confirmLabel:"Cancelar convite",
+    });
+    if(!confirmed) return;
+    const saved = await runPendingAction(`cancel-invite:${link.id}`, ()=>updateStudentStatus(link, "inactive"));
+    if(saved) notify("Convite cancelado.", "info");
   }
 
   function openInviteResponder(link){
@@ -2147,6 +2380,7 @@ function App(){
   function dismissInviteModal(link){
     if(link?.id) setDismissedInviteIds(current => current.includes(link.id) ? current : [...current, link.id]);
     setInviteModalLink(null);
+    if(requestedInvite.inviteId === String(link?.id || "").toLowerCase()) cleanRequestedInvite();
   }
 
   async function answerCoachInvite(link, accepted){
@@ -2157,6 +2391,15 @@ function App(){
     }
     if(normalizeEmail(link.studentEmail) !== currentUserEmail) {
       notify("Este convite pertence a outro e-mail.", "info");
+      return;
+    }
+    const presentationStatus = deriveInviteStatus(link);
+    if(presentationStatus === "expired") {
+      notify("Este convite expirou. Peça ao treinador para reenviar.", "warning");
+      return;
+    }
+    if(presentationStatus !== "pending") {
+      notify("Este convite já foi respondido ou cancelado.", "info");
       return;
     }
     const actionKey = `invite-response:${link.id}`;
@@ -2179,6 +2422,7 @@ function App(){
       setCoachStudents(current => current.map(item=>item.id === link.id ? savedLink : item));
       const data = await refreshAppData();
       setInviteModalLink(null);
+      cleanRequestedInvite();
       if(accepted) {
         setCoachStudents(data.coachStudents || []);
         setScreen("dashboard");
@@ -2208,9 +2452,11 @@ function App(){
     try{
       const savedLink = await dataService.deactivateCoachStudentLink(next);
       setCoachStudents(current => current.map(item=>item.id === link.id ? savedLink : item));
+      return savedLink;
     } catch(error) {
       console.error("Erro ao atualizar vínculo:", error);
       setStudentMessage("Não foi possível inativar este vínculo.");
+      return null;
     }
   }
 
@@ -2433,7 +2679,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
     if(!ensureMutationAllowed()) return;
     const {editingName, editingId, ...exerciseData} = exerciseForm;
     const normalized = catalogExercise({...exerciseData, id:exerciseData.id || editingId || makeId()});
-    if(!normalized.name) return alert("Informe o nome do exercício.");
+    if(!normalized.name) return notify("Informe o nome do exercício.", "warning");
     return runPendingAction("save-exercise", async()=>{
     const oldName = String(editingName || normalized.name);
     const oldKey = normalizeExerciseName(oldName);
@@ -2508,7 +2754,13 @@ function exerciseCatalogToWorkoutItem(ex={}){
     const exerciseItem = typeof exercise === "object" && exercise ? exercise : {name:exercise};
     const normalizedName = String(exerciseItem.name || exercise || "").trim();
     if(!normalizedName) return;
-    if(!confirm("Excluir este exercício da biblioteca? Treinos já criados e históricos salvos não serão apagados.")) return;
+    const confirmed = await requestAppDialog({
+      variant:"danger",
+      title:"Excluir exercício da biblioteca?",
+      description:"Treinos já criados e históricos salvos serão preservados.",
+      confirmLabel:"Excluir exercício",
+    });
+    if(!confirmed) return;
     const actionKey = `delete-exercise:${exerciseItem.id || normalizeExerciseName(normalizedName)}`;
     return runPendingAction(actionKey, async()=>{
     const key = normalizeExerciseName(normalizedName);
@@ -2547,7 +2799,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
   function addExercise(e){
     e.preventDefault();
-    if(!newExercise.name.trim()) return alert("Informe o nome do exercício.");
+    if(!newExercise.name.trim()) return notify("Informe o nome do exercício.", "warning");
     const workoutExerciseId = makeId();
     const item = exerciseWithRepTargets({...newExercise, id:workoutExerciseId, workoutExerciseId, name:newExercise.name.trim(), group:newExercise.group || "Outro"});
     setNewWorkout(w=>({...w, items:[...w.items, item]}));
@@ -2700,17 +2952,17 @@ function exerciseCatalogToWorkoutItem(ex={}){
   async function saveCustomWorkout(){
     if(appMode !== "treinador") return;
     if(!ensureMutationAllowed()) return;
-    if(!newWorkout.name.trim()) return alert("Dê um nome para o treino.");
-    if(newWorkout.items.length === 0) return alert("Adicione pelo menos um exercício.");
+    if(!newWorkout.name.trim()) return notify("Dê um nome para o treino.", "warning");
+    if(newWorkout.items.length === 0) return notify("Adicione pelo menos um exercício.", "warning");
     const incompleteSegmentedExercise = newWorkout.items.find(item=>isRestPauseType(getExerciseType(item)) && segmentedRepValues(item).filter(Boolean).length < 2);
-    if(incompleteSegmentedExercise) return alert(`Complete pelo menos duas etapas de repetições em ${incompleteSegmentedExercise.name}.`);
+    if(incompleteSegmentedExercise) return notify(`Complete pelo menos duas etapas de repetições em ${incompleteSegmentedExercise.name}.`, "warning");
     const incompleteDropExercise = newWorkout.items.find(item=>isDropSetType(getExerciseType(item)) && dropTargetMatrix(item).some(row=>row.filter(cell=>String(cell.reps || "").trim()).length < 2));
-    if(incompleteDropExercise) return alert(`Informe pelo menos dois drops em todas as séries de ${incompleteDropExercise.name}.`);
+    if(incompleteDropExercise) return notify(`Informe pelo menos dois drops em todas as séries de ${incompleteDropExercise.name}.`, "warning");
     const incompleteProgressiveExercise = newWorkout.items.find(item=>
       normalizedExecutionMethod(getExerciseType(item)) === "PROG"
       && repTargetFieldLabels(item).slice(0, plannedSetCount(item.sets)).some(value=>!String(value || "").trim())
     );
-    if(incompleteProgressiveExercise) return alert(`Informe as repetições de todas as séries em ${incompleteProgressiveExercise.name}.`);
+    if(incompleteProgressiveExercise) return notify(`Informe as repetições de todas as séries em ${incompleteProgressiveExercise.name}.`, "warning");
     return runPendingAction("save-workout", async()=>{
     try{
     const normalizedItems = normalizeAllPreviewConjugates(newWorkout.items).map(item=>withWorkoutExerciseIdentity(exerciseWithRepTargets(item)));
@@ -2755,7 +3007,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
         : customWorkouts.findIndex(w => w.id === newWorkout.editingId);
       const currentWorkout = customWorkouts[currentIndex];
       if(currentWorkout && workoutHasHistory(currentWorkout) && workoutPrescriptionSignature(currentWorkout.items) !== workoutPrescriptionSignature(normalizedItems)){
-        alert("Este treino já possui histórico. Para preservar os registros, duplique o treino ou crie uma nova versão antes de alterar exercícios, séries ou cargas.");
+        notify("Este treino já possui histórico. Duplique o treino ou crie uma nova versão antes de alterar exercícios, séries ou cargas.", "warning");
         return;
       }
       const id = String(newWorkout.editingId || currentWorkout?.id || makeId());
@@ -2939,7 +3191,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
     const nextItems = updater(currentItems.map(item => withWorkoutExerciseIdentity(exerciseWithRepTargets({...item})))).map(item=>withWorkoutExerciseIdentity(exerciseWithRepTargets(item)));
 
     if(currentWorkout && workoutHasHistory(currentWorkout) && workoutPrescriptionSignature(currentWorkout.items) !== workoutPrescriptionSignature(nextItems)){
-      alert("Este treino já possui histórico. Para preservar os registros, duplique o treino ou crie uma nova versão antes de alterar exercícios, séries ou cargas.");
+      notify("Este treino já possui histórico. Duplique o treino ou crie uma nova versão antes de alterar exercícios, séries ou cargas.", "warning");
       return;
     }
 
@@ -2962,7 +3214,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
       notify(successMessage);
     } catch(error) {
       console.error("Erro ao atualizar exercícios do treino:", error);
-      alert(error?.message || "Não foi possível atualizar os exercícios deste treino.");
+      notify(error?.message || "Não foi possível atualizar os exercícios deste treino.", "error");
     }
   }
 
@@ -2989,9 +3241,15 @@ function exerciseCatalogToWorkoutItem(ex={}){
     }, "Exercício movido.");
   }
 
-  function removeWorkoutExercise(key, index){
+  async function removeWorkoutExercise(key, index){
     if(appMode !== "treinador") return;
-    if(!confirm("Excluir este exercício do treino?")) return;
+    const confirmed = await requestAppDialog({
+      variant:"danger",
+      title:"Excluir exercício do treino?",
+      description:"O histórico já salvo não será alterado.",
+      confirmLabel:"Excluir exercício",
+    });
+    if(!confirmed) return;
     updateWorkoutDetailItems(key, items => items.filter((_,itemIdx)=>itemIdx !== index), "Exercício excluído.");
   }
 
@@ -3041,7 +3299,13 @@ function exerciseCatalogToWorkoutItem(ex={}){
     const message = isBaseWorkout
       ? "Arquivar este treino da lista ativa? Treinos base podem ser reativados depois."
       : "Arquivar este treino? Histórico e exercícios serão preservados.";
-    if(!confirm(message)) return;
+    const confirmed = await requestAppDialog({
+      variant:"confirm",
+      title:"Arquivar treino?",
+      description:message,
+      confirmLabel:"Arquivar",
+    });
+    if(!confirmed) return;
 
     try{
       if(isBaseWorkout){
@@ -3073,7 +3337,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
       notify("Treino arquivado.");
     } catch(error){
       console.error("Erro ao arquivar treino:", error);
-      alert("Não foi possível arquivar o treino. Tente novamente.");
+      notify("Não foi possível arquivar o treino. Tente novamente.", "error");
     }
   }
 
@@ -3092,20 +3356,38 @@ function exerciseCatalogToWorkoutItem(ex={}){
     return runPendingAction(`delete-workout:${target.id}`, async()=>{
 
     if(workoutHasHistory(target)) {
-      if(confirm("Este treino já possui histórico e não pode ser excluído. Você pode arquivá-lo.")) {
+      const archive = await requestAppDialog({
+        variant:"confirm",
+        title:"Este treino possui histórico",
+        description:"Ele não pode ser excluído, mas pode ser arquivado sem perder os registros.",
+        confirmLabel:"Arquivar treino",
+      });
+      if(archive) {
         await archiveWorkout(workoutKey);
       }
       return;
     }
 
     if(workoutHasAssignedCopies(target)) {
-      if(confirm("Este treino possui cópias atribuídas. Para preservar a origem das prescrições, arquive o treino em vez de excluir.")) {
+      const archive = await requestAppDialog({
+        variant:"confirm",
+        title:"Este treino possui cópias atribuídas",
+        description:"Arquive o modelo para preservar a origem das prescrições já enviadas.",
+        confirmLabel:"Arquivar treino",
+      });
+      if(archive) {
         await archiveWorkout(workoutKey);
       }
       return;
     }
 
-    if(!confirm(options.permanent ? "Excluir definitivamente este treino? Esta ação não poderá ser desfeita." : "Excluir este treino? Esta ação não poderá ser desfeita.")) return;
+    const confirmed = await requestAppDialog({
+      variant:"danger",
+      title:options.permanent ? "Excluir treino definitivamente?" : "Excluir treino?",
+      description:"Esta ação não poderá ser desfeita.",
+      confirmLabel:"Excluir treino",
+    });
+    if(!confirmed) return;
 
     try {
       await dataService.deleteWorkout(target.id);
@@ -3134,9 +3416,15 @@ function exerciseCatalogToWorkoutItem(ex={}){
     await archiveWorkoutByKey(key);
   }
 
-  function clearNewWorkout(){
+  async function clearNewWorkout(){
     if(!newWorkout.name && newWorkout.items.length === 0) return;
-    if(!confirm("Limpar todo o treino em criação?")) return;
+    const confirmed = await requestAppDialog({
+      variant:"danger",
+      title:"Limpar treino em criação?",
+      description:"Nome, exercícios e configurações preenchidos serão descartados.",
+      confirmLabel:"Limpar treino",
+    });
+    if(!confirmed) return;
     setNewWorkout(blankWorkout);
     setNewExercise(blankExercise);
   }
@@ -3561,7 +3849,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
       return {type:group.type || "single", conjugateBlockId:group.conjugateBlockId || "", indexes};
     });
     if(plannedItems.length===0) {
-      alert("Este treino não contém exercícios.");
+      notify("Este treino não contém exercícios.", "warning");
       return false;
     }
     const startedAt = Date.now();
@@ -4078,13 +4366,18 @@ function exerciseCatalogToWorkoutItem(ex={}){
     return {count, total};
   },[dashboardSessions]);
 
-  function applyLibraryExercise(ex){
-    const normalized = exerciseCatalogToWorkoutItem(ex);
-    setNewWorkout(w=>({...w, items:[...w.items, normalized]}));
-    setShowWorkoutLibrary(false);
-    setWorkoutLibraryFiltersOpen(false);
-    clearWorkoutExerciseFilters();
-    notify("Exercício adicionado.", "info");
+  function toggleWorkoutLibraryExercise(ex){
+    const key = String(ex?.id || libraryKey(ex));
+    setWorkoutLibrarySelection(current=>current.includes(key) ? current.filter(item=>item !== key) : [...current,key]);
+  }
+
+  function addSelectedLibraryExercises(){
+    const selected = new Set(workoutLibrarySelection);
+    const exercises = fullLibrary.filter(ex=>selected.has(String(ex.id || libraryKey(ex))));
+    if(!exercises.length) return;
+    setNewWorkout(workoutItem=>({...workoutItem, items:[...workoutItem.items, ...exercises.map(exerciseCatalogToWorkoutItem)]}));
+    setWorkoutLibrarySelection([]);
+    notify(`${exercises.length} exercício${exercises.length === 1 ? " adicionado" : "s adicionados"}.`, "success");
   }
 
   const exerciseChipTags = exercise => [
@@ -4295,7 +4588,14 @@ function exerciseCatalogToWorkoutItem(ex={}){
     const search = studentSearch.trim().toLowerCase();
     const rows = trainerStudentRows.filter(row => {
       const haystack = `${row.studentName || ""} ${row.studentEmail || ""}`.toLowerCase();
-      return !search || haystack.includes(search);
+      if(search && !haystack.includes(search)) return false;
+      if(studentListMode === "active") return row.status === "active";
+      if(studentListMode === "invites") return false;
+      if(studentListMode === "attention") {
+        const lastSessionTime = row.lastSession ? parseSessionDate(row.lastSession.date).getTime() : 0;
+        return row.status === "active" && (!row.workouts?.length || !lastSessionTime || Date.now() - lastSessionTime >= 7*24*60*60*1000);
+      }
+      return true;
     }).sort((a,b)=>{
       if(studentSort === "last"){
         return parseSessionDate(b.lastSession?.date).getTime() - parseSessionDate(a.lastSession?.date).getTime();
@@ -4308,8 +4608,16 @@ function exerciseCatalogToWorkoutItem(ex={}){
       }
       return String(a.studentName || a.studentEmail || "").localeCompare(String(b.studentName || b.studentEmail || ""), "pt-BR");
     });
-    return [trainerSelfRow, ...rows];
-  },[trainerStudentRows, trainerSelfRow, studentSearch, studentSort]);
+    const includeSelf = studentListMode === "all" || studentListMode === "active";
+    return includeSelf ? [trainerSelfRow, ...rows] : rows;
+  },[trainerStudentRows, trainerSelfRow, studentSearch, studentSort, studentListMode]);
+
+  const displayedTrainerInvites = useMemo(()=>{
+    const search = studentSearch.trim().toLowerCase();
+    return trainerLinks
+      .filter(link=>!search || `${link.studentName || ""} ${link.studentEmail || ""}`.toLowerCase().includes(search))
+      .sort((a,b)=>parseSessionDate(b.updatedAt || b.createdAt).getTime() - parseSessionDate(a.updatedAt || a.createdAt).getTime());
+  },[trainerLinks, studentSearch]);
 
   const selectedStudentProfile = useMemo(()=>{
     if(!selectedStudent) return null;
@@ -4409,6 +4717,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
       session.studentId === link.studentId || normalizeEmail(session.studentEmail) === normalizeEmail(link.studentEmail)
     ));
     const recentSessions = trainerSessions.filter(session => parseSessionDate(session.date).getTime() >= recentLimit);
+    const todaySessions = trainerSessions.filter(session=>sameCalendarDay(parseSessionDate(session.date), now));
     recentSessions.forEach(session => {
       const key = today(parseSessionDate(session.date));
       const row = dayMap.get(key);
@@ -4430,6 +4739,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
       const priority = (!row.workouts?.length ? 1000 : 0) + (daysWithoutTraining ?? 999) + (daysWithoutBody === null ? 60 : Math.min(daysWithoutBody, 60));
       return {...row, reasons, priority};
     }).filter(row=>row.reasons.length).sort((a,b)=>b.priority - a.priority).slice(0,6);
+    const withoutTrainingRows = activeRows.filter(row=>{
+      const lastSessionTime = row.lastSession ? parseSessionDate(row.lastSession.date).getTime() : 0;
+      return !lastSessionTime || Date.now() - lastSessionTime >= 7*24*60*60*1000;
+    });
     const inactiveAttention = trainerStudentRows.filter(row=>row.status !== "active").length + attentionRows.length;
     const latestBody = body
       .filter(record => trainerLinks.some(link =>
@@ -4440,20 +4753,29 @@ function exerciseCatalogToWorkoutItem(ex={}){
     const recentEvents = [
       ...trainerSessions.slice(0,5).map(session => ({
         id:`session-${session.id || session.date}-${session.studentEmail || ""}`,
+        kind:"session",
+        entity:session,
+        occurredAt:session.startedAt || parseSessionDate(session.date).getTime(),
         title:session.studentName || session.studentEmail || "Aluno",
         detail:`concluiu ${session.workoutName || session.workoutLabel || "treino"} · ${session.date}`
       })),
       ...latestBody.map((record,idx)=>({
         id:`body-${record.id || idx}`,
+        kind:"body",
+        entity:record,
+        occurredAt:parseSessionDate(record.date).getTime(),
         title:record.studentName || record.studentEmail || record.userEmail || "Aluno",
         detail:`atualizou dados corporais · ${record.date}`
       })),
-      ...trainerLinks.filter(link=>link.status === "pending").slice(0,3).map(link => ({
+      ...trainerLinks.slice(0,5).map(link => ({
         id:`invite-${link.id}`,
+        kind:"invite",
+        entity:link,
+        occurredAt:parseSessionDate(link.updatedAt || link.createdAt).getTime(),
         title:link.studentName || link.studentEmail || "Aluno",
-        detail:"convite pendente"
+        detail:`convite ${getInviteStatusMeta(link)?.label?.toLowerCase() || "atualizado"}`
       }))
-    ].slice(0,8);
+    ].sort((a,b)=>(b.occurredAt || 0) - (a.occurredAt || 0)).slice(0,8);
     const summary = [];
     if(activeRows.length) summary.push(`${activeRows.length} aluno${activeRows.length === 1 ? "" : "s"} ativo${activeRows.length === 1 ? "" : "s"} em acompanhamento.`);
     else summary.push("Nenhum aluno ativo no momento.");
@@ -4461,11 +4783,14 @@ function exerciseCatalogToWorkoutItem(ex={}){
     else summary.push("Ainda não há treinos registrados nos últimos 7 dias.");
     if(attentionRows.length) summary.push(`${attentionRows.length} aluno${attentionRows.length === 1 ? "" : "s"} precisa${attentionRows.length === 1 ? "" : "m"} de atenção.`);
     else summary.push("Nenhum aluno ativo aparece como prioridade de atenção.");
-    if(activeWorkouts.length) summary.push(`${activeWorkouts.length} modelo${activeWorkouts.length === 1 ? "" : "s"} ativo${activeWorkouts.length === 1 ? "" : "s"} disponível${activeWorkouts.length === 1 ? "" : "is"}.`);
+    if(activeWorkouts.length) summary.push(`${activeWorkouts.length} modelo${activeWorkouts.length === 1 ? "" : "s"} ativo${activeWorkouts.length === 1 ? "" : "s"} ${activeWorkouts.length === 1 ? "disponível" : "disponíveis"}.`);
     else summary.push("Nenhum modelo ativo disponível para alunos.");
     return {
       activeStudents:activeRows.length,
       activeWorkouts:activeWorkouts.length,
+      pendingInvites:trainerLinks.filter(link=>deriveInviteStatus(link) === "pending").length,
+      todayTrainingCount:todaySessions.length,
+      withoutTrainingCount:withoutTrainingRows.length,
       recentTrainingCount:recentSessions.length,
       inactiveAttention,
       summary,
@@ -4474,6 +4799,103 @@ function exerciseCatalogToWorkoutItem(ex={}){
       dayRows
     };
   },[trainerStudentRows, trainerLinks, customWorkouts, allHistorySessions, body, currentUserId, currentUserEmail]);
+
+  function openTrainerStudentList(mode="all"){
+    setStudentListMode(mode);
+    setSelectedStudentId("");
+    setStudentDetailView("");
+    setOpenSession(null);
+    setScreen("alunos");
+  }
+
+  function openTrainerRecentActivity(event){
+    if(event.kind === "invite") {
+      openTrainerStudentList("invites");
+      return;
+    }
+    const entity = event.entity || {};
+    const row = trainerStudentRows.find(item=>
+      (entity.studentId && entity.studentId === item.studentId)
+      || (normalizeEmail(entity.studentEmail || entity.userEmail) && normalizeEmail(entity.studentEmail || entity.userEmail) === normalizeEmail(item.studentEmail))
+    );
+    if(!row) return notify("Não foi possível localizar o aluno desta atividade.", "warning");
+    setScreen("alunos");
+    setSelectedStudentId(row.id);
+    setStudentDetailView("");
+    if(event.kind === "session") setOpenSession(entity);
+    if(event.kind === "body") {
+      const index = (row.body || []).findIndex(record=>record.id === entity.id);
+      setSelectedBodyRecord({record:entity, index:Math.max(0,index), scope:"student"});
+    }
+  }
+
+  const onboardingSteps = useMemo(()=>{
+    const storedSteps = new Set(onboardingState?.completedSteps || []);
+    const trainerHasSession = allHistorySessions.some(session =>
+      session.studentId === currentUserId
+      || normalizeEmail(session.studentEmail) === currentUserEmail
+      || trainerLinks.some(link=>session.studentId === link.studentId || normalizeEmail(session.studentEmail) === normalizeEmail(link.studentEmail))
+    );
+    const progress = onboardingMode === "trainer" ? {
+      hasWorkout:customWorkouts.some(workoutItem=>isTrainerWorkoutTemplate(workoutItem)),
+      hasInvite:trainerLinks.length > 0,
+      hasAssignment:customWorkouts.some(workoutItem=>Boolean(workoutSourceId(workoutItem))),
+      hasSession:trainerHasSession,
+    } : {
+      hasTrainer:activeStudentLinks.length > 0,
+      hasPendingInvite:pendingCoachInvites.length > 0,
+      hasWorkout:Object.keys(workouts).length > 0,
+    };
+    const steps = onboardingMode === "trainer" ? trainerOnboardingSteps(progress) : athleteOnboardingSteps(progress);
+    return steps.map(step=>({...step, done:step.done || storedSteps.has(step.id)}));
+  },[onboardingMode, onboardingState?.completedSteps, allHistorySessions, currentUserId, currentUserEmail, trainerLinks, customWorkouts, activeStudentLinks, pendingCoachInvites, workouts]);
+
+  useEffect(()=>{
+    if(!onboardingState || onboardingState.completed) return;
+    const stored = new Set(onboardingState.completedSteps || []);
+    const newlyCompleted = onboardingSteps.filter(step=>step.done && !stored.has(step.id)).map(step=>step.id);
+    if(!newlyCompleted.length) return;
+    setOnboardingState(mergeOnboardingProgress(globalThis.localStorage, currentUserId, onboardingMode, onboardingState, newlyCompleted));
+  },[onboardingSteps, onboardingState, currentUserId, onboardingMode]);
+
+  function handleOnboardingAction(stepId){
+    if(onboardingMode === "trainer") {
+      if(stepId === "create-workout") {
+        setScreen("criar");
+        startNewWorkout();
+        return;
+      }
+      if(stepId === "register-student" || stepId === "invite-athlete") {
+        setScreen("alunos");
+        setGeneratedInvite(null);
+        setStudentMessage("");
+        setShowInviteForm(true);
+        return;
+      }
+      if(stepId === "assign-workout") {
+        setScreen("criar");
+        notify("Abra um modelo e escolha Atribuir.", "info");
+        return;
+      }
+      setScreen("dashboard");
+      return;
+    }
+    if(stepId === "accept-invite" || stepId === "find-trainer") {
+      const pending = pendingCoachInvites[0];
+      if(pending) openInviteResponder(pending);
+      else notify("Peça ao treinador para enviar um convite ao e-mail desta conta.", "info");
+      return;
+    }
+    if(stepId === "start-workout") setScreen("criar");
+  }
+
+  function completeOnboarding(){
+    if(!onboardingState) return;
+    setOnboardingState(finishOnboarding(globalThis.localStorage, currentUserId, onboardingMode, onboardingState));
+    notify("Configuração inicial concluída.", "success");
+  }
+
+  const showOnboarding = Boolean(onboardingState && !onboardingState.completed && !onboardingDismissed && !inviteModalLink);
 
   const activeAssignableStudents = useMemo(()=>activeTrainerLinks.filter(link => link.status === "active" && link.studentId),[activeTrainerLinks]);
   const assignmentSourceWorkout = useMemo(()=>customWorkouts.find(w => w.id === assignmentWorkoutId) || null,[customWorkouts, assignmentWorkoutId]);
@@ -4510,7 +4932,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
   async function assignWorkoutToStudent(workoutItem, student, preparedCopy=null){
     if(!ensureMutationAllowed()) return;
     if(!workoutItem?.id || !student?.studentId) {
-      alert("O aluno precisa aceitar o convite antes de receber treinos.");
+      notify("O aluno precisa aceitar o convite antes de receber treinos.", "warning");
       return;
     }
     const isSelfAssignment = !!student.isSelf;
@@ -4602,7 +5024,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
     if(assignmentRetryEntries.length) return runAssignmentEntries(assignmentRetryEntries);
     const selectedLinks = activeAssignableStudents.filter(link => assignmentSelection.students?.[link.id]);
     if(!assignmentSelection.self && selectedLinks.length === 0) {
-      alert("Escolha pelo menos um destino para atribuir o treino.");
+      notify("Escolha pelo menos um destino para atribuir o treino.", "warning");
       return;
     }
     const baseItems = cloneWorkoutItemsForAssignment(assignmentSourceWorkout.items || []);
@@ -5064,6 +5486,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
     editingStudentLink ||
     endingStudentLink
   );
+  const inviteModalStatus = inviteModalLink ? deriveInviteStatus(inviteModalLink) : "";
   const renderScreen = athleteHasIncompatibleRenderState ? "dashboard" : screen;
   const hasInternalState = renderScreen !== "dashboard" && Boolean(
     openSession?.items ||
@@ -5107,18 +5530,37 @@ function exerciseCatalogToWorkoutItem(ex={}){
     renderScreen === "alunos" ? "Alunos" :
     "Treino Tonon";
 
-  function handleInternalBack(){
+  function handleInternalBack(options={}){
+    if(showWorkoutEditor && showWorkoutLibrary && workoutLibrarySelection.length) {
+      setWorkoutLibrarySelection([]);
+      return;
+    }
+    if(showWorkoutEditor && showWorkoutLibrary && !options.fromHistory) {
+      const pickerHistoryState = readUiHistoryState(globalThis.history?.state);
+      if(pickerHistoryState && historyIndexRef.current > 0) {
+        bypassNextHistoryGuardRef.current = true;
+        globalThis.history.back();
+        return;
+      }
+      suppressNextNavigationPush();
+      setShowWorkoutLibrary(false);
+      return;
+    }
+    const browserState = readUiHistoryState(globalThis.history?.state);
+    if(!options.fromHistory && browserState && historyIndexRef.current > 0) {
+      globalThis.history.back();
+      return;
+    }
+    if(showWorkoutEditor && showWorkoutLibrary) {
+      setShowWorkoutLibrary(false);
+      return;
+    }
     if(!bypassDirtyGuardRef.current && activeDirtyScope()) {
       requestProtectedAction(handleInternalBack);
       return;
     }
     if(editingWorkoutExerciseIndex !== null) {
       closeWorkoutExerciseEditor();
-      return;
-    }
-    if(showWorkoutEditor && showWorkoutLibrary) {
-      setShowWorkoutLibrary(false);
-      clearWorkoutExerciseFilters();
       return;
     }
     if(appMode === "treinador" && showWorkoutEditor) {
@@ -5512,21 +5954,24 @@ function exerciseCatalogToWorkoutItem(ex={}){
           <h2 className="pageTitle">Dashboard</h2>
         </div>
 
-        <section className="grid2">
-          <Card title="Alunos ativos" value={`${trainerDashboard.activeStudents}`} sub="vínculos ativos" />
-          <Card title="Treinos ativos" value={`${trainerDashboard.activeWorkouts}`} sub="modelos disponíveis" />
-          <Card title="Treinos realizados" value={`${trainerDashboard.recentTrainingCount}`} sub="últimos 7 dias" />
-          <Card title="Atenção" value={`${trainerDashboard.inactiveAttention}`} sub="inativos ou prioridade" />
+        {showOnboarding && <OnboardingPanel mode="trainer" steps={onboardingSteps} onAction={handleOnboardingAction} onComplete={completeOnboarding} onLater={()=>setOnboardingDismissed(true)} />}
+
+        <section className="trainerKpiGrid">
+          <Card title="Alunos ativos" value={`${trainerDashboard.activeStudents}`} sub="abrir carteira ativa" icon={<Users/>} onActivate={()=>openTrainerStudentList("active")} />
+          <Card title="Treinos ativos" value={`${trainerDashboard.activeWorkouts}`} sub="abrir modelos" icon={<Dumbbell/>} onActivate={()=>{setWorkoutArchiveView("active"); setScreen("criar");}} />
+          <Card title="Convites pendentes" value={`${trainerDashboard.pendingInvites}`} sub="gerenciar convites" icon={<Mail/>} onActivate={()=>openTrainerStudentList("invites")} />
+          <Card title="Treinos hoje" value={`${trainerDashboard.todayTrainingCount}`} sub="alunos por atividade" icon={<CalendarDays/>} onActivate={()=>{setStudentSort("last"); openTrainerStudentList("active");}} />
+          <Card title="Sem treinar" value={`${trainerDashboard.withoutTrainingCount}`} sub="7 dias ou sem registro" icon={<AlertTriangle/>} onActivate={()=>openTrainerStudentList("attention")} />
         </section>
 
-        <section className="chartCard">
+        <section className="chartCard trainerSummaryPanel">
           <h3>Resumo da semana</h3>
           {trainerDashboard.summary.map((line,idx)=><div className="detailLine compactLine" key={idx}>
             <span>{line}</span>
           </div>)}
         </section>
 
-        <section className="chartCard">
+        <section className="chartCard trainerChartPanel">
           <h3>Treinos concluídos por dia</h3>
           {trainerDashboard.dayRows.every(row=>row.count === 0) && <p className="emptyHint">Nenhum treino concluído nos últimos 7 dias.</p>}
           <div className="verticalBars">
@@ -5541,33 +5986,35 @@ function exerciseCatalogToWorkoutItem(ex={}){
           </div>
         </section>
 
-        <section className="chartCard">
+        <section className="chartCard trainerActivityPanel">
           <h3>Atividade recente</h3>
           {trainerDashboard.recentEvents.length===0 && <p className="emptyHint">As atividades aparecerão aqui quando houver treinos, registros corporais ou convites pendentes.</p>}
-          {trainerDashboard.recentEvents.map(event=><div className="recordLine" key={event.id}>
-            <b>{event.title}</b>
-            <span>{event.detail}</span>
-          </div>)}
+          {trainerDashboard.recentEvents.map(event=><button type="button" className="recordLine trainerActivityRow" key={event.id} onClick={()=>openTrainerRecentActivity(event)}>
+            <span><b>{event.title}</b><small>{event.detail}</small></span>
+            <ChevronRight size={17} aria-hidden="true"/>
+          </button>)}
         </section>
 
-        <section className="chartCard">
+        <section className="chartCard trainerAttentionPanel">
           <h3>Alunos que precisam de atenção</h3>
           {trainerDashboard.attentionRows.length===0 && <p className="emptyHint">Nenhum aluno ativo precisa de atenção pelos dados disponíveis.</p>}
           <section className="studentGrid">
-            {trainerDashboard.attentionRows.map(row=><div className="studentCard compactStudentCard" key={row.id}>
+            {trainerDashboard.attentionRows.map(row=><button type="button" className="studentCard compactStudentCard trainerAttentionCard" key={row.id} onClick={()=>{setScreen("alunos"); setSelectedStudentId(row.id);}}>
               <div className="studentCardTop">
                 <b>{row.studentName || row.studentEmail}</b>
-                <span className="statusBadge">{row.status}</span>
+                <span className="statusBadge">Ativo</span>
               </div>
               <span>{row.studentEmail}</span>
               <small>{row.reasons.join(" · ")}</small>
-            </div>)}
+            </button>)}
           </section>
         </section>
       </> : <>
       <section className="pageTitleRow athleteDashboardTitleRow">
         <h2 className="pageTitle">Dashboard</h2>
       </section>
+
+      {showOnboarding && <OnboardingPanel mode="athlete" steps={onboardingSteps} onAction={handleOnboardingAction} onComplete={completeOnboarding} onLater={()=>setOnboardingDismissed(true)} />}
 
       {pendingCoachInvites.map(link=><section className="formCard inviteActionCard" key={link.id}>
         <div>
@@ -5849,24 +6296,37 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
         </section>}
       </> : showInviteForm ? <>
-        <section className="formCard">
-          <button type="button" onClick={generateInviteFromButton} disabled={isActionPending("create-invite")} aria-busy={isActionPending("create-invite")}>
-            {isActionPending("create-invite") ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <UserPlus size={18}/>}
-            {isActionPending("create-invite") ? "Gerando…" : "Gerar convite"}
-          </button>
+        <section className="formCard inviteComposer">
+          <div className="sectionHeaderRow">
+            <div><h2>Novo convite</h2><p className="muted">O atleta deve entrar com o mesmo e-mail informado aqui.</p></div>
+          </div>
+          <form className="accountForm" onSubmit={inviteStudent} aria-busy={isActionPending("create-invite")}>
+            <label><span>E-mail do aluno</span><input name="studentEmail" type="email" inputMode="email" autoComplete="email" placeholder="aluno@exemplo.com" required /></label>
+            <label><span>Objetivo (opcional)</span><input name="objective" placeholder="Ex.: hipertrofia" /></label>
+            <label><span>Observações (opcional)</span><textarea name="notes" placeholder="Contexto útil para o acompanhamento" /></label>
+            <button disabled={isActionPending("create-invite")} aria-busy={isActionPending("create-invite")}>
+              {isActionPending("create-invite") ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <UserPlus size={18}/>}
+              {isActionPending("create-invite") ? "Criando…" : "Criar convite"}
+            </button>
+          </form>
           {generatedInvite && <div className="inviteResult">
-            <div className="recordLine"><b>Convite</b><span>{generatedInvite.id}</span></div>
-            <div className="accountActions">
-              <button type="button" className="ghost" onClick={()=>copyInvite(generatedInvite)}>Copiar</button>
-              <button type="button" className="ghost" onClick={()=>shareInvite(generatedInvite)}>Compartilhar</button>
+            <div><b>Convite pronto</b><p className="inviteLinkText">{buildInviteDeepLink(generatedInvite, globalThis.location)}</p></div>
+            <div className="inviteActionGrid">
+              <button type="button" className="ghost" onClick={()=>copyInvite(generatedInvite)}><Copy size={17}/> Copiar link</button>
+              <a className="ghost inviteActionLink" href={buildInviteMailtoHref(generatedInvite, globalThis.location)}><Mail size={17}/> E-mail</a>
+              <button type="button" className="ghost" onClick={()=>shareInvite(generatedInvite)}><Share2 size={17}/> Compartilhar</button>
             </div>
           </div>}
-          {studentMessage && <p className="feedbackMessage">{studentMessage}</p>}
+          {studentMessage && <p className="feedbackMessage" role="status">{studentMessage}</p>}
         </section>
       </> : <>
         <div className="pageTitleRow">
           <h2 className="pageTitle">Alunos</h2>
-          <button type="button" onClick={()=>{setGeneratedInvite(null); setStudentMessage(""); setShowInviteForm(true);}}><UserPlus size={18}/> Novo Aluno</button>
+          <button type="button" onClick={()=>{setGeneratedInvite(null); setStudentMessage(""); setShowInviteForm(true);}}><UserPlus size={18}/> Convidar aluno</button>
+        </div>
+
+        <div className="segmentedControl studentListTabs" aria-label="Filtrar alunos e convites">
+          {[['all','Todos'],['active','Ativos'],['invites','Convites'],['attention','Atenção']].map(([value,label])=><button type="button" key={value} className={studentListMode === value ? "active" : "ghost"} onClick={()=>setStudentListMode(value)}>{label}</button>)}
         </div>
 
         <section className="formCard">
@@ -5885,11 +6345,39 @@ function exerciseCatalogToWorkoutItem(ex={}){
           </label>
         </section>
 
-        {displayedTrainerStudentRows.length===0 && <section className="emptyState slim">
+        {studentListMode !== "invites" && displayedTrainerStudentRows.length===0 && <section className="emptyState slim">
           <b>Nenhum aluno encontrado.</b>
         </section>}
 
-        <section className="studentGrid">
+        {studentListMode === "invites" ? <section className="invitationManager" aria-label="Gestão de convites">
+          {displayedTrainerInvites.length === 0 && <section className="emptyState slim"><b>Nenhum convite encontrado.</b><span>Crie um convite para conectar o primeiro aluno.</span></section>}
+          {displayedTrainerInvites.map(link=>{
+            const meta = getInviteStatusMeta(link);
+            const status = meta?.status || "cancelled";
+            const lifecycleDate = inviteLifecycleDate(link);
+            const expiresAt = deriveInviteExpiresAt(lifecycleDate);
+            const pendingInDatabase = link.status === "pending";
+            return <article className="inviteCard" key={link.id}>
+              <header className="inviteCardHeader">
+                <div><b>{link.studentName || link.studentEmail || "Aluno"}</b><span>{link.studentEmail}</span></div>
+                <span className={`statusBadge inviteStatus-${status}`}>{meta?.label || "Cancelado"}</span>
+              </header>
+              {(link.objective || link.notes) && <p className="inviteContext">{[link.objective,link.notes].filter(Boolean).join(" · ")}</p>}
+              <dl className="inviteDates">
+                <div><dt>Criado</dt><dd>{formatDateTime(link.createdAt)}</dd></div>
+                <div><dt>Última atualização</dt><dd>{formatDateTime(lifecycleDate)}</dd></div>
+                {pendingInDatabase && <div><dt>{status === "expired" ? "Expirou" : "Expira"}</dt><dd>{formatDateTime(expiresAt)}</dd></div>}
+              </dl>
+              {pendingInDatabase && <div className="inviteActionGrid">
+                <button type="button" className="ghost" onClick={()=>copyInvite(link)}><Copy size={16}/> Copiar</button>
+                <a className="ghost inviteActionLink" href={buildInviteMailtoHref(link, globalThis.location)}><Mail size={16}/> E-mail</a>
+                <button type="button" className="ghost" onClick={()=>shareInvite(link)}><Share2 size={16}/> Compartilhar</button>
+                <button type="button" className="ghost" disabled={isActionPending(`resend-invite:${link.id}`)} onClick={()=>resendInvite(link)}><RefreshCw size={16}/> {status === "expired" ? "Renovar" : "Reenviar"}</button>
+                <button type="button" className="danger" disabled={isActionPending(`cancel-invite:${link.id}`)} onClick={()=>cancelInvite(link)}><Ban size={16}/> Cancelar</button>
+              </div>}
+            </article>;
+          })}
+        </section> : <section className="studentGrid">
           {displayedTrainerStudentRows.map(row=>{
             const openStudent = ()=>{
               setShowStudentBodyForm(false);
@@ -5897,18 +6385,25 @@ function exerciseCatalogToWorkoutItem(ex={}){
               setSelectedBodyRecord(null);
               setSelectedStudentId(row.id);
             };
+            const activeLink = row.isSelf || row.status === "active";
+            const inviteMeta = activeLink ? null : getInviteStatusMeta(row);
+            const lastTrainingLabel = row.lastSession
+              ? formatDateTime(parseSessionDate(row.lastSession.date))
+              : "—";
             return <section key={row.id} className="studentCard compactStudentCard" role="button" tabIndex={0} onClick={openStudent} onKeyDown={event=>{
               if(event.key === "Enter" || event.key === " ") openStudent();
             }}>
               <div className="studentCardTop">
                 <b>{row.studentName || "Aluno"}</b>
-                <span>{row.workouts.length} treinos</span>
+                <span>{activeLink ? `${row.workouts.length} treino${row.workouts.length === 1 ? "" : "s"}` : inviteMeta?.label || "Convite"}</span>
               </div>
-              <small>Último acesso: {row.lastSession?.date || row.updatedAt || row.createdAt || "—"}</small>
+              <small>{activeLink
+                ? `Último treino: ${lastTrainingLabel}`
+                : `Convite atualizado: ${formatDateTime(row.updatedAt || row.createdAt)}`}</small>
               <button type="button" className="ghost small" onClick={event=>{event.stopPropagation(); openStudent();}}>Abrir</button>
             </section>
           })}
-        </section>
+        </section>}
       </>}
     </main>}
 
@@ -5955,7 +6450,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
                 {selectedWorkoutDetail.meta.isActive !== false && <button type="button" onClick={()=>openAssignment(selectedWorkoutDetail.meta)}>Atribuir</button>}
                 {selectedWorkoutDetail.meta.isActive === false
                   ? <button type="button" onClick={()=>reactivateWorkout(selectedWorkoutDetail.key)}>Restaurar</button>
-                  : <button type="button" onClick={()=>archiveWorkout(selectedWorkoutDetail.key)}>Arquivar</button>}
+                  : <button type="button" onClick={()=>archiveWorkoutByKey(selectedWorkoutDetail.key, {closeEditor:false})}>Arquivar</button>}
                 <button type="button" className="danger" disabled={isActionPending(`delete-workout:${selectedWorkoutDetail.meta.id || selectedWorkoutDetail.key}`)} aria-busy={isActionPending(`delete-workout:${selectedWorkoutDetail.meta.id || selectedWorkoutDetail.key}`)} onClick={()=>deleteWorkoutSafely(selectedWorkoutDetail.key)}>{isActionPending(`delete-workout:${selectedWorkoutDetail.meta.id || selectedWorkoutDetail.key}`) ? "Excluindo…" : "Excluir"}</button>
             </ActionMenu>}
           </div>
@@ -6131,7 +6626,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
                 </> : <>
                   <button type="button" onClick={()=>startEditWorkout(k)}>Editar</button>
                   <button type="button" onClick={()=>duplicateWorkout(k)}>Duplicar</button>
-                  <button type="button" onClick={()=>archiveWorkout(k)}>Arquivar</button>
+                  <button type="button" onClick={()=>archiveWorkoutByKey(k)}>Arquivar</button>
                   <button type="button" className="danger" disabled={isActionPending(`delete-workout:${k}`)} aria-busy={isActionPending(`delete-workout:${k}`)} onClick={()=>deleteWorkoutSafely(k)}>{isActionPending(`delete-workout:${k}`) ? "Excluindo…" : "Excluir"}</button>
                 </>}
             </ActionMenu>}
@@ -6181,18 +6676,36 @@ function exerciseCatalogToWorkoutItem(ex={}){
           </section>}
           <div className="exerciseSelectorResultsBar">
             <span>{filteredLibrary.length} resultado{filteredLibrary.length === 1 ? "" : "s"}</span>
-            <small>Toque no exercício para adicionar</small>
+            <small>Selecione um ou vários exercícios</small>
           </div>
-          <div className="libraryList workoutLibraryPicker">
-            {filteredLibrary.length===0 && <p className="emptyHint">Nenhum exercício encontrado.</p>}
-            {filteredLibrary.map(ex=><button type="button" className="libraryItem pickerItem" key={ex.id || libraryKey(ex)} onClick={()=>applyLibraryExercise(ex)}>
-              <div>
-                <b>{ex.name}</b>
-                <span>{[ex.primaryGroup || ex.group || ex.category || "Outro", normalizeList(ex.equipmentList || ex.equipment)[0]].filter(Boolean).join(" · ")}</span>
-              </div>
-              <PlusCircle size={19}/>
-            </button>)}
-          </div>
+          <VirtualList
+            items={filteredLibrary}
+            getItemKey={ex=>ex.id || libraryKey(ex)}
+            estimatedItemSize={70}
+            threshold={32}
+            height="min(56dvh, 560px)"
+            className="libraryList workoutLibraryPicker virtualLibraryList"
+            itemClassName="virtualPickerRow"
+            ariaLabel="Exercícios disponíveis"
+            countLabel={`${filteredLibrary.length} resultados`}
+            emptyState={<p className="emptyHint">Nenhum exercício encontrado.</p>}
+            renderItem={ex=>{
+              const key = String(ex.id || libraryKey(ex));
+              const selected = workoutLibrarySelection.includes(key);
+              return <button type="button" className={`libraryItem pickerItem ${selected ? "selected" : ""}`} aria-pressed={selected} onClick={()=>toggleWorkoutLibraryExercise(ex)}>
+                <div>
+                  <b>{ex.name}</b>
+                  <span>{[ex.primaryGroup || ex.group || ex.category || "Outro", normalizeList(ex.equipmentList || ex.equipment)[0]].filter(Boolean).join(" · ")}</span>
+                </div>
+                {selected ? <CheckCircle size={19}/> : <PlusCircle size={19}/>}
+              </button>;
+            }}
+          />
+          {workoutLibrarySelection.length > 0 && <div className="librarySelectionBar" role="status" aria-live="polite">
+            <b>{workoutLibrarySelection.length} selecionado{workoutLibrarySelection.length === 1 ? "" : "s"}</b>
+            <button type="button" className="ghost small" onClick={()=>setWorkoutLibrarySelection([])}>Limpar</button>
+            <button type="button" className="small" onClick={addSelectedLibraryExercises}>Adicionar {workoutLibrarySelection.length}</button>
+          </div>}
         </section>
       </> : editingWorkoutExerciseIndex !== null ? <>
         {(()=>{
@@ -6440,11 +6953,20 @@ function exerciseCatalogToWorkoutItem(ex={}){
           <span className="libraryHint">{trainerFilteredLibrary.length} exercício{trainerFilteredLibrary.length === 1 ? "" : "s"} encontrado{trainerFilteredLibrary.length === 1 ? "" : "s"}</span>
           <button type="button" className="ghost small" onClick={clearExerciseFilters}>Limpar filtros</button>
         </div>
-        {trainerFilteredLibrary.length===0 && <p className="emptyHint">Nenhum exercício encontrado com esses filtros.</p>}
-        <div className="libraryList expanded">
-        {trainerFilteredLibrary.map(ex=>{
+        <VirtualList
+          items={trainerFilteredLibrary}
+          getItemKey={ex=>ex.id || libraryKey(ex)}
+          estimatedItemSize={168}
+          threshold={30}
+          height="min(64dvh, 720px)"
+          className="libraryList expanded virtualTrainerLibrary"
+          itemClassName="virtualTrainerLibraryRow"
+          ariaLabel="Biblioteca profissional de exercícios"
+          countLabel={`${trainerFilteredLibrary.length} exercícios`}
+          emptyState={<p className="emptyHint">Nenhum exercício encontrado com esses filtros.</p>}
+          renderItem={ex=>{
             const exerciseDetailId = String(ex.id || libraryKey(ex));
-            return <div className="libraryCard rich tappable" key={exerciseDetailId} onClick={()=>setSelectedExerciseDetailId(exerciseDetailId)}>
+            return <div className="libraryCard rich tappable" onClick={()=>setSelectedExerciseDetailId(exerciseDetailId)}>
               <div>
                 <b>{ex.name}</b>
                 <span>{ex.category || ex.group || "Outro"} · {ex.primaryGroup || ex.group || "Outro"}</span>
@@ -6457,8 +6979,8 @@ function exerciseCatalogToWorkoutItem(ex={}){
                 <button className="danger iconBtn" type="button" title="Excluir exercício" disabled={isActionPending(`delete-exercise:${ex.id || normalizeExerciseName(ex.name)}`)} aria-busy={isActionPending(`delete-exercise:${ex.id || normalizeExerciseName(ex.name)}`)} onClick={(event)=>{event.stopPropagation(); deleteUserLibraryExercise(ex);}}>{isActionPending(`delete-exercise:${ex.id || normalizeExerciseName(ex.name)}`) ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Trash2 size={16}/>}</button>
               </div>
             </div>
-          })}
-        </div>
+          }}
+        />
       </section>}
       </>}
     </main>}
@@ -6809,15 +7331,20 @@ function exerciseCatalogToWorkoutItem(ex={}){
         <button className="close" type="button" disabled={isActionPending(`invite-response:${inviteModalLink.id}`)} onClick={()=>dismissInviteModal(inviteModalLink)}><X/></button>
         <small>Convite de treinador</small>
         <h2>{inviteModalLink.coachName || "Seu treinador"}</h2>
+        {inviteModalLink.objective && <p><b>Objetivo:</b> {inviteModalLink.objective}</p>}
+        {inviteModalLink.notes && <p className="muted">{inviteModalLink.notes}</p>}
+        {inviteModalStatus === "expired" && <p className="feedbackMessage warning" role="status">Este convite expirou em {formatDateTime(deriveInviteExpiresAt(inviteLifecycleDate(inviteModalLink)))}. Peça ao treinador para reenviar.</p>}
         <div className="finishActions">
-          <button type="button" className="ghost" disabled={isActionPending(`invite-response:${inviteModalLink.id}`)} onClick={()=>answerCoachInvite(inviteModalLink, false)}>Recusar</button>
-          <button type="button" disabled={isActionPending(`invite-response:${inviteModalLink.id}`)} aria-busy={isActionPending(`invite-response:${inviteModalLink.id}`)} onClick={()=>answerCoachInvite(inviteModalLink, true)}>
+          <button type="button" className="ghost" disabled={inviteModalStatus !== "pending" || isActionPending(`invite-response:${inviteModalLink.id}`)} onClick={()=>answerCoachInvite(inviteModalLink, false)}>Recusar</button>
+          <button type="button" disabled={inviteModalStatus !== "pending" || isActionPending(`invite-response:${inviteModalLink.id}`)} aria-busy={isActionPending(`invite-response:${inviteModalLink.id}`)} onClick={()=>answerCoachInvite(inviteModalLink, true)}>
             {isActionPending(`invite-response:${inviteModalLink.id}`) && <LoaderCircle className="buttonSpinner" aria-hidden="true"/>}
-            {isActionPending(`invite-response:${inviteModalLink.id}`) ? "Respondendo…" : "Aceitar"}
+            {isActionPending(`invite-response:${inviteModalLink.id}`) ? "Respondendo…" : inviteModalStatus === "expired" ? "Convite expirado" : "Aceitar"}
           </button>
         </div>
       </div>
     </div>}
+
+    <AppDialog dialog={appDialog} onResolve={resolveAppDialog} />
 
     {toasts.length > 0 && <div className="toastRegion" aria-label="Notificações">
       {toasts.map(toast=>{

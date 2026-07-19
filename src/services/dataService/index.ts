@@ -38,6 +38,7 @@ export const dataService = {
   async getCoachStudents(): Promise<CoachStudent[]> { return execute(service => service.getCoachStudents()); },
   async saveCoachStudent(link: CoachStudent): Promise<void> { return execute(service => service.saveCoachStudent(link)); },
   async inviteStudentByEmail(link: CoachStudent): Promise<CoachStudent> { return execute(service => service.inviteStudentByEmail(link)); },
+  async refreshCoachInvite(link: CoachStudent): Promise<CoachStudent> { return execute(service => service.refreshCoachInvite(link)); },
   async acceptCoachInvite(link: CoachStudent): Promise<CoachStudent> { return execute(service => service.acceptCoachInvite(link)); },
   async refuseCoachInvite(link: CoachStudent): Promise<CoachStudent> { return execute(service => service.refuseCoachInvite(link)); },
   async deactivateCoachStudentLink(link: CoachStudent): Promise<CoachStudent> { return execute(service => service.deactivateCoachStudentLink(link)); },

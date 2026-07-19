@@ -1125,6 +1125,28 @@ export const cloudDataService = {
     return coachStudentFromRow(data as JsonRecord, profileMap);
   },
 
+  async refreshCoachInvite(link: CoachStudent): Promise<CoachStudent> {
+    const user = await requireUser();
+    const client = requireClient();
+    const inviteId = cleanText(link.id);
+    if(!isUuid(inviteId)) throw new Error("Convite invalido. Recarregue a tela e tente novamente.");
+    const {data, error} = await client
+      .from("coach_students")
+      .update({
+        objective: cleanText(link.objective || ""),
+        notes: cleanText(link.notes || ""),
+      })
+      .eq("id", inviteId)
+      .eq("coach_id", user.id)
+      .eq("status", "pending")
+      .select("*")
+      .single();
+    if(error && cleanText(error.code) === "PGRST116") throw new Error("Convite pendente nao encontrado.");
+    if(error) throwSupabaseError(error, "Nao foi possivel reenviar convite.");
+    const profileMap = await getProfileMap([cleanText(data.coach_id), cleanText(data.student_id)]);
+    return coachStudentFromRow(data as JsonRecord, profileMap);
+  },
+
   async acceptCoachInvite(link: CoachStudent): Promise<CoachStudent> {
     const user = await requireUser();
     const client = requireClient();
