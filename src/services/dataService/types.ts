@@ -266,6 +266,7 @@ export interface DataService {
   getCoachStudents(): Promise<CoachStudent[]>;
   saveCoachStudent(link: CoachStudent): Promise<void>;
   inviteStudentByEmail(link: CoachStudent): Promise<CoachStudent>;
+  refreshCoachInvite(link: CoachStudent): Promise<CoachStudent>;
   acceptCoachInvite(link: CoachStudent): Promise<CoachStudent>;
   refuseCoachInvite(link: CoachStudent): Promise<CoachStudent>;
   deactivateCoachStudentLink(link: CoachStudent): Promise<CoachStudent>;

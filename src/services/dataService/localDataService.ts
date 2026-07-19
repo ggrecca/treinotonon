@@ -400,6 +400,15 @@ export const localDataService = {
     await this.saveCoachStudent(normalized);
     return normalized;
   },
+  async refreshCoachInvite(link: CoachStudent): Promise<CoachStudent> {
+    const snapshot = readSnapshot();
+    const existing = snapshot.coachStudents.find(item => item.id === link.id);
+    if(!existing || existing.status !== "pending") throw new Error("Somente convites pendentes podem ser reenviados.");
+    const normalized = normalizeCoachStudent({...existing, ...link, status: "pending", updatedAt: nowIso()});
+    snapshot.coachStudents = [normalized, ...snapshot.coachStudents.filter(item => item.id !== normalized.id)];
+    writeSnapshot(snapshot);
+    return normalized;
+  },
   async acceptCoachInvite(link: CoachStudent): Promise<CoachStudent> {
     const normalized = normalizeCoachStudent({...link, status: "active", acceptedAt: new Date().toISOString()});
     await this.saveCoachStudent(normalized);
