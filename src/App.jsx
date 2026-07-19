@@ -15,6 +15,7 @@ import { dataService } from "./services/dataService";
 import { EXERCISE_LIBRARY } from "./data/exerciseLibrary";
 import { buildRepPlan, expandRepTargetsForSets, isDropSetType, isRestPauseType, isSegmentedRepType, normalizeRepTargets, parseDropTargets, parseRepTargets, parseSingleRepTarget, repTargetLabelsForEditing, setRepTargetLabelForEditing, targetLabel } from "./utils/repTargets";
 import { Card } from "./components/Card";
+import { Button } from "./design-system";
 import { AppDialog } from "./components/AppDialog";
 import { OnboardingPanel } from "./components/OnboardingPanel";
 import { VirtualList } from "./components/VirtualList";
@@ -31,6 +32,7 @@ import { athleteOnboardingSteps, finishOnboarding, mergeOnboardingProgress, read
 import { mergeUiHistoryState, readUiHistoryState, uiHistoryDirection } from "./utils/uiHistory";
 import { registerPwa } from "./pwa/registerPwa";
 import "./style.css";
+import "./design-system/styles/design-system.css";
 
 const today = (value=new Date()) => {
   const date = new Date(value);
@@ -5904,7 +5906,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
     </section>);
   }
 
-  return <div className={`app ${themeClass} mode-${appMode} ${isInternalScreen ? "internalMode" : "primaryMode"} screen-${renderScreen}`}>
+  return <div className={`app tt-ui ${themeClass} mode-${appMode} ${isInternalScreen ? "internalMode" : "primaryMode"} screen-${renderScreen}`} data-tt-theme={theme}>
     <header className={`top ${canUseCoachMode ? "hasModeSwitch" : "hasRoleBadge"}`}>
       {isInternalScreen ? <>
       <button type="button" className="backButton topBackButton" onClick={handleInternalBack} aria-label="Voltar"><ArrowLeft size={19}/></button>
@@ -5943,9 +5945,9 @@ function exerciseCatalogToWorkoutItem(ex={}){
               ? "Mantendo a última versão segura enquanto verificamos a nuvem."
               : `${pendingSyncCount} alteração${pendingSyncCount === 1 ? "" : "ões"} pendente${pendingSyncCount === 1 ? "" : "s"}.`}</span>
       </div>
-      {(globalSyncState === "load-error" || globalSyncState === "offline") && <button type="button" className="ghost small" onClick={retryApplicationLoad} disabled={!networkOnline || syncRetrying}>
+      {(globalSyncState === "load-error" || globalSyncState === "offline") && <Button variant="ghost" size="sm" onClick={retryApplicationLoad} disabled={!networkOnline || syncRetrying}>
         <RefreshCw aria-hidden="true"/> Tentar novamente
-      </button>}
+      </Button>}
     </section>}
 
     {renderScreen==="dashboard" && <main className={appMode === "treinador" ? "trainerDashboardScreen" : "athleteDashboardScreen"}>
@@ -6038,7 +6040,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
           </div>
           {workoutKeys.length > 0 ? <button type="button" className="dashboardPrimaryAction" onClick={()=>{if(activeSession) continueActiveWorkout(); else {setWorkout(recommendedWorkoutKey); navigateScreen("treino");}}}>
             <Play size={18}/> {activeSession ? "Continuar treino" : "Iniciar treino"}
-          </button> : <button type="button" className="ghost" onClick={()=>navigateScreen("criar")}>Ver treinos</button>}
+          </button> : <Button variant="ghost" onClick={()=>navigateScreen("criar")}>Ver treinos</Button>}
         </section>
 
         <section className="chartCard dashboardCompactCard">
@@ -6063,9 +6065,9 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
         <section className="chartCard athleteMonthlyCalendar">
           <div className="calendarHeaderRow">
-            <button type="button" className="ghost iconBtn" aria-label="Mês anterior" onClick={()=>setAthleteCalendarCursor(current => shiftMonth(current, -1))}><ArrowLeft size={16}/></button>
+            <Button variant="ghost" size="sm" iconOnly aria-label="Mês anterior" onClick={()=>setAthleteCalendarCursor(current => shiftMonth(current, -1))}><ArrowLeft size={16}/></Button>
             <h3>{formatMonthLabel(athleteCalendarCursor)}</h3>
-            <button type="button" className="ghost iconBtn" aria-label="Próximo mês" onClick={()=>setAthleteCalendarCursor(current => shiftMonth(current, 1))}><ArrowRight size={16}/></button>
+            <Button variant="ghost" size="sm" iconOnly aria-label="Próximo mês" onClick={()=>setAthleteCalendarCursor(current => shiftMonth(current, 1))}><ArrowRight size={16}/></Button>
           </div>
           <div className="calendarWeekdays">
             {["D","S","T","Q","Q","S","S"].map((label,idx)=><span key={`${label}-${idx}`}>{label}</span>)}
@@ -6138,7 +6140,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
           <div>
             <h3>Corpo</h3>
           </div>
-          <button type="button" className="ghost small" onClick={()=>navigateScreen("dados")}>Registrar</button>
+          <Button variant="ghost" size="sm" onClick={()=>navigateScreen("dados")}>Registrar</Button>
         </div>
         <div className="segmentedControl evolutionMetricControl">{[["peso","Peso"],["bf","BF"],["cintura","Cintura"]].filter(([key])=>evolutionBody.some(record=>numericValue(key === "bf" ? bodyFatValue(record) : record[key]))).map(([key,label])=><button type="button" key={key} className={evolutionMetric===key?"active":"ghost"} onClick={()=>setEvolutionMetric(key)}>{label}</button>)}</div>
         {evolutionBodyData.length>0 ? <><p className="evolutionMetricValue">{evolutionBodySummary?.current}{evolutionBodySummary?.unit}{evolutionBodySummary?.change !== null && <small> {evolutionBodySummary.change >= 0 ? "+" : ""}{evolutionBodySummary.change.toFixed(1)}{evolutionBodySummary.unit}</small>}</p><ResponsiveContainer width="100%" height={190}>
@@ -7169,14 +7171,14 @@ function exerciseCatalogToWorkoutItem(ex={}){
             <div><b>Altura</b><span>{currentProfileHeight === "—" ? "—" : `${currentProfileHeight} cm`}</span></div>
             <div><b>BF</b><span>{currentProfileBf === "—" ? "—" : `${currentProfileBf}%`}</span></div>
           </div>
-          <button type="button" className="ghost" onClick={openProfileBodyEditor}><Scale size={18}/> Atualizar dados</button>
+          <Button variant="ghost" onClick={openProfileBodyEditor}><Scale size={18}/> Atualizar dados</Button>
         </section>
 
         <section className="formCard">
           <h3>Aparência</h3>
           <div className="segmentedControl">
-            <button type="button" className={theme === "dark" ? "active" : "ghost"} onClick={()=>void changeTheme("dark")}>Escuro</button>
-            <button type="button" className={theme === "light" ? "active" : "ghost"} onClick={()=>void changeTheme("light")}>Claro</button>
+            <Button variant={theme === "dark" ? "primary" : "ghost"} aria-pressed={theme === "dark"} onClick={()=>void changeTheme("dark")}>Escuro</Button>
+            <Button variant={theme === "light" ? "primary" : "ghost"} aria-pressed={theme === "light"} onClick={()=>void changeTheme("light")}>Claro</Button>
           </div>
         </section>
 
