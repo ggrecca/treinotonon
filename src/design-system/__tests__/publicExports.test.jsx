@@ -43,6 +43,18 @@ describe("design system public API", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  it("supports an accessible native button card without duplicating its click handler", () => {
+    const onClick = vi.fn();
+    const element = Card({as: "button", interactive: true, onClick, children: "Abrir resumo"});
+
+    expect(element.type).toBe("button");
+    expect(element.props.type).toBe("button");
+    expect(element.props.className).toContain("tt-card--interactive");
+    expect(element.props.onClick).toBe(onClick);
+    element.props.onClick();
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
   it("reserves the Button focus indicator for keyboard-visible focus", () => {
     const css = readFileSync(new URL("../styles/design-system.css", import.meta.url), "utf8");
 

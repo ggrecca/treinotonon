@@ -50,7 +50,7 @@ As definições em JavaScript estão em `tokens/tokens.js`; as variáveis CSS em
 | --- | --- | --- | --- |
 | Button | disparar ação | `variant`: primary, secondary, ghost, danger; `size`; `loading` | use texto de ação claro; `loading` bloqueia novo envio |
 | Input | entrada textual | `label`, `hint`, `error`, demais props de input | sempre informe `id` quando houver hint/erro |
-| Card | agrupar conteúdo | `elevated`, `className` | não o confunda com o `Card` legado do app |
+| Card | agrupar conteúdo | `elevated`, `interactive`, `as`, `className` | use `as="button"` com `interactive` para cards que navegam ou selecionam; preserve um único `onClick` |
 | Badge | comunicar status | neutral, success, warning, danger | use para estado curto, não como botão |
 | Chip | filtro ou seleção | `selected`, props de button | mantenha `aria-pressed` controlado |
 | Dialog | confirmação ou conteúdo modal | `open`, `title`, `actions`, `onClose` | use somente quando a interrupção for necessária |

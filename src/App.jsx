@@ -15,7 +15,7 @@ import { dataService } from "./services/dataService";
 import { EXERCISE_LIBRARY } from "./data/exerciseLibrary";
 import { buildRepPlan, expandRepTargetsForSets, isDropSetType, isRestPauseType, isSegmentedRepType, normalizeRepTargets, parseDropTargets, parseRepTargets, parseSingleRepTarget, repTargetLabelsForEditing, setRepTargetLabelForEditing, targetLabel } from "./utils/repTargets";
 import { Card } from "./components/Card";
-import { Badge, Button } from "./design-system";
+import { Badge, Button, Card as DesignSystemCard } from "./design-system";
 import { AppDialog } from "./components/AppDialog";
 import { OnboardingPanel } from "./components/OnboardingPanel";
 import { VirtualList } from "./components/VirtualList";
@@ -5959,11 +5959,19 @@ function exerciseCatalogToWorkoutItem(ex={}){
         {showOnboarding && <OnboardingPanel mode="trainer" steps={onboardingSteps} onAction={handleOnboardingAction} onComplete={completeOnboarding} onLater={()=>setOnboardingDismissed(true)} />}
 
         <section className="trainerKpiGrid">
-          <Card title="Alunos ativos" value={`${trainerDashboard.activeStudents}`} sub="abrir carteira ativa" icon={<Users/>} onActivate={()=>openTrainerStudentList("active")} />
-          <Card title="Treinos ativos" value={`${trainerDashboard.activeWorkouts}`} sub="abrir modelos" icon={<Dumbbell/>} onActivate={()=>{setWorkoutArchiveView("active"); setScreen("criar");}} />
+          <DesignSystemCard as="button" interactive elevated className="card interactiveCard" onClick={()=>openTrainerStudentList("active")}>
+            <span className="cardIcon" aria-hidden="true"><Users/></span><span className="cardContent"><span className="cardTitle">Alunos ativos</span><span className="cardValue">{`${trainerDashboard.activeStudents}`}</span><small className="cardSub">abrir carteira ativa</small></span>
+          </DesignSystemCard>
+          <DesignSystemCard as="button" interactive elevated className="card interactiveCard" onClick={()=>{setWorkoutArchiveView("active"); setScreen("criar");}}>
+            <span className="cardIcon" aria-hidden="true"><Dumbbell/></span><span className="cardContent"><span className="cardTitle">Treinos ativos</span><span className="cardValue">{`${trainerDashboard.activeWorkouts}`}</span><small className="cardSub">abrir modelos</small></span>
+          </DesignSystemCard>
           <Card title="Convites pendentes" value={`${trainerDashboard.pendingInvites}`} sub="gerenciar convites" icon={<Mail/>} onActivate={()=>openTrainerStudentList("invites")} />
-          <Card title="Treinos hoje" value={`${trainerDashboard.todayTrainingCount}`} sub="alunos por atividade" icon={<CalendarDays/>} onActivate={()=>{setStudentSort("last"); openTrainerStudentList("active");}} />
-          <Card title="Sem treinar" value={`${trainerDashboard.withoutTrainingCount}`} sub="7 dias ou sem registro" icon={<AlertTriangle/>} onActivate={()=>openTrainerStudentList("attention")} />
+          <DesignSystemCard as="button" interactive elevated className="card interactiveCard" onClick={()=>{setStudentSort("last"); openTrainerStudentList("active");}}>
+            <span className="cardIcon" aria-hidden="true"><CalendarDays/></span><span className="cardContent"><span className="cardTitle">Treinos hoje</span><span className="cardValue">{`${trainerDashboard.todayTrainingCount}`}</span><small className="cardSub">alunos por atividade</small></span>
+          </DesignSystemCard>
+          <DesignSystemCard as="button" interactive elevated className="card interactiveCard" onClick={()=>openTrainerStudentList("attention")}>
+            <span className="cardIcon" aria-hidden="true"><AlertTriangle/></span><span className="cardContent"><span className="cardTitle">Sem treinar</span><span className="cardValue">{`${trainerDashboard.withoutTrainingCount}`}</span><small className="cardSub">7 dias ou sem registro</small></span>
+          </DesignSystemCard>
         </section>
 
         <section className="chartCard trainerSummaryPanel">
@@ -6134,7 +6142,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
       </> : <>
       <div className="pageTitleRow"><h2 className="pageTitle">Evolução</h2></div>
       <div className="segmentedControl evolutionPeriodControl">{[["30","30 dias"],["90","3 meses"],["180","6 meses"],["all","Tudo"]].map(([value,label])=><button type="button" key={value} className={evolutionPeriod===value?"active":"ghost"} onClick={()=>setEvolutionPeriod(value)}>{label}</button>)}</div>
-      <section className="evolutionSection"><h3>Resumo</h3><div className="evolutionSummary"><Card title="Treinos" value={`${evolutionSessions.length}`} sub="no período" /><Card title="Frequência" value={evolutionSessions.length ? `${(evolutionSessions.length / Math.max(1, evolutionPeriod === "all" ? 4 : Number(evolutionPeriod)/7)).toFixed(1)}x` : "—"} sub="por semana" /><Card title="Volume" value={evolutionVolume ? `${Math.round(evolutionVolume).toLocaleString("pt-BR")} kg` : "—"} sub="no período" /></div></section>
+      <section className="evolutionSection"><h3>Resumo</h3><div className="evolutionSummary"><DesignSystemCard className="card"><p>Treinos</p><h3>{`${evolutionSessions.length}`}</h3><small>no período</small></DesignSystemCard><DesignSystemCard className="card"><p>Frequência</p><h3>{evolutionSessions.length ? `${(evolutionSessions.length / Math.max(1, evolutionPeriod === "all" ? 4 : Number(evolutionPeriod)/7)).toFixed(1)}x` : "—"}</h3><small>por semana</small></DesignSystemCard><DesignSystemCard className="card"><p>Volume</p><h3>{evolutionVolume ? `${Math.round(evolutionVolume).toLocaleString("pt-BR")} kg` : "—"}</h3><small>no período</small></DesignSystemCard></div></section>
       <section className="chartCard">
         <div className="sectionHeaderRow">
           <div>
