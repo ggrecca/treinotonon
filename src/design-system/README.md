@@ -25,7 +25,7 @@ O contêiner `.tt-ui` é obrigatório para isolar os estilos. O tema escuro é a
 | Shadows | `sm`, `md`, `lg` |
 | Borders | `--tt-border-width`, `--tt-border-default` |
 | Opacity | `--tt-opacity-disabled`, `--tt-opacity-overlay` |
-| Z-index | base, sticky, dropdown, overlay e dialog |
+| Z-index | base (0), sticky (10), dropdown (40), Bottom Sheet (80), Dialog overlay/content (110/111), dirty guard (120) e toast (140) |
 | Motion | duration fast/normal/slow; easing standard/emphasized; transição de cores |
 | Focus | `--tt-focus-ring` |
 
@@ -53,7 +53,7 @@ As definições em JavaScript estão em `tokens/tokens.js`; as variáveis CSS em
 | Card | agrupar conteúdo | `elevated`, `interactive`, `as`, `className` | use `as="button"` com `interactive` para cards que navegam ou selecionam; preserve um único `onClick` |
 | Badge | comunicar status | neutral, success, warning, danger | use para estado curto, não como botão |
 | Chip | filtro ou seleção | `selected`, props de button | mantenha `aria-pressed` controlado |
-| Dialog | confirmação ou conteúdo modal | `open`, `title`, `actions`, `onClose` | use somente quando a interrupção for necessária |
+| Dialog | confirmação ou conteúdo modal | `open`, `title`, `description`, `actions`, `onClose`, `variant`, `size`, `pending`, fechamento configurável | use somente quando a interrupção for necessária; o componente usa portal, foco preso e restaura o foco de origem |
 | BottomSheet | ações contextuais compactas | `open`, `title`, `onClose` | prefira em contexto mobile |
 | Toast / ToastRegion | feedback transitório | `variant`, `message`, `action`, `onDismiss` | não use como confirmação de decisão crítica |
 | Tabs / TabsContent | alternar painéis relacionados | `tabs`, `value`, `onChange`, `id`, `panelId` | use `TabsContent` com IDs derivados de `panelId` para preservar a associação ARIA |

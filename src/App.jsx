@@ -15,7 +15,7 @@ import { dataService } from "./services/dataService";
 import { EXERCISE_LIBRARY } from "./data/exerciseLibrary";
 import { buildRepPlan, expandRepTargetsForSets, isDropSetType, isRestPauseType, isSegmentedRepType, normalizeRepTargets, parseDropTargets, parseRepTargets, parseSingleRepTarget, repTargetLabelsForEditing, setRepTargetLabelForEditing, targetLabel } from "./utils/repTargets";
 import { Card } from "./components/Card";
-import { Badge, Button, Card as DesignSystemCard, Input, Select, Tabs, TabsContent, Textarea } from "./design-system";
+import { Badge, Button, Card as DesignSystemCard, Dialog, Input, Select, Tabs, TabsContent, Textarea } from "./design-system";
 import { AppDialog } from "./components/AppDialog";
 import { OnboardingPanel } from "./components/OnboardingPanel";
 import { VirtualList } from "./components/VirtualList";
@@ -7267,16 +7267,17 @@ function exerciseCatalogToWorkoutItem(ex={}){
       </form>
     </div>}
 
-    {appMode === "treinador" && endingStudentLink && <div className="modal">
-      <div className="modalCard">
-        <h2>Encerrar vínculo com este aluno?</h2>
-        <p className="muted">O aluno perderá acesso aos treinos enviados por você, mas sua conta continuará ativa e poderá ser vinculada novamente no futuro.</p>
-        <div className="finishActions">
-          <button type="button" className="ghost" onClick={()=>setEndingStudentLink(null)}>Cancelar</button>
-          <button type="button" className="danger" onClick={()=>removeStudentLink(endingStudentLink)}>Encerrar vínculo</button>
-        </div>
-      </div>
-    </div>}
+    {appMode === "treinador" && endingStudentLink && <Dialog
+      open
+      title="Encerrar vínculo com este aluno?"
+      description="O aluno perderá acesso aos treinos enviados por você, mas sua conta continuará ativa e poderá ser vinculada novamente no futuro."
+      variant="danger"
+      showClose={false}
+      closeOnEscape={false}
+      closeOnBackdrop={false}
+      onClose={()=>setEndingStudentLink(null)}
+      actions={<><button type="button" className="ghost" onClick={()=>setEndingStudentLink(null)}>Cancelar</button><button type="button" className="danger" onClick={()=>removeStudentLink(endingStudentLink)}>Encerrar vínculo</button></>}
+    />}
 
     {showRestPicker && <div className="modal">
       <div className="modalCard compactRestPicker">
@@ -7340,10 +7341,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
       </div>
     </div>}
 
-    {sessionSummary && <div className="modal">
-      <div className="modalCard sessionSummaryModal">
-        <button className="close" onClick={()=>setSessionSummary(null)}><X/></button>
-        <h2>Resumo da sessão</h2>
+    {sessionSummary && <Dialog open title="Resumo da sessão" size="lg" className="sessionSummaryModal" onClose={()=>setSessionSummary(null)} closeIcon={<X/>} closeOnEscape={false} closeOnBackdrop={false}>
         <p className="muted">{sessionSummary.date} • {sessionSummary.workoutLabel}</p>
         <section className="summaryGrid">
           <Card title="Duração" value={sessionSummary.duration} sub="tempo total" />
@@ -7353,8 +7351,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
           <Card title="Calorias estimadas" value={`${sessionSummary.calories} kcal`} sub={`intensidade ${sessionSummary.intensity}`} />
         </section>
         {sessionSummary.caloriesFallback && <p className="emptyHint">Complete seus dados corporais para melhorar a estimativa de calorias.</p>}
-      </div>
-    </div>}
+    </Dialog>}
 
     {appMode === "atleta" && inviteModalLink && <div className="modal">
       <div className="modalCard inviteModalCard">
