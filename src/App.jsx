@@ -15,7 +15,7 @@ import { dataService } from "./services/dataService";
 import { EXERCISE_LIBRARY } from "./data/exerciseLibrary";
 import { buildRepPlan, expandRepTargetsForSets, isDropSetType, isRestPauseType, isSegmentedRepType, normalizeRepTargets, parseDropTargets, parseRepTargets, parseSingleRepTarget, repTargetLabelsForEditing, setRepTargetLabelForEditing, targetLabel } from "./utils/repTargets";
 import { Card } from "./components/Card";
-import { Badge, BottomSheet, Button, Card as DesignSystemCard, Dialog, Input, Select, Tabs, TabsContent, Textarea } from "./design-system";
+import { Badge, BottomSheet, Button, Card as DesignSystemCard, Dialog, Input, Select, Tabs, TabsContent, Textarea, ToastRegion } from "./design-system";
 import { AppDialog } from "./components/AppDialog";
 import { OnboardingPanel } from "./components/OnboardingPanel";
 import { VirtualList } from "./components/VirtualList";
@@ -1759,16 +1759,6 @@ function App(){
       }));
     }catch{}
   },[activeSession, currentUserId, activeExerciseIndex, restExerciseIndex, exerciseRestOverrides, timer, restEndsAt]);
-
-  useEffect(()=>{
-    const timers = toasts
-      .filter(toast=>toast.duration > 0)
-      .map(toast=>setTimeout(
-        ()=>setToasts(current=>current.filter(item=>item.id !== toast.id)),
-        Math.max(0, toast.createdAt + toast.duration - Date.now()),
-      ));
-    return ()=>timers.forEach(clearTimeout);
-  },[toasts]);
 
   function closeActionMenus(){
     setOpenActionMenuId("");
@@ -7312,28 +7302,17 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
     <AppDialog dialog={appDialog} onResolve={resolveAppDialog} />
 
-    {toasts.length > 0 && <div className="toastRegion" aria-label="Notificações">
-      {toasts.map(toast=>{
-        const ToastIcon = toast.type === "success" ? CheckCircle2 : toast.type === "warning" ? AlertTriangle : toast.type === "error" ? AlertCircle : Info;
-        return <div
-          className={`toast ${toast.type}`}
-          key={toast.id}
-          role={toast.type === "error" ? "alert" : "status"}
-          aria-live={toast.type === "error" ? "assertive" : "polite"}
-          aria-atomic="true"
-        >
-          <ToastIcon className="toastIcon" size={20} aria-hidden="true"/>
-          <span className="toastMessage">{toast.message}</span>
-          {toast.count > 1 && <span className="toastCount" aria-label={`Repetido ${toast.count} vezes`}>×{toast.count}</span>}
-          {typeof toast.onRetry === "function" && <button type="button" className="toastRetry" onClick={()=>{
-            const retry = toast.onRetry;
-            dismissToast(toast.id);
-            Promise.resolve(retry()).catch(error=>notify(error?.message || "Não foi possível tentar novamente.", "error"));
-          }}>{toast.retryLabel || "Tentar novamente"}</button>}
-          <button type="button" className="toastClose" onClick={()=>dismissToast(toast.id)} aria-label="Fechar notificação"><X size={18}/></button>
-        </div>;
-      })}
-    </div>}
+    <ToastRegion
+      toasts={toasts}
+      onDismiss={dismissToast}
+      getAction={toast=>typeof toast.onRetry === "function" ? {
+        label:toast.retryLabel || "Tentar novamente",
+        onClick:()=>{
+          const retry = toast.onRetry;
+          Promise.resolve(retry()).catch(error=>notify(error?.message || "Não foi possível tentar novamente.", "error"));
+        },
+      } : undefined}
+    />
 
     {showBottomNav && <nav className="nav">
       {appMode === "atleta" ? <>

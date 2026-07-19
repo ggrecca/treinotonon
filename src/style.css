@@ -2211,61 +2211,6 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
   .mode-atleta .day{min-width:0;min-height:34px}
 }
 
-.toastRegion{
-  position:fixed;
-  left:50%;
-  bottom:calc(var(--nav-height) + 18px + env(safe-area-inset-bottom));
-  z-index:140;
-  width:min(520px,calc(100% - 28px));
-  transform:translateX(-50%);
-  display:grid;
-  gap:8px;
-  pointer-events:none;
-}
-.internalMode .toastRegion{
-  bottom:calc(18px + env(safe-area-inset-bottom));
-}
-.toast{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding:12px 14px;
-  border:1px solid color-mix(in srgb,var(--color-success) 42%,var(--color-border));
-  border-radius:var(--radius-lg);
-  background:color-mix(in srgb,var(--color-success) 14%,var(--color-surface));
-  color:var(--color-text);
-  box-shadow:var(--shadow-card);
-  font-weight:850;
-  animation:toastIn .2s ease both;
-  pointer-events:auto;
-}
-.toast.info{
-  border-color:color-mix(in srgb,var(--color-info) 48%,var(--color-border));
-  background:color-mix(in srgb,var(--color-info) 14%,var(--color-surface));
-}
-.toast.warning{
-  border-color:color-mix(in srgb,var(--color-warning) 52%,var(--color-border));
-  background:color-mix(in srgb,var(--color-warning) 14%,var(--color-surface));
-}
-.toast.error{
-  border-color:color-mix(in srgb,var(--color-danger) 56%,var(--color-border));
-  background:color-mix(in srgb,var(--color-danger) 14%,var(--color-surface));
-}
-.toast .toastIcon{color:var(--color-success);flex:0 0 auto}
-.toast.info .toastIcon{color:var(--color-info)}
-.toast.warning .toastIcon{color:var(--color-warning)}
-.toast.error .toastIcon{color:var(--color-danger)}
-.toastMessage{min-width:0;flex:1}
-.toastCount{font-size:12px;color:var(--color-text-muted);white-space:nowrap}
-.toast .toastRetry,
-.toast .toastClose{
-  flex:0 0 auto;
-  min-height:36px;
-  padding:7px 9px;
-}
-.toast .toastRetry{background:transparent;color:var(--color-text);border-color:var(--color-border-strong)}
-.toast .toastClose{width:36px;padding:0;background:transparent;color:var(--color-text-muted);border-color:transparent}
-.toast .toastClose:hover{color:var(--color-text);background:var(--color-card-elevated)}
 .assignmentResult{
   display:grid;
   gap:6px;
@@ -2809,9 +2754,6 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
 .mode-atleta .summaryGrid{
   gap:8px;
 }
-.mode-atleta .toast{
-  font-size:14px;
-}
 .feedbackMessage,
 .authMessage,
 .bodyMessage{
@@ -2836,10 +2778,6 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
 @keyframes contentRise{
   from{opacity:0;transform:translateY(6px)}
   to{opacity:1;transform:translateY(0)}
-}
-@keyframes toastIn{
-  from{opacity:0;transform:translate(-50%,8px)}
-  to{opacity:1;transform:translate(-50%,0)}
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 
