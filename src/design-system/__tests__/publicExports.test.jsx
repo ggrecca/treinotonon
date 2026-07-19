@@ -3,6 +3,7 @@ import {readFileSync} from "node:fs";
 import {renderToStaticMarkup} from "react-dom/server";
 import React from "react";
 import {getNextEnabledTabIndex} from "../components/Tabs";
+import {getToastRemainingDuration, TOAST_EXIT_DURATION} from "../components/Toast";
 import {canDismissDialog} from "../components/Dialog";
 import {canDismissBottomSheet} from "../components/BottomSheet";
 import {AppDialog} from "../../components/AppDialog";
@@ -126,6 +127,43 @@ describe("design system public API", () => {
 
     expect(css).toContain(".tt-tabs__tab:hover:not(:disabled) { background: transparent; border-color: transparent;");
     expect(css).toContain(".tt-tabs__tab:focus-visible { border-color: transparent; box-shadow: none; outline: 2px solid var(--tt-color-primary);");
+  });
+
+  it("renders the Toast primitive with the accessible global-region structure", () => {
+    const toast = renderToStaticMarkup(<Toast id="save" title="Atualização" message="Dados salvos" variant="error" count={2} duration={8000} onDismiss={()=>{}} action={{label: "Tentar novamente", onClick: ()=>{}}} />);
+    const region = renderToStaticMarkup(<ToastRegion portal={false} toasts={[{id: "save", message: "Dados salvos", type: "success", count: 1, duration: 3200, createdAt: 10}]} onDismiss={()=>{}} />);
+
+    expect(toast).toContain('role="alert"');
+    expect(toast).toContain('aria-live="assertive"');
+    expect(toast).toContain('aria-atomic="true"');
+    expect(toast).toContain("tt-toast--error");
+    expect(toast).toContain("Atualização");
+    expect(toast).toContain('aria-label="Repetido 2 vezes"');
+    expect(toast).toContain("Tentar novamente");
+    expect(region).toContain('role="region"');
+    expect(region).toContain('aria-live="polite"');
+    expect(region).toContain('aria-atomic="true"');
+  });
+
+  it("keeps the remaining time and exit lifecycle deterministic", () => {
+    expect(getToastRemainingDuration({createdAt: 100, duration: 1000}, 350)).toBe(750);
+    expect(getToastRemainingDuration({createdAt: 100, duration: 1000}, 1200)).toBe(0);
+    expect(getToastRemainingDuration({createdAt: 100, duration: 0}, 350)).toBe(0);
+    expect(TOAST_EXIT_DURATION).toBe(180);
+  });
+
+  it("connects the legacy queue to the Design System ToastRegion without changing notify", () => {
+    const appSource = readFileSync(new URL("../../App.jsx", import.meta.url), "utf8");
+    const toastSource = readFileSync(new URL("../components/Toast.jsx", import.meta.url), "utf8");
+
+    expect(appSource).toContain('function notify(message, type="success", options={})');
+    expect(appSource).toContain("enqueueToast(current");
+    expect(appSource).toContain("<ToastRegion");
+    expect(appSource).toContain("toasts={toasts}");
+    expect(toastSource).toContain("onMouseEnter");
+    expect(toastSource).toContain("onFocus");
+    expect(toastSource).toContain("createPortal(region, portalTarget)");
+    expect(toastSource).toContain("actionedRef.current");
   });
 
   it("renders a destructive dialog with accessible associations and close control", () => {

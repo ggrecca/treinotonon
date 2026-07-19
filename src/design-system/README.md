@@ -55,7 +55,7 @@ As definições em JavaScript estão em `tokens/tokens.js`; as variáveis CSS em
 | Chip | filtro ou seleção | `selected`, props de button | mantenha `aria-pressed` controlado |
 | Dialog | confirmação ou conteúdo modal | `open`, `title`, `description`, `actions`, `onClose`, `variant`, `size`, `pending`, fechamento configurável | use somente quando a interrupção for necessária; o componente usa portal, foco preso e restaura o foco de origem |
 | BottomSheet | ações contextuais compactas | `open`, `title`, `description`, `actions`, `onClose`, `pending`, fechamento configurável | use para escolhas locais; o componente usa portal, safe area, foco preso, scroll lock e respeita movimento reduzido |
-| Toast / ToastRegion | feedback transitório | `variant`, `message`, `action`, `onDismiss` | não use como confirmação de decisão crítica |
+| Toast / ToastRegion | feedback transitório global | `variant`, `title`, `message`/`description`, `count`, `duration`, `action`, `onDismiss`, `portal` | use a fila central; não mova o foco, não use como confirmação de decisão crítica e use `duration={0}` somente para ação que exija fechamento explícito |
 | Tabs / TabsContent | alternar painéis relacionados | `tabs`, `value`, `onChange`, `id`, `panelId` | use `TabsContent` com IDs derivados de `panelId` para preservar a associação ARIA |
 | Loading | indicar trabalho em curso | `label` | use texto específico quando possível |
 | Skeleton | reservar espaço de conteúdo | `width`, `height` | espelhe a forma final do conteúdo |
@@ -70,6 +70,12 @@ As definições em JavaScript estão em `tokens/tokens.js`; as variáveis CSS em
 - Props: nomes descritivos, `variant` para aparência e `className` apenas como ponto de extensão.
 - Estilos: tokens semânticos; não introduzir valores literais em componentes novos quando houver token apropriado.
 
+### Toasts
+
+`ToastRegion` cria uma única região global em portal, limitada pela fila pública a quatro itens. Ela usa `z-index: 140`, portanto fica acima de Dialogs e Bottom Sheets; o menu legado em `z-index: 9999` permanece uma exceção documentada e fora deste escopo. Os quatro tipos suportados são `success`, `info`, `warning` e `error`.
+
+A duração começa a contar a partir de `createdAt`, pausa enquanto houver hover ou foco em um controle interno e retoma apenas com o tempo restante. O item é removido da fila somente após a animação de saída. Com `prefers-reduced-motion`, a animação é desativada, sem alterar o ciclo de remoção. A ação opcional é protegida contra cliques duplicados.
+
 ## Limites desta versão
 
-Não há adoção em telas, nem ligação com o tema atual, `Card` legado, `AppDialog` legado ou o sistema existente de toasts. Essas integrações — incluindo harmonização dos tokens legados e testes de interação de cada tela — pertencem à 2.0A.2.
+O sistema central de Toasts foi adotado preservando `notify()` e `src/utils/toasts.js`. Não foram migrados banners persistentes, mensagens inline, dialogs, Bottom Sheets, menus, popovers ou tooltips. A validação visual em iPhone real continua reservada para o encerramento da versão 2.0.

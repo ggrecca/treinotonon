@@ -30,4 +30,12 @@ describe("semantic toasts", ()=>{
     );
     expect(result.map(item=>item.id)).toEqual(["3", "4", "5"]);
   });
+
+  it("preserves stable IDs and optional retry actions when a notification repeats", ()=>{
+    const retry = ()=>{};
+    const first = enqueueToast([], {id:"stable", message:"Tente novamente", type:"error", duration:0, onRetry:retry}, {now:10});
+    const repeated = enqueueToast(first, {id:"new-id", message:"Tente novamente", type:"error", duration:0, onRetry:retry}, {now:20});
+
+    expect(repeated).toEqual([expect.objectContaining({id:"stable", count:2, duration:0, onRetry:retry, createdAt:20})]);
+  });
 });
