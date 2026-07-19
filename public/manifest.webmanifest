@@ -1,0 +1,23 @@
+{
+  "id": "/",
+  "name": "Treino Tonon",
+  "short_name": "Treino Tonon",
+  "description": "Treinos, acompanhamento de alunos e evolução em um só lugar.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "categories": ["fitness", "health", "productivity"],
+  "icons": [
+    {
+      "src": "/assets/logo-transp.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
