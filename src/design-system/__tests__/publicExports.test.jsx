@@ -1,4 +1,5 @@
 import {describe, expect, it, vi} from "vitest";
+import {readFileSync} from "node:fs";
 import {renderToStaticMarkup} from "react-dom/server";
 import React from "react";
 import {
@@ -36,5 +37,13 @@ describe("design system public API", () => {
     expect(element.props.onClick).toBe(onClick);
     element.props.onClick();
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("reserves the Button focus indicator for keyboard-visible focus", () => {
+    const css = readFileSync(new URL("../styles/design-system.css", import.meta.url), "utf8");
+
+    expect(css).toMatch(/\.tt-button\s*\{[^}]*border:\s*1px solid transparent;[^}]*box-shadow:\s*none;[^}]*outline:\s*0;/);
+    expect(css).toMatch(/\.tt-button:focus-visible\s*\{\s*box-shadow:\s*none;\s*outline:\s*2px solid var\(--tt-color-primary\);\s*outline-offset:\s*2px;/);
+    expect(css.indexOf(".tt-button:focus-visible")).toBeGreaterThan(css.indexOf(".tt-ui :focus-visible"));
   });
 });
