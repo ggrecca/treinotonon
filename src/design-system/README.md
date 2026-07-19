@@ -54,7 +54,7 @@ As definições em JavaScript estão em `tokens/tokens.js`; as variáveis CSS em
 | Badge | comunicar status | neutral, success, warning, danger | use para estado curto, não como botão |
 | Chip | filtro ou seleção | `selected`, props de button | mantenha `aria-pressed` controlado |
 | Dialog | confirmação ou conteúdo modal | `open`, `title`, `description`, `actions`, `onClose`, `variant`, `size`, `pending`, fechamento configurável | use somente quando a interrupção for necessária; o componente usa portal, foco preso e restaura o foco de origem |
-| BottomSheet | ações contextuais compactas | `open`, `title`, `onClose` | prefira em contexto mobile |
+| BottomSheet | ações contextuais compactas | `open`, `title`, `description`, `actions`, `onClose`, `pending`, fechamento configurável | use para escolhas locais; o componente usa portal, safe area, foco preso, scroll lock e respeita movimento reduzido |
 | Toast / ToastRegion | feedback transitório | `variant`, `message`, `action`, `onDismiss` | não use como confirmação de decisão crítica |
 | Tabs / TabsContent | alternar painéis relacionados | `tabs`, `value`, `onChange`, `id`, `panelId` | use `TabsContent` com IDs derivados de `panelId` para preservar a associação ARIA |
 | Loading | indicar trabalho em curso | `label` | use texto específico quando possível |

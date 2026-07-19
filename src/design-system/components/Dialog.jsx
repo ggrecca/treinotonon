@@ -1,28 +1,9 @@
 import React, {useEffect, useId, useRef, useState} from "react";
 import {createPortal} from "react-dom";
-
-const FOCUSABLE_SELECTOR = ["button:not([disabled])", "input:not([disabled])", "select:not([disabled])", "textarea:not([disabled])", "a[href]", "[tabindex]:not([tabindex='-1'])"].join(",");
-let scrollLockCount = 0;
-let previousBodyOverflow = "";
-
-function focusableElements(container) {
-  if (!container) return [];
-  return Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR)).filter(element => !element.hasAttribute("hidden") && element.getAttribute("aria-hidden") !== "true" && element.tabIndex >= 0);
-}
-
-function lockDocumentScroll() {
-  if (scrollLockCount === 0) previousBodyOverflow = document.body.style.overflow;
-  scrollLockCount += 1;
-  document.body.style.overflow = "hidden";
-}
-
-function unlockDocumentScroll() {
-  scrollLockCount = Math.max(0, scrollLockCount - 1);
-  if (scrollLockCount === 0) document.body.style.overflow = previousBodyOverflow;
-}
+import {canDismissOverlay, focusableElements, lockDocumentScroll, unlockDocumentScroll} from "./overlayUtils";
 
 export function canDismissDialog({pending = false, dismissible = true} = {}) {
-  return !pending && dismissible !== false;
+  return canDismissOverlay({pending, dismissible});
 }
 
 export function Dialog({open, title, description, children, actions, onClose, labelledBy, describedBy, className = "", backdropClassName = "", contentClassName = "", variant = "normal", size = "md", role, pending = false, dismissible = true, closeOnEscape = true, closeOnBackdrop = true, showClose = true, closeIcon, initialFocus, portal = true, formId, onSubmit}) {

@@ -15,7 +15,7 @@ import { dataService } from "./services/dataService";
 import { EXERCISE_LIBRARY } from "./data/exerciseLibrary";
 import { buildRepPlan, expandRepTargetsForSets, isDropSetType, isRestPauseType, isSegmentedRepType, normalizeRepTargets, parseDropTargets, parseRepTargets, parseSingleRepTarget, repTargetLabelsForEditing, setRepTargetLabelForEditing, targetLabel } from "./utils/repTargets";
 import { Card } from "./components/Card";
-import { Badge, Button, Card as DesignSystemCard, Dialog, Input, Select, Tabs, TabsContent, Textarea } from "./design-system";
+import { Badge, BottomSheet, Button, Card as DesignSystemCard, Dialog, Input, Select, Tabs, TabsContent, Textarea } from "./design-system";
 import { AppDialog } from "./components/AppDialog";
 import { OnboardingPanel } from "./components/OnboardingPanel";
 import { VirtualList } from "./components/VirtualList";
@@ -7268,19 +7268,12 @@ function exerciseCatalogToWorkoutItem(ex={}){
       actions={<><button type="button" className="ghost" onClick={()=>setEndingStudentLink(null)}>Cancelar</button><button type="button" className="danger" onClick={()=>removeStudentLink(endingStudentLink)}>Encerrar vínculo</button></>}
     />}
 
-    {showRestPicker && <div className="modal">
-      <div className="modalCard compactRestPicker">
-        <h2>Descanso</h2>
+    <BottomSheet open={showRestPicker} title="Descanso" className="compactRestPicker" showClose={false} closeOnEscape={false} closeOnBackdrop={false} onClose={()=>setShowRestPicker(false)} actions={<><button type="button" onClick={()=>restCustomSeconds && applyRestDuration(restCustomSeconds)}>Aplicar</button><button type="button" className="ghost" onClick={()=>setShowRestPicker(false)}>Cancelar</button></>}>
         <div className="restQuickActions">
           {[30,45,60,90,120].map(seconds=><button type="button" className="ghost" key={seconds} onClick={()=>applyRestDuration(seconds)}>{seconds} s</button>)}
         </div>
         <label className="inlineField"><span>Personalizado (segundos)</span><Input inputMode="numeric" value={restCustomSeconds} onChange={event=>setRestCustomSeconds(event.target.value)} placeholder="Ex.: 75" /></label>
-        <div className="finishActions">
-          <button type="button" onClick={()=>restCustomSeconds && applyRestDuration(restCustomSeconds)}>Aplicar</button>
-          <button type="button" className="ghost" onClick={()=>setShowRestPicker(false)}>Cancelar</button>
-        </div>
-      </div>
-    </div>}
+    </BottomSheet>
 
     {pendingExerciseCompletion !== null && activeSession && <Dialog open title="Há séries sem preenchimento" className="compactWorkoutSwitchModal" showClose={false} closeOnEscape={false} closeOnBackdrop={false} actions={<><button type="button" onClick={()=>{const index=pendingExerciseCompletion; setPendingExerciseCompletion(null); completeSessionExercise(index, false, true, true);}}>Concluir preenchidas</button><button type="button" className="ghost" onClick={()=>{const index=pendingExerciseCompletion; setPendingExerciseCompletion(null); completeSessionExercise(index, true);}}>Marcar todas como concluídas</button><button type="button" className="ghost" onClick={()=>setPendingExerciseCompletion(null)}>Cancelar</button></>} />}
 
