@@ -58,9 +58,12 @@
   --tt-opacity-overlay: .72;
   --tt-z-base: 0;
   --tt-z-sticky: 10;
-  --tt-z-dropdown: 20;
-  --tt-z-overlay: 30;
-  --tt-z-dialog: 40;
+  --tt-z-dropdown: 40;
+  --tt-z-bottom-sheet: 80;
+  --tt-z-dialog-overlay: 110;
+  --tt-z-dialog-content: 111;
+  --tt-z-dirty-guard: 120;
+  --tt-z-toast: 140;
   --tt-duration-fast: 120ms;
   --tt-duration-normal: 180ms;
   --tt-duration-slow: 260ms;
@@ -70,7 +73,7 @@
   --tt-focus-ring: 0 0 0 3px rgb(37 99 235 / 28%);
 }
 
-[data-tt-theme="dark"] {
+[data-tt-theme="dark"], body[data-theme="dark"] {
   --tt-color-primary: #3b82f6;
   --tt-color-primary-hover: #60a5fa;
   --tt-color-secondary: #94a3b8;

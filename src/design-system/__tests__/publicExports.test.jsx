@@ -3,6 +3,7 @@ import {readFileSync} from "node:fs";
 import {renderToStaticMarkup} from "react-dom/server";
 import React from "react";
 import {getNextEnabledTabIndex} from "../components/Tabs";
+import {canDismissDialog} from "../components/Dialog";
 import {
   Badge, BottomSheet, Button, Card, Chip, Dialog, EmptyState, Input, Loading, Select, Textarea,
   Skeleton, Tabs, TabsContent, Toast, ToastRegion, designTokens, spacing, typography,
@@ -123,5 +124,33 @@ describe("design system public API", () => {
 
     expect(css).toContain(".tt-tabs__tab:hover:not(:disabled) { background: transparent; border-color: transparent;");
     expect(css).toContain(".tt-tabs__tab:focus-visible { border-color: transparent; box-shadow: none; outline: 2px solid var(--tt-color-primary);");
+  });
+
+  it("renders a destructive dialog with accessible associations and close control", () => {
+    const markup = renderToStaticMarkup(<Dialog open title="Excluir sessão?" description="Esta ação não pode ser desfeita." variant="danger" onClose={()=>{}} actions={<button type="button">Confirmar</button>}>Conteúdo longo</Dialog>);
+
+    expect(markup).toContain('role="alertdialog"');
+    expect(markup).toContain('aria-modal="true"');
+    expect(markup).toContain('aria-labelledby="tt-dialog-title-');
+    expect(markup).toContain('aria-describedby="tt-dialog-description-');
+    expect(markup).toContain('aria-label="Fechar diálogo"');
+    expect(markup).toContain('tt-dialog--danger');
+    expect(markup).toContain('Conteúdo longo');
+  });
+
+  it("blocks external dismissal while pending or explicitly non-dismissible", () => {
+    expect(canDismissDialog()).toBe(true);
+    expect(canDismissDialog({pending: true})).toBe(false);
+    expect(canDismissDialog({dismissible: false})).toBe(false);
+  });
+
+  it("documents portal, focus, scroll lock and configured dismissal in Dialog source", () => {
+    const dialogSource = readFileSync(new URL("../components/Dialog.jsx", import.meta.url), "utf8");
+
+    expect(dialogSource).toContain("createPortal(dialog, portalTarget)");
+    expect(dialogSource).toContain("lockDocumentScroll()");
+    expect(dialogSource).toContain("previouslyFocused.focus()");
+    expect(dialogSource).toContain('event.key === "Escape"');
+    expect(dialogSource).toContain("event.target === event.currentTarget && closeOnBackdrop");
   });
 });

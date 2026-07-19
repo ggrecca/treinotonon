@@ -21,6 +21,6 @@ export const designTokens = Object.freeze({
   typography,
   radius: {sm: "--tt-radius-sm", md: "--tt-radius-md", lg: "--tt-radius-lg", pill: "--tt-radius-pill"},
   shadow: {sm: "--tt-shadow-sm", md: "--tt-shadow-md", lg: "--tt-shadow-lg"},
-  zIndex: {base: 0, sticky: 10, dropdown: 20, overlay: 30, dialog: 40},
+  zIndex: {base: 0, sticky: 10, dropdown: 40, bottomSheet: 80, dialogOverlay: 110, dialogContent: 111, dirtyGuard: 120, toast: 140},
   duration: {fast: "120ms", normal: "180ms", slow: "260ms"},
 });
