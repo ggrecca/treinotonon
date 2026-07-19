@@ -4,6 +4,7 @@ import {renderToStaticMarkup} from "react-dom/server";
 import React from "react";
 import {getNextEnabledTabIndex} from "../components/Tabs";
 import {canDismissDialog} from "../components/Dialog";
+import {AppDialog} from "../../components/AppDialog";
 import {
   Badge, BottomSheet, Button, Card, Chip, Dialog, EmptyState, Input, Loading, Select, Textarea,
   Skeleton, Tabs, TabsContent, Toast, ToastRegion, designTokens, spacing, typography,
@@ -152,5 +153,22 @@ describe("design system public API", () => {
     expect(dialogSource).toContain("previouslyFocused.focus()");
     expect(dialogSource).toContain('event.key === "Escape"');
     expect(dialogSource).toContain("event.target === event.currentTarget && closeOnBackdrop");
+  });
+
+  it("keeps the AppDialog confirmation API on top of the Design System Dialog", () => {
+    const markup = renderToStaticMarkup(<AppDialog dialog={{variant: "danger", title: "Excluir treino?", description: "Não pode ser desfeito.", cancelLabel: "Cancelar", confirmLabel: "Excluir"}} onResolve={()=>{}} />);
+
+    expect(markup).toContain('role="alertdialog"');
+    expect(markup).toContain('id="app-dialog-form"');
+    expect(markup).toContain('type="submit"');
+    expect(markup).toContain("Cancelar");
+    expect(markup).toContain("Excluir");
+  });
+
+  it("keeps the critical app dialogs on the shared Dialog primitive", () => {
+    const appSource = readFileSync(new URL("../../App.jsx", import.meta.url), "utf8");
+
+    ["Alterações não salvas", "Editar aluno", "Há séries sem preenchimento", "Fazer depois?", "Outro treino em andamento", "Finalizar treino", "invite-modal-title"].forEach(marker => expect(appSource).toContain(marker));
+    expect(appSource).toContain("<AppDialog dialog={appDialog} onResolve={resolveAppDialog} />");
   });
 });

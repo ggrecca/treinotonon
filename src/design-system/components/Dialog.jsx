@@ -25,7 +25,7 @@ export function canDismissDialog({pending = false, dismissible = true} = {}) {
   return !pending && dismissible !== false;
 }
 
-export function Dialog({open, title, description, children, actions, onClose, labelledBy, describedBy, className = "", contentClassName = "", variant = "normal", size = "md", role, pending = false, dismissible = true, closeOnEscape = true, closeOnBackdrop = true, showClose = true, closeIcon, initialFocus, portal = true}) {
+export function Dialog({open, title, description, children, actions, onClose, labelledBy, describedBy, className = "", backdropClassName = "", contentClassName = "", variant = "normal", size = "md", role, pending = false, dismissible = true, closeOnEscape = true, closeOnBackdrop = true, showClose = true, closeIcon, initialFocus, portal = true, formId, onSubmit}) {
   const generatedId = useId().replace(/:/g, "");
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
@@ -78,14 +78,13 @@ export function Dialog({open, title, description, children, actions, onClose, la
       first.focus();
     }
   };
-  const dialog = <div className="tt-dialog-backdrop" role="presentation" onMouseDown={event => {
+  const dialogContents = <>{description && <p id={descriptionId} className="tt-dialog__description">{description}</p>}{children && <div className={`tt-dialog__content ${contentClassName}`.trim()}>{children}</div>}{actions && <footer className="tt-dialog__actions">{actions}</footer>}</>;
+  const dialog = <div className={`tt-dialog-backdrop ${backdropClassName}`.trim()} role="presentation" onMouseDown={event => {
     if (event.target === event.currentTarget && closeOnBackdrop) requestClose();
   }}>
     <section ref={dialogRef} className={`tt-dialog tt-dialog--${size} ${variant === "danger" ? "tt-dialog--danger" : ""} ${className}`.trim()} role={dialogRole} aria-modal="true" aria-labelledby={title ? titleId : labelledBy} aria-describedby={description ? descriptionId : describedBy} aria-busy={pending || undefined} tabIndex={-1} onKeyDown={handleKeyDown}>
       {(title || (showClose && onClose)) && <header className="tt-dialog__header">{title && <h2 id={titleId} className="tt-dialog__title">{title}</h2>}{showClose && onClose && <button ref={closeRef} type="button" className="tt-button tt-button--ghost tt-button--sm tt-dialog__close" onClick={requestClose} disabled={!canDismiss} aria-label="Fechar diálogo">{closeIcon || "×"}</button>}</header>}
-      {description && <p id={descriptionId} className="tt-dialog__description">{description}</p>}
-      {children && <div className={`tt-dialog__content ${contentClassName}`.trim()}>{children}</div>}
-      {actions && <footer className="tt-dialog__actions">{actions}</footer>}
+      {onSubmit ? <form id={formId} className="tt-dialog__form" onSubmit={onSubmit}>{dialogContents}</form> : dialogContents}
     </section>
   </div>;
   return portal && portalTarget ? createPortal(dialog, portalTarget) : dialog;
