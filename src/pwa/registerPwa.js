@@ -35,7 +35,7 @@ export async function registerPwa(options={}){
   if(!serviceWorker) return null;
 
   try{
-    const registration = await serviceWorker.register("/sw.js", {scope:"/"});
+    const registration = await serviceWorker.register("/sw.js", {scope:"/", updateViaCache:"none"});
     watchForUpdates(registration, options);
     options.onRegistered?.(registration);
     return registration;

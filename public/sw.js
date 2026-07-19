@@ -1,7 +1,9 @@
 const CACHE_PREFIX = "treino-tonon-pwa-";
-const CACHE_VERSION = "2026-07-18-1";
-const SHELL_CACHE = `${CACHE_PREFIX}shell-${CACHE_VERSION}`;
-const ASSET_CACHE = `${CACHE_PREFIX}assets-${CACHE_VERSION}`;
+// Bump this revision with every release that changes the app shell. The
+// activate handler removes every previous cache under CACHE_PREFIX.
+const CACHE_REVISION = "2.0.0-20260719";
+const SHELL_CACHE = `${CACHE_PREFIX}shell-${CACHE_REVISION}`;
+const ASSET_CACHE = `${CACHE_PREFIX}assets-${CACHE_REVISION}`;
 const CURRENT_CACHES = new Set([SHELL_CACHE, ASSET_CACHE]);
 const APP_SHELL_URL = new URL("./", self.registration.scope).href;
 const APP_SHELL_REQUEST = new Request(APP_SHELL_URL, {method:"GET", credentials:"same-origin"});
