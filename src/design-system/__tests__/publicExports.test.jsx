@@ -3,7 +3,7 @@ import {readFileSync} from "node:fs";
 import {renderToStaticMarkup} from "react-dom/server";
 import React from "react";
 import {
-  Badge, BottomSheet, Button, Card, Chip, Dialog, EmptyState, Input, Loading,
+  Badge, BottomSheet, Button, Card, Chip, Dialog, EmptyState, Input, Loading, Select, Textarea,
   Skeleton, Tabs, Toast, ToastRegion, designTokens, spacing, typography,
 } from "../index";
 
@@ -12,7 +12,7 @@ describe("design system public API", () => {
     expect(spacing[16]).toBe(16);
     expect(typography.h1.weight).toBe(800);
     expect(designTokens.color.primary).toBe("--tt-color-primary");
-    [Button, Input, Card, Badge, Chip, Dialog, BottomSheet, Toast, ToastRegion, Tabs, Loading, Skeleton, EmptyState]
+    [Button, Input, Textarea, Select, Card, Badge, Chip, Dialog, BottomSheet, Toast, ToastRegion, Tabs, Loading, Skeleton, EmptyState]
       .forEach(component => expect(component).toBeTruthy());
   });
 
@@ -53,6 +53,39 @@ describe("design system public API", () => {
     expect(element.props.onClick).toBe(onClick);
     element.props.onClick();
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders native field semantics, metadata and validation without invoking onChange", () => {
+    const onChange = vi.fn();
+    const markup = renderToStaticMarkup(<Input id="load" label="Carga" helperText="Use kg" error="Obrigatório" required disabled readOnly inputMode="decimal" value="12,5" onChange={onChange} />);
+
+    expect(markup).toContain('for="load"');
+    expect(markup).toContain('id="load"');
+    expect(markup).toContain('aria-describedby="load-hint load-error"');
+    expect(markup).toContain('aria-invalid="true"');
+    expect(markup).toContain('required=""');
+    expect(markup).toContain('disabled=""');
+    expect(markup).toContain('readonly=""');
+    expect(markup).toContain('inputMode="decimal"');
+    expect(markup).toContain('value="12,5"');
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps textarea and select as native controls with forwarded attributes and refs", () => {
+    const textarea = renderToStaticMarkup(<Textarea id="notes" name="notes" rows={4} defaultValue="Observação" />);
+    const select = renderToStaticMarkup(<Select id="objective" name="objective" value="força" onChange={()=>{}}><option value="força">Força</option></Select>);
+    const decorated = renderToStaticMarkup(<Input id="weight" prefix="kg" endAdornment={<span>×</span>} />);
+
+    expect(textarea).toContain('<textarea');
+    expect(textarea).toContain('name="notes"');
+    expect(textarea).toContain('rows="4"');
+    expect(textarea).toContain('>Observação</textarea>');
+    expect(select).toContain('<select');
+    expect(select).toContain('name="objective"');
+    expect(select).toContain('value="força"');
+    expect(decorated).toContain('tt-input__frame');
+    expect(decorated).toContain('tt-input__adornment');
+    [Input, Textarea, Select].forEach(control => expect(control.render).toBeTypeOf("function"));
   });
 
   it("reserves the Button focus indicator for keyboard-visible focus", () => {

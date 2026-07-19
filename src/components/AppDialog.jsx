@@ -1,4 +1,5 @@
 import React, {useEffect, useId, useRef, useState} from "react";
+import {Input} from "../design-system";
 
 const FOCUSABLE_SELECTOR = [
   "button:not([disabled])",
@@ -156,7 +157,7 @@ export function AppDialog({dialog, onResolve}) {
 
       {variant === "input" && <label className="appDialogInput" htmlFor={inputId}>
         <span>{dialog.inputLabel || "Valor"}</span>
-        <input
+        <Input
           {...inputProps}
           ref={inputRef}
           id={inputId}

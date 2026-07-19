@@ -49,7 +49,7 @@ As definições em JavaScript estão em `tokens/tokens.js`; as variáveis CSS em
 | Componente | Finalidade | Variantes e propriedades principais | Boa prática |
 | --- | --- | --- | --- |
 | Button | disparar ação | `variant`: primary, secondary, ghost, danger; `size`; `loading` | use texto de ação claro; `loading` bloqueia novo envio |
-| Input | entrada textual | `label`, `hint`, `error`, demais props de input | sempre informe `id` quando houver hint/erro |
+| Input / Textarea / Select | campos nativos | `label`, `helperText`, `error`, `required`, `disabled`, `readOnly` e atributos nativos; Input aceita adornos | preserve `name`, autocomplete, tipo, value e handlers existentes; use o controle sem label dentro de labels já existentes |
 | Card | agrupar conteúdo | `elevated`, `interactive`, `as`, `className` | use `as="button"` com `interactive` para cards que navegam ou selecionam; preserve um único `onClick` |
 | Badge | comunicar status | neutral, success, warning, danger | use para estado curto, não como botão |
 | Chip | filtro ou seleção | `selected`, props de button | mantenha `aria-pressed` controlado |
