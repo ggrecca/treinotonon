@@ -29,6 +29,10 @@ describe("design system public API", () => {
     expect(iconOnly).toContain("tt-button--icon-only");
   });
 
+  it("renders an informational badge with the documented visual variant", () => {
+    expect(renderToStaticMarkup(<Badge variant="info">Ativo</Badge>)).toContain("tt-badge--info");
+  });
+
   it("forwards one caller-owned click handler without changing its event contract", () => {
     const onClick = vi.fn();
     const element = Button({children: "Abrir", onClick});

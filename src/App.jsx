@@ -15,7 +15,7 @@ import { dataService } from "./services/dataService";
 import { EXERCISE_LIBRARY } from "./data/exerciseLibrary";
 import { buildRepPlan, expandRepTargetsForSets, isDropSetType, isRestPauseType, isSegmentedRepType, normalizeRepTargets, parseDropTargets, parseRepTargets, parseSingleRepTarget, repTargetLabelsForEditing, setRepTargetLabelForEditing, targetLabel } from "./utils/repTargets";
 import { Card } from "./components/Card";
-import { Button } from "./design-system";
+import { Badge, Button } from "./design-system";
 import { AppDialog } from "./components/AppDialog";
 import { OnboardingPanel } from "./components/OnboardingPanel";
 import { VirtualList } from "./components/VirtualList";
@@ -6004,7 +6004,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
             {trainerDashboard.attentionRows.map(row=><button type="button" className="studentCard compactStudentCard trainerAttentionCard" key={row.id} onClick={()=>{setScreen("alunos"); setSelectedStudentId(row.id);}}>
               <div className="studentCardTop">
                 <b>{row.studentName || row.studentEmail}</b>
-                <span className="statusBadge">Ativo</span>
+                <Badge variant="info">Ativo</Badge>
               </div>
               <span>{row.studentEmail}</span>
               <small>{row.reasons.join(" · ")}</small>
