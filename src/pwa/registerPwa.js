@@ -20,7 +20,6 @@ function watchForUpdates(registration, {onOfflineReady, onUpdateAvailable}={}){
     });
   });
 }
-
 /**
  * Registers the PWA worker only in a production build.
  *
@@ -45,4 +44,3 @@ export async function registerPwa(options={}){
     return null;
   }
 }
-

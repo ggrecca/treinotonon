@@ -110,7 +110,6 @@ async function handleStaticAsset(request){
 self.addEventListener("install", event=>{
   event.waitUntil(seedAppShell());
 });
-
 self.addEventListener("activate", event=>{
   event.waitUntil((async ()=>{
     const cacheNames = await caches.keys();
@@ -135,4 +134,3 @@ self.addEventListener("fetch", event=>{
 
   if(isStaticAssetUrl(url)) event.respondWith(handleStaticAsset(request));
 });
-
