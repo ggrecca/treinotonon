@@ -7220,21 +7220,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
       </>}
     </main>}
 
-    {pendingNavigation && <div className="modal dirtyGuardModal" role="presentation">
-      <div className="modalCard" role="dialog" aria-modal="true" aria-labelledby="dirty-guard-title" aria-describedby="dirty-guard-description">
-        <h2 id="dirty-guard-title">Alterações não salvas</h2>
-        <p id="dirty-guard-description" className="muted">Você alterou {dirtyScopeLabel(pendingNavigation.scope)}. Escolha o que fazer antes de sair.</p>
-        <div className="draftGuardActions">
-          <button type="button" onClick={()=>resolvePendingNavigation("save")}><Save size={18}/> Salvar rascunho</button>
-          <button type="button" className="danger" onClick={()=>resolvePendingNavigation("discard")}><Trash2 size={18}/> Descartar</button>
-          <button type="button" className="ghost" onClick={()=>resolvePendingNavigation("continue")}>Continuar editando</button>
-        </div>
-      </div>
-    </div>}
+    {pendingNavigation && <Dialog open title="Alterações não salvas" description={`Você alterou ${dirtyScopeLabel(pendingNavigation.scope)}. Escolha o que fazer antes de sair.`} backdropClassName="dirtyGuardModal" showClose={false} closeOnEscape={false} closeOnBackdrop={false} actions={<div className="draftGuardActions"><button type="button" onClick={()=>resolvePendingNavigation("save")}><Save size={18}/> Salvar rascunho</button><button type="button" className="danger" onClick={()=>resolvePendingNavigation("discard")}><Trash2 size={18}/> Descartar</button><button type="button" className="ghost" onClick={()=>resolvePendingNavigation("continue")}>Continuar editando</button></div>} />}
 
-    {appMode === "treinador" && editingStudentLink && <div className="modal">
-      <form id="student-admin-form" className="modalCard studentEditModal" onSubmit={saveStudentAdminInfo} onInputCapture={()=>markDirty("student-admin")} onChangeCapture={()=>markDirty("student-admin")}>
-        <h2>Editar aluno</h2>
+    {appMode === "treinador" && editingStudentLink && <Dialog open title="Editar aluno" className="studentEditModal" showClose={false} closeOnEscape={false} closeOnBackdrop={false} onClose={()=>closeDirtyScope("student-admin", ()=>setEditingStudentLink(null))}>
+      <form id="student-admin-form" onSubmit={saveStudentAdminInfo} onInputCapture={()=>markDirty("student-admin")} onChangeCapture={()=>markDirty("student-admin")}>
         <section className="skinfoldBox">
           <h4>Dados básicos</h4>
           <Input name="studentName" placeholder="Nome" defaultValue={editingStudentLink.studentName || ""} />
@@ -7265,7 +7254,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
         </div>
         {studentMessage && <p className="feedbackMessage">{studentMessage}</p>}
       </form>
-    </div>}
+    </Dialog>}
 
     {appMode === "treinador" && endingStudentLink && <Dialog
       open
@@ -7293,53 +7282,13 @@ function exerciseCatalogToWorkoutItem(ex={}){
       </div>
     </div>}
 
-    {pendingExerciseCompletion !== null && activeSession && <div className="modal">
-      <div className="modalCard compactWorkoutSwitchModal">
-        <h2>Há séries sem preenchimento</h2>
-        <div className="finishActions">
-          <button type="button" onClick={()=>{const index=pendingExerciseCompletion; setPendingExerciseCompletion(null); completeSessionExercise(index, false, true, true);}}>Concluir preenchidas</button>
-          <button type="button" className="ghost" onClick={()=>{const index=pendingExerciseCompletion; setPendingExerciseCompletion(null); completeSessionExercise(index, true);}}>Marcar todas como concluídas</button>
-          <button type="button" className="ghost" onClick={()=>setPendingExerciseCompletion(null)}>Cancelar</button>
-        </div>
-      </div>
-    </div>}
+    {pendingExerciseCompletion !== null && activeSession && <Dialog open title="Há séries sem preenchimento" className="compactWorkoutSwitchModal" showClose={false} closeOnEscape={false} closeOnBackdrop={false} actions={<><button type="button" onClick={()=>{const index=pendingExerciseCompletion; setPendingExerciseCompletion(null); completeSessionExercise(index, false, true, true);}}>Concluir preenchidas</button><button type="button" className="ghost" onClick={()=>{const index=pendingExerciseCompletion; setPendingExerciseCompletion(null); completeSessionExercise(index, true);}}>Marcar todas como concluídas</button><button type="button" className="ghost" onClick={()=>setPendingExerciseCompletion(null)}>Cancelar</button></>} />}
 
-    {pendingDeferredExercise !== null && <div className="modal">
-      <div className="modalCard compactWorkoutSwitchModal">
-        <h2>Fazer depois?</h2>
-        <div className="finishActions">
-          <button type="button" onClick={()=>{const index=pendingDeferredExercise; setPendingDeferredExercise(null); deferSessionExercise(index);}}>Fazer depois</button>
-          <button type="button" className="ghost" onClick={()=>setPendingDeferredExercise(null)}>Cancelar</button>
-        </div>
-      </div>
-    </div>}
+    {pendingDeferredExercise !== null && <Dialog open title="Fazer depois?" className="compactWorkoutSwitchModal" showClose={false} closeOnEscape={false} closeOnBackdrop={false} actions={<><button type="button" onClick={()=>{const index=pendingDeferredExercise; setPendingDeferredExercise(null); deferSessionExercise(index);}}>Fazer depois</button><button type="button" className="ghost" onClick={()=>setPendingDeferredExercise(null)}>Cancelar</button></>} />}
 
-    {pendingWorkoutStartKey && activeSession && <div className="modal">
-      <div className="modalCard compactWorkoutSwitchModal">
-        <h2>Outro treino em andamento</h2>
-        <p className="muted">Finalize a sessão atual antes de iniciar este treino.</p>
-        <div className="finishActions">
-          <button type="button" className="ghost" onClick={()=>{setPendingWorkoutStartKey(""); continueActiveWorkout();}}>Continuar treino atual</button>
-          <button type="button" onClick={finishAndStartPendingWorkout}><Save size={18}/> Encerrar e iniciar este treino</button>
-          <button type="button" className="ghost" onClick={()=>setPendingWorkoutStartKey("")}>Cancelar</button>
-        </div>
-      </div>
-    </div>}
+    {pendingWorkoutStartKey && activeSession && <Dialog open title="Outro treino em andamento" description="Finalize a sessão atual antes de iniciar este treino." className="compactWorkoutSwitchModal" showClose={false} closeOnEscape={false} closeOnBackdrop={false} actions={<><button type="button" className="ghost" onClick={()=>{setPendingWorkoutStartKey(""); continueActiveWorkout();}}>Continuar treino atual</button><button type="button" onClick={finishAndStartPendingWorkout}><Save size={18}/> Encerrar e iniciar este treino</button><button type="button" className="ghost" onClick={()=>setPendingWorkoutStartKey("")}>Cancelar</button></>} />}
 
-    {finishConfirm && activeSession && <div className="modal">
-      <div className="modalCard">
-        <button className="close" disabled={isActionPending(`save-session:${activeSession.id || "active"}`)} onClick={()=>setFinishConfirm(false)}><X/></button>
-        <h2>Finalizar treino</h2>
-        <p className="muted">{Object.values(activeSession.exercises || {}).filter(ex=>ex.done).length} concluídos · {(activeSession.plannedItems || []).length - Object.values(activeSession.exercises || {}).filter(ex=>ex.done).length} pendentes</p>
-        <div className="finishActions">
-          <button onClick={()=>saveActiveSession(activeSession)} disabled={isActionPending(`save-session:${activeSession.id || "active"}`)} aria-busy={isActionPending(`save-session:${activeSession.id || "active"}`)}>
-            {isActionPending(`save-session:${activeSession.id || "active"}`) ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Save size={18}/>}
-            {isActionPending(`save-session:${activeSession.id || "active"}`) ? "Finalizando…" : "Finalizar mesmo assim"}
-          </button>
-          <button className="ghost" disabled={isActionPending(`save-session:${activeSession.id || "active"}`)} onClick={()=>setFinishConfirm(false)}>Voltar ao treino</button>
-        </div>
-      </div>
-    </div>}
+    {finishConfirm && activeSession && <Dialog open title="Finalizar treino" description={`${Object.values(activeSession.exercises || {}).filter(ex=>ex.done).length} concluídos · ${(activeSession.plannedItems || []).length - Object.values(activeSession.exercises || {}).filter(ex=>ex.done).length} pendentes`} pending={isActionPending(`save-session:${activeSession.id || "active"}`)} closeIcon={<X/>} closeOnEscape={false} closeOnBackdrop={false} onClose={()=>setFinishConfirm(false)} actions={<><button type="button" onClick={()=>saveActiveSession(activeSession)} disabled={isActionPending(`save-session:${activeSession.id || "active"}`)} aria-busy={isActionPending(`save-session:${activeSession.id || "active"}`)}>{isActionPending(`save-session:${activeSession.id || "active"}`) ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Save size={18}/>}{isActionPending(`save-session:${activeSession.id || "active"}`) ? "Finalizando…" : "Finalizar mesmo assim"}</button><button type="button" className="ghost" disabled={isActionPending(`save-session:${activeSession.id || "active"}`)} onClick={()=>setFinishConfirm(false)}>Voltar ao treino</button></>} />}
 
     {sessionSummary && <Dialog open title="Resumo da sessão" size="lg" className="sessionSummaryModal" onClose={()=>setSessionSummary(null)} closeIcon={<X/>} closeOnEscape={false} closeOnBackdrop={false}>
         <p className="muted">{sessionSummary.date} • {sessionSummary.workoutLabel}</p>
@@ -7353,11 +7302,9 @@ function exerciseCatalogToWorkoutItem(ex={}){
         {sessionSummary.caloriesFallback && <p className="emptyHint">Complete seus dados corporais para melhorar a estimativa de calorias.</p>}
     </Dialog>}
 
-    {appMode === "atleta" && inviteModalLink && <div className="modal">
-      <div className="modalCard inviteModalCard">
-        <button className="close" type="button" disabled={isActionPending(`invite-response:${inviteModalLink.id}`)} onClick={()=>dismissInviteModal(inviteModalLink)}><X/></button>
+    {appMode === "atleta" && inviteModalLink && <Dialog open labelledBy="invite-modal-title" className="inviteModalCard" pending={isActionPending(`invite-response:${inviteModalLink.id}`)} closeIcon={<X/>} closeOnEscape={false} closeOnBackdrop={false} onClose={()=>dismissInviteModal(inviteModalLink)}>
         <small>Convite de treinador</small>
-        <h2>{inviteModalLink.coachName || "Seu treinador"}</h2>
+        <h2 id="invite-modal-title">{inviteModalLink.coachName || "Seu treinador"}</h2>
         {inviteModalLink.objective && <p><b>Objetivo:</b> {inviteModalLink.objective}</p>}
         {inviteModalLink.notes && <p className="muted">{inviteModalLink.notes}</p>}
         {inviteModalStatus === "expired" && <p className="feedbackMessage warning" role="status">Este convite expirou em {formatDateTime(deriveInviteExpiresAt(inviteLifecycleDate(inviteModalLink)))}. Peça ao treinador para reenviar.</p>}
@@ -7368,8 +7315,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
             {isActionPending(`invite-response:${inviteModalLink.id}`) ? "Respondendo…" : inviteModalStatus === "expired" ? "Convite expirado" : "Aceitar"}
           </button>
         </div>
-      </div>
-    </div>}
+    </Dialog>}
 
     <AppDialog dialog={appDialog} onResolve={resolveAppDialog} />
 
