@@ -18,7 +18,14 @@
 .tt-ui .calendarHeaderRow .tt-button--icon-only { padding: var(--tt-space-2); width: 44px; }
 .tt-input { color: var(--tt-color-text); display: grid; font: var(--tt-font-body-small); gap: var(--tt-space-2); }
 .tt-input__label { font: 700 var(--tt-font-label); letter-spacing: .02em; }
-.tt-input__control { background: var(--tt-color-surface); border: var(--tt-border-default); border-radius: var(--tt-radius-md); color: inherit; min-height: 44px; padding: var(--tt-space-3); }
+.tt-input__control, .tt-textarea__control, .tt-select__control { background: var(--tt-color-surface); border: var(--tt-border-default); border-radius: var(--tt-radius-md); color: inherit; min-height: 44px; padding: var(--tt-space-3); }
+.tt-textarea__control { min-height: 78px; resize: vertical; }
+.tt-input__control:focus-visible, .tt-textarea__control:focus-visible, .tt-select__control:focus-visible { box-shadow: none; outline: 2px solid var(--tt-color-primary); outline-offset: 2px; }
+.tt-input__control[readonly], .tt-textarea__control[readonly] { background: color-mix(in srgb, var(--tt-color-muted) 12%, var(--tt-color-surface)); }
+.tt-input__control:disabled, .tt-textarea__control:disabled, .tt-select__control:disabled { cursor: not-allowed; opacity: var(--tt-opacity-disabled); }
+.tt-input__frame { align-items: center; display: flex; position: relative; }
+.tt-input__frame .tt-input__control { min-width: 0; width: 100%; }
+.tt-input__adornment { color: var(--tt-color-muted); flex: 0 0 auto; padding: 0 var(--tt-space-3); }
 .tt-input__hint { color: var(--tt-color-muted); font: var(--tt-font-caption); }
 .tt-input__error { color: var(--tt-color-danger); font: var(--tt-font-caption); }
 .tt-card { background: var(--tt-color-card); border: var(--tt-border-default); border-radius: var(--tt-radius-lg); box-shadow: var(--tt-shadow-sm); padding: var(--tt-space-4); }
