@@ -15,7 +15,7 @@ import { dataService } from "./services/dataService";
 import { EXERCISE_LIBRARY } from "./data/exerciseLibrary";
 import { buildRepPlan, expandRepTargetsForSets, isDropSetType, isRestPauseType, isSegmentedRepType, normalizeRepTargets, parseDropTargets, parseRepTargets, parseSingleRepTarget, repTargetLabelsForEditing, setRepTargetLabelForEditing, targetLabel } from "./utils/repTargets";
 import { Card } from "./components/Card";
-import { Badge, Button, Card as DesignSystemCard, Input, Select, Textarea } from "./design-system";
+import { Badge, Button, Card as DesignSystemCard, Input, Select, Tabs, TabsContent, Textarea } from "./design-system";
 import { AppDialog } from "./components/AppDialog";
 import { OnboardingPanel } from "./components/OnboardingPanel";
 import { VirtualList } from "./components/VirtualList";
@@ -6335,9 +6335,17 @@ function exerciseCatalogToWorkoutItem(ex={}){
           <button type="button" onClick={()=>{setGeneratedInvite(null); setStudentMessage(""); setShowInviteForm(true);}}><UserPlus size={18}/> Convidar aluno</button>
         </div>
 
-        <div className="segmentedControl studentListTabs" aria-label="Filtrar alunos e convites">
-          {[['all','Todos'],['active','Ativos'],['invites','Convites'],['attention','Atenção']].map(([value,label])=><button type="button" key={value} className={studentListMode === value ? "active" : "ghost"} onClick={()=>setStudentListMode(value)}>{label}</button>)}
-        </div>
+        <Tabs
+          id="student-list-tabs"
+          panelId="student-list-panel"
+          className="segmentedControl studentListTabs"
+          ariaLabel="Filtrar alunos e convites"
+          value={studentListMode}
+          onChange={setStudentListMode}
+          tabs={[["all", "Todos"], ["active", "Ativos"], ["invites", "Convites"], ["attention", "Atenção"]].map(([value, label])=>({value, label}))}
+        />
+
+        <TabsContent id={`student-list-panel-${studentListMode}`} labelledBy={`student-list-tabs-tab-${studentListMode}`}>
 
         <section className="formCard">
           <Input value={studentSearch} onChange={e=>setStudentSearch(e.target.value)} placeholder="Pesquisar por nome ou e-mail" />
@@ -6414,6 +6422,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
             </section>
           })}
         </section>}
+        </TabsContent>
       </>}
     </main>}
 
@@ -6545,10 +6554,18 @@ function exerciseCatalogToWorkoutItem(ex={}){
           </Select>
         </label>
       </section>}
-      {!showWorkoutEditor && !assignmentWorkoutId && appMode === "treinador" && <section className="filterRow archiveFilterRow">
-        <button type="button" className={`ghost small ${workoutArchiveView === "active" ? "activeSmall" : ""}`} onClick={()=>setWorkoutArchiveView("active")}>Ativos</button>
-        <button type="button" className={`ghost small ${workoutArchiveView === "archived" ? "activeSmall" : ""}`} onClick={()=>setWorkoutArchiveView("archived")}>Arquivados{trainerWorkoutArchiveCounts.archived ? ` (${trainerWorkoutArchiveCounts.archived})` : ""}</button>
-      </section>}
+      {!showWorkoutEditor && !assignmentWorkoutId && appMode === "treinador" && <Tabs
+        id="workout-archive-tabs"
+        panelId="workout-archive-panel"
+        className="filterRow archiveFilterRow"
+        ariaLabel="Filtrar treinos por arquivamento"
+        value={workoutArchiveView}
+        onChange={setWorkoutArchiveView}
+        tabs={[
+          {value: "active", label: "Ativos"},
+          {value: "archived", label: "Arquivados", count: trainerWorkoutArchiveCounts.archived || undefined},
+        ]}
+      />}
       {assignmentWorkoutId && <section className="coachPanel">
         <div><small>{appMode === "treinador" ? "Treinos base" : "Meus treinos"}</small><b>{showWorkoutEditor ? "Monte o treino-base, revise a prévia e salve quando estiver pronto." : appMode === "treinador" ? "Modelos não são alterados por treinos individuais dos alunos." : "Treinos disponíveis para execução."}</b></div>
         <span>{appMode === "treinador" ? `${workoutStats.custom} modelos` : `${workoutStats.active} disponíveis`}</span>
@@ -6587,7 +6604,10 @@ function exerciseCatalogToWorkoutItem(ex={}){
         {athleteWorkoutSchedule.suggested && <button type="button" onClick={()=>setSelectedWorkoutDetailKey(athleteWorkoutSchedule.suggested)}><small>Sugerido</small><b>{resolveWorkout(athleteWorkoutSchedule.suggested).label}</b></button>}
       </section>}
 
-      {!showWorkoutEditor && !assignmentWorkoutId && <section className="exerciseGroup workoutModelsList">
+      {!showWorkoutEditor && !assignmentWorkoutId && <section
+        className="exerciseGroup workoutModelsList"
+        {...(appMode === "treinador" ? {id: `workout-archive-panel-${workoutArchiveView}`, role: "tabpanel", "aria-labelledby": `workout-archive-tabs-tab-${workoutArchiveView}`} : {})}
+      >
         {appMode === "treinador" && trainerWorkoutArchiveCounts.active + trainerWorkoutArchiveCounts.archived === 0 && <section className="emptyState slim">
           <b>Você ainda não possui treinos.</b>
           <span>Crie seu primeiro modelo de treino para começar.</span>

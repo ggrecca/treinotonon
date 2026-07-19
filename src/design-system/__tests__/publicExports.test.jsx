@@ -2,9 +2,10 @@ import {describe, expect, it, vi} from "vitest";
 import {readFileSync} from "node:fs";
 import {renderToStaticMarkup} from "react-dom/server";
 import React from "react";
+import {getNextEnabledTabIndex} from "../components/Tabs";
 import {
   Badge, BottomSheet, Button, Card, Chip, Dialog, EmptyState, Input, Loading, Select, Textarea,
-  Skeleton, Tabs, Toast, ToastRegion, designTokens, spacing, typography,
+  Skeleton, Tabs, TabsContent, Toast, ToastRegion, designTokens, spacing, typography,
 } from "../index";
 
 describe("design system public API", () => {
@@ -12,7 +13,7 @@ describe("design system public API", () => {
     expect(spacing[16]).toBe(16);
     expect(typography.h1.weight).toBe(800);
     expect(designTokens.color.primary).toBe("--tt-color-primary");
-    [Button, Input, Textarea, Select, Card, Badge, Chip, Dialog, BottomSheet, Toast, ToastRegion, Tabs, Loading, Skeleton, EmptyState]
+    [Button, Input, Textarea, Select, Card, Badge, Chip, Dialog, BottomSheet, Toast, ToastRegion, Tabs, TabsContent, Loading, Skeleton, EmptyState]
       .forEach(component => expect(component).toBeTruthy());
   });
 
@@ -94,5 +95,33 @@ describe("design system public API", () => {
     expect(css).toMatch(/\.tt-button\s*\{[^}]*border:\s*1px solid transparent;[^}]*box-shadow:\s*none;[^}]*outline:\s*0;/);
     expect(css).toMatch(/\.tt-button:focus-visible\s*\{\s*box-shadow:\s*none;\s*outline:\s*2px solid var\(--tt-color-primary\);\s*outline-offset:\s*2px;/);
     expect(css.indexOf(".tt-button:focus-visible")).toBeGreaterThan(css.indexOf(".tt-ui :focus-visible"));
+  });
+
+  it("connects tabs to their panel with accessible roles and state", () => {
+    const markup = renderToStaticMarkup(<><Tabs id="students" panelId="student-panel" value="active" onChange={()=>{}} tabs={[{value: "all", label: "Todos", count: 3}, {value: "active", label: "Ativos"}, {value: "disabled", label: "Indisponível", disabled: true}]} /><TabsContent id="student-panel-active" labelledBy="students-tab-active">Conteúdo ativo</TabsContent></>);
+
+    expect(markup).toContain('role="tablist"');
+    expect(markup).toContain('id="students-tab-active"');
+    expect(markup).toContain('aria-selected="true"');
+    expect(markup).toContain('aria-controls="student-panel-active"');
+    expect(markup).toContain('role="tabpanel"');
+    expect(markup).toContain('aria-labelledby="students-tab-active"');
+    expect(markup).toContain('disabled=""');
+  });
+
+  it("moves keyboard navigation across enabled tabs without selecting a disabled tab", () => {
+    const tabs = [{value: "all"}, {value: "inactive", disabled: true}, {value: "attention"}];
+
+    expect(getNextEnabledTabIndex(tabs, 0, "ArrowRight")).toBe(2);
+    expect(getNextEnabledTabIndex(tabs, 2, "ArrowRight")).toBe(0);
+    expect(getNextEnabledTabIndex(tabs, 2, "Home")).toBe(0);
+    expect(getNextEnabledTabIndex(tabs, 0, "End")).toBe(2);
+  });
+
+  it("protects Tabs hover and keyboard focus from the legacy global button selector", () => {
+    const css = readFileSync(new URL("../styles/design-system.css", import.meta.url), "utf8");
+
+    expect(css).toContain(".tt-tabs__tab:hover:not(:disabled) { background: transparent; border-color: transparent;");
+    expect(css).toContain(".tt-tabs__tab:focus-visible { border-color: transparent; box-shadow: none; outline: 2px solid var(--tt-color-primary);");
   });
 });
