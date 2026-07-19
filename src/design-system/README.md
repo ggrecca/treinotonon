@@ -56,7 +56,7 @@ As definições em JavaScript estão em `tokens/tokens.js`; as variáveis CSS em
 | Dialog | confirmação ou conteúdo modal | `open`, `title`, `actions`, `onClose` | use somente quando a interrupção for necessária |
 | BottomSheet | ações contextuais compactas | `open`, `title`, `onClose` | prefira em contexto mobile |
 | Toast / ToastRegion | feedback transitório | `variant`, `message`, `action`, `onDismiss` | não use como confirmação de decisão crítica |
-| Tabs | alternar painéis pares | `tabs`, `value`, `onChange` | mantenha os painéis acessíveis na integração futura |
+| Tabs / TabsContent | alternar painéis relacionados | `tabs`, `value`, `onChange`, `id`, `panelId` | use `TabsContent` com IDs derivados de `panelId` para preservar a associação ARIA |
 | Loading | indicar trabalho em curso | `label` | use texto específico quando possível |
 | Skeleton | reservar espaço de conteúdo | `width`, `height` | espelhe a forma final do conteúdo |
 | EmptyState | ausência de conteúdo | `title`, `description`, `action`, `icon` | explique o próximo passo possível |
