@@ -4,6 +4,7 @@ import {renderToStaticMarkup} from "react-dom/server";
 import React from "react";
 import {getNextEnabledTabIndex} from "../components/Tabs";
 import {canDismissDialog} from "../components/Dialog";
+import {canDismissBottomSheet} from "../components/BottomSheet";
 import {AppDialog} from "../../components/AppDialog";
 import {
   Badge, BottomSheet, Button, Card, Chip, Dialog, EmptyState, Input, Loading, Select, Textarea,
@@ -170,5 +171,33 @@ describe("design system public API", () => {
 
     ["Alterações não salvas", "Editar aluno", "Há séries sem preenchimento", "Fazer depois?", "Outro treino em andamento", "Finalizar treino", "invite-modal-title"].forEach(marker => expect(appSource).toContain(marker));
     expect(appSource).toContain("<AppDialog dialog={appDialog} onResolve={resolveAppDialog} />");
+  });
+
+  it("renders an accessible Bottom Sheet with a close control and safe-area structure", () => {
+    const markup = renderToStaticMarkup(<BottomSheet open title="Descanso" description="Escolha a duração" onClose={()=>{}} actions={<button type="button">Aplicar</button>}>Conteúdo longo</BottomSheet>);
+
+    expect(markup).toContain('role="dialog"');
+    expect(markup).toContain('aria-modal="true"');
+    expect(markup).toContain('aria-labelledby="tt-bottom-sheet-title-');
+    expect(markup).toContain('aria-describedby="tt-bottom-sheet-description-');
+    expect(markup).toContain('aria-label="Fechar painel"');
+    expect(markup).toContain('tt-bottom-sheet__handle');
+    expect(markup).toContain('Conteúdo longo');
+  });
+
+  it("blocks Bottom Sheet dismissal while pending or explicitly non-dismissible", () => {
+    expect(canDismissBottomSheet()).toBe(true);
+    expect(canDismissBottomSheet({pending: true})).toBe(false);
+    expect(canDismissBottomSheet({dismissible: false})).toBe(false);
+  });
+
+  it("keeps the rest picker on BottomSheet without changing its timer callbacks", () => {
+    const appSource = readFileSync(new URL("../../App.jsx", import.meta.url), "utf8");
+    const css = readFileSync(new URL("../styles/design-system.css", import.meta.url), "utf8");
+
+    expect(appSource).toContain('<BottomSheet open={showRestPicker} title="Descanso"');
+    ["30,45,60,90,120", "applyRestDuration(seconds)", "applyRestDuration(restCustomSeconds)", "setShowRestPicker(false)"].forEach(marker => expect(appSource).toContain(marker));
+    expect(css).toContain("env(safe-area-inset-bottom)");
+    expect(css).toContain("prefers-reduced-motion: reduce");
   });
 });
