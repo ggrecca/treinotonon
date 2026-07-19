@@ -3804,16 +3804,19 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
   padding:9px 0;
 }
 
-.sessionSummaryModal{
+.sessionSummaryModal,
+.sessionSummaryModal.tt-dialog{
   padding:16px;
 }
 .sessionSummaryModal > h2{
   margin-bottom:4px;
   padding-right:44px;
 }
+.sessionSummaryModal .tt-dialog__title{margin-bottom:4px;padding-right:44px}
 .sessionSummaryModal > .muted{
   margin-bottom:10px;
 }
+.sessionSummaryModal .tt-dialog__content > .muted{margin-bottom:10px}
 .sessionSummaryModal .summaryGrid{
   gap:8px;
 }
@@ -3838,6 +3841,7 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
 .sessionSummaryModal > .emptyHint{
   margin:10px 0 0;
 }
+.sessionSummaryModal .tt-dialog__content > .emptyHint{margin:10px 0 0}
 
 @media(max-width:520px){
   .trainerDashboardScreen .grid2{
