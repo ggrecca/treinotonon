@@ -1,0 +1,96 @@
+/**
+ * Treino Tonon Design System — tokens semânticos.
+ * Este arquivo não é importado pelo aplicativo atual. Consumidores futuros
+ * devem importá-lo juntamente com ../styles/design-system.css.
+ */
+:root {
+  --tt-color-primary: #2563eb;
+  --tt-color-primary-hover: #1d4ed8;
+  --tt-color-secondary: #475569;
+  --tt-color-success: #16a34a;
+  --tt-color-warning: #d97706;
+  --tt-color-danger: #dc2626;
+  --tt-color-info: #0284c7;
+  --tt-color-background: #f6f7f9;
+  --tt-color-surface: #ffffff;
+  --tt-color-card: #ffffff;
+  --tt-color-border: #d9dee8;
+  --tt-color-muted: #64748b;
+  --tt-color-disabled: #94a3b8;
+  --tt-color-overlay: rgb(15 23 42 / 45%);
+  --tt-color-text: #141923;
+  --tt-color-text-secondary: #374151;
+
+  --tt-space-1: 4px;
+  --tt-space-2: 8px;
+  --tt-space-3: 12px;
+  --tt-space-4: 16px;
+  --tt-space-5: 20px;
+  --tt-space-6: 24px;
+  --tt-space-8: 32px;
+  --tt-space-10: 40px;
+  --tt-space-12: 48px;
+  --tt-space-16: 64px;
+
+  --tt-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  --tt-font-display: 2rem/1.15 var(--tt-font-family);
+  --tt-font-h1: 1.75rem/1.2 var(--tt-font-family);
+  --tt-font-h2: 1.5rem/1.25 var(--tt-font-family);
+  --tt-font-h3: 1.25rem/1.3 var(--tt-font-family);
+  --tt-font-title: 1.125rem/1.35 var(--tt-font-family);
+  --tt-font-subtitle: 1rem/1.45 var(--tt-font-family);
+  --tt-font-body: 1rem/1.5 var(--tt-font-family);
+  --tt-font-body-small: .875rem/1.45 var(--tt-font-family);
+  --tt-font-caption: .75rem/1.35 var(--tt-font-family);
+  --tt-font-label: .75rem/1.3 var(--tt-font-family);
+  --tt-font-button: .875rem/1.15 var(--tt-font-family);
+
+  --tt-radius-sm: 6px;
+  --tt-radius-md: 10px;
+  --tt-radius-lg: 14px;
+  --tt-radius-pill: 999px;
+  --tt-border-width: 1px;
+  --tt-border-default: var(--tt-border-width) solid var(--tt-color-border);
+  --tt-shadow-sm: 0 1px 2px rgb(15 23 42 / 8%);
+  --tt-shadow-md: 0 10px 28px rgb(15 23 42 / 12%);
+  --tt-shadow-lg: 0 18px 44px rgb(15 23 42 / 16%);
+  --tt-opacity-disabled: .48;
+  --tt-opacity-overlay: .72;
+  --tt-z-base: 0;
+  --tt-z-sticky: 10;
+  --tt-z-dropdown: 40;
+  --tt-z-bottom-sheet: 80;
+  --tt-z-dialog-overlay: 110;
+  --tt-z-dialog-content: 111;
+  --tt-z-dirty-guard: 120;
+  --tt-z-toast: 140;
+  --tt-duration-fast: 120ms;
+  --tt-duration-normal: 180ms;
+  --tt-duration-slow: 260ms;
+  --tt-easing-standard: cubic-bezier(.2, 0, 0, 1);
+  --tt-easing-emphasized: cubic-bezier(.2, .8, .2, 1);
+  --tt-transition-colors: color var(--tt-duration-fast) var(--tt-easing-standard), background-color var(--tt-duration-fast) var(--tt-easing-standard), border-color var(--tt-duration-fast) var(--tt-easing-standard);
+  --tt-focus-ring: 0 0 0 3px rgb(37 99 235 / 28%);
+}
+
+[data-tt-theme="dark"], body[data-theme="dark"] {
+  --tt-color-primary: #3b82f6;
+  --tt-color-primary-hover: #60a5fa;
+  --tt-color-secondary: #94a3b8;
+  --tt-color-success: #22c55e;
+  --tt-color-warning: #f59e0b;
+  --tt-color-danger: #ef4444;
+  --tt-color-info: #38bdf8;
+  --tt-color-background: #0f1115;
+  --tt-color-surface: #14171d;
+  --tt-color-card: #1b1f27;
+  --tt-color-border: #303746;
+  --tt-color-muted: #969eac;
+  --tt-color-disabled: #64748b;
+  --tt-color-overlay: rgb(0 0 0 / 62%);
+  --tt-color-text: #f7f8fb;
+  --tt-color-text-secondary: #d5d9e2;
+  --tt-shadow-sm: 0 1px 2px rgb(0 0 0 / 18%);
+  --tt-shadow-md: 0 10px 28px rgb(0 0 0 / 24%);
+  --tt-shadow-lg: 0 18px 50px rgb(0 0 0 / 30%);
+}

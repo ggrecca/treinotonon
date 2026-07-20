@@ -1,0 +1,81 @@
+# Treino Tonon Design System
+
+Fundação isolada da versão 2.0A.1. Ela não é importada pelo aplicativo atual e, portanto, não altera telas, regras de negócio ou o CSS legado.
+
+## Como adotar futuramente
+
+```jsx
+import "../design-system/styles/design-system.css";
+import {Button, Card} from "../design-system";
+
+export function Example() {
+  return <div className="tt-ui"><Card><Button>Salvar</Button></Card></div>;
+}
+```
+
+O contêiner `.tt-ui` é obrigatório para isolar os estilos. O tema escuro é ativado no mesmo contêiner, ou em um ancestral, com `data-tt-theme="dark"`.
+
+## Tokens
+
+| Categoria | Tokens |
+| --- | --- |
+| Colors | `primary`, `secondary`, `success`, `warning`, `danger`, `info`, `background`, `surface`, `card`, `border`, `muted`, `disabled`, `overlay`, texto primário e secundário |
+| Spacing | 4, 8, 12, 16, 20, 24, 32, 40, 48 e 64 px (`--tt-space-*`) |
+| Radius | `sm`, `md`, `lg`, `pill` |
+| Shadows | `sm`, `md`, `lg` |
+| Borders | `--tt-border-width`, `--tt-border-default` |
+| Opacity | `--tt-opacity-disabled`, `--tt-opacity-overlay` |
+| Z-index | base (0), sticky (10), dropdown (40), Bottom Sheet (80), Dialog overlay/content (110/111), dirty guard (120) e toast (140) |
+| Motion | duration fast/normal/slow; easing standard/emphasized; transição de cores |
+| Focus | `--tt-focus-ring` |
+
+### Tipografia
+
+| Nível | Uso |
+| --- | --- |
+| Display | destaque de página ou estado excepcional |
+| H1, H2, H3 | hierarquia semântica de seções |
+| Title | título de card ou bloco |
+| Subtitle | apoio a títulos e cabeçalhos |
+| Body, Body Small | conteúdo corrido e apoio compacto |
+| Caption | metadados e ajuda curta |
+| Label | rótulos de campos |
+| Button | ações interativas |
+
+As definições em JavaScript estão em `tokens/tokens.js`; as variáveis CSS em `tokens/tokens.css`.
+
+## Componentes-base
+
+| Componente | Finalidade | Variantes e propriedades principais | Boa prática |
+| --- | --- | --- | --- |
+| Button | disparar ação | `variant`: primary, secondary, ghost, danger; `size`; `loading` | use texto de ação claro; `loading` bloqueia novo envio |
+| Input / Textarea / Select | campos nativos | `label`, `helperText`, `error`, `required`, `disabled`, `readOnly` e atributos nativos; Input aceita adornos | preserve `name`, autocomplete, tipo, value e handlers existentes; use o controle sem label dentro de labels já existentes |
+| Card | agrupar conteúdo | `elevated`, `interactive`, `as`, `className` | use `as="button"` com `interactive` para cards que navegam ou selecionam; preserve um único `onClick` |
+| Badge | comunicar status | neutral, success, warning, danger | use para estado curto, não como botão |
+| Chip | filtro ou seleção | `selected`, props de button | mantenha `aria-pressed` controlado |
+| Dialog | confirmação ou conteúdo modal | `open`, `title`, `description`, `actions`, `onClose`, `variant`, `size`, `pending`, fechamento configurável | use somente quando a interrupção for necessária; o componente usa portal, foco preso e restaura o foco de origem |
+| BottomSheet | ações contextuais compactas | `open`, `title`, `description`, `actions`, `onClose`, `pending`, fechamento configurável | use para escolhas locais; o componente usa portal, safe area, foco preso, scroll lock e respeita movimento reduzido |
+| Toast / ToastRegion | feedback transitório global | `variant`, `title`, `message`/`description`, `count`, `duration`, `action`, `onDismiss`, `portal` | use a fila central; não mova o foco, não use como confirmação de decisão crítica e use `duration={0}` somente para ação que exija fechamento explícito |
+| Tabs / TabsContent | alternar painéis relacionados | `tabs`, `value`, `onChange`, `id`, `panelId` | use `TabsContent` com IDs derivados de `panelId` para preservar a associação ARIA |
+| Loading | indicar trabalho em curso | `label` | use texto específico quando possível |
+| Skeleton | reservar espaço de conteúdo | `width`, `height` | espelhe a forma final do conteúdo |
+| EmptyState | ausência de conteúdo | `title`, `description`, `action`, `icon` | explique o próximo passo possível |
+
+## Convenções
+
+- Pastas: `tokens/`, `styles/` e `components/` dentro de `src/design-system/`.
+- Arquivos de componentes: PascalCase (`Button.jsx`); utilitários e tokens: camelCase (`tokens.js`).
+- Classes CSS: prefixo obrigatório `tt-` para não colidir com o legado.
+- Exports públicos: somente por `src/design-system/index.js`; consumidores não devem importar de caminhos internos.
+- Props: nomes descritivos, `variant` para aparência e `className` apenas como ponto de extensão.
+- Estilos: tokens semânticos; não introduzir valores literais em componentes novos quando houver token apropriado.
+
+### Toasts
+
+`ToastRegion` cria uma única região global em portal, limitada pela fila pública a quatro itens. Ela usa `z-index: 140`, portanto fica acima de Dialogs e Bottom Sheets; o menu legado em `z-index: 9999` permanece uma exceção documentada e fora deste escopo. Os quatro tipos suportados são `success`, `info`, `warning` e `error`.
+
+A duração começa a contar a partir de `createdAt`, pausa enquanto houver hover ou foco em um controle interno e retoma apenas com o tempo restante. O item é removido da fila somente após a animação de saída. Com `prefers-reduced-motion`, a animação é desativada, sem alterar o ciclo de remoção. A ação opcional é protegida contra cliques duplicados.
+
+## Limites desta versão
+
+O sistema central de Toasts foi adotado preservando `notify()` e `src/utils/toasts.js`. Não foram migrados banners persistentes, mensagens inline, dialogs, Bottom Sheets, menus, popovers ou tooltips. A validação visual em iPhone real continua reservada para o encerramento da versão 2.0.
