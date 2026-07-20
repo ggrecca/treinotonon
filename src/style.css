@@ -1544,6 +1544,9 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
 .bodyDetailRecord em{display:block;color:var(--color-text-muted);font-style:normal;font-size:12px;line-height:1.35}
 .bodyRecord{align-items:flex-start}
 .bodyRecord small{display:block;margin-top:4px}
+.bodyLateralMeasures{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.bodyLateralMeasures > div{display:grid;gap:6px;padding:10px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-bg-secondary)}
+.bodyLateralMeasures b{font-size:13px;color:var(--color-text-secondary)}
 .skinfoldBox{display:grid;gap:10px;padding-top:12px;border-top:1px solid var(--color-border)}
 .bfPreview{margin:0;color:var(--color-text-muted);font-size:13px;line-height:1.4}
 
@@ -1593,6 +1596,8 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
   border-radius:18px 18px 0 0;
   box-shadow:0 -10px 26px rgba(0,0,0,.18);
   backdrop-filter:blur(14px);
+  transform:translateZ(0);
+  will-change:transform;
 }
 .nav button{
   flex:1;
@@ -3971,7 +3976,7 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
 .onboardingActions{margin-top:2px}
 
 .appDialogOverlay{z-index:110;align-items:center;padding-bottom:max(16px,env(safe-area-inset-bottom))}
-.appDialogOverlay.tt-dialog-backdrop{align-items:center;padding-bottom:max(16px,env(safe-area-inset-bottom));z-index:var(--tt-z-dialog-overlay)}
+.appDialogOverlay.tt-dialog-backdrop{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding-bottom:max(16px,env(safe-area-inset-bottom));z-index:var(--tt-z-dialog-overlay)}
 .appDialogCard{max-width:480px;border-radius:var(--radius-xl);padding-bottom:max(18px,calc(14px + env(safe-area-inset-bottom)))}
 .appDialogCard.tt-dialog{max-width:480px;border-radius:var(--radius-xl);padding-bottom:max(18px,calc(14px + env(safe-area-inset-bottom)))}
 .appDialogCard h2{padding-right:42px}
@@ -4007,6 +4012,7 @@ body{min-height:100dvh;overscroll-behavior-y:none}
   .inviteDates{grid-template-columns:1fr}
   .inviteActionGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .inviteActionGrid .danger:last-child{grid-column:1/-1}
+  .bodyLateralMeasures{grid-template-columns:1fr}
   .librarySelectionBar{grid-template-columns:1fr 1fr}
   .librarySelectionBar > b{grid-column:1/-1}
 }

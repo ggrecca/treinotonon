@@ -132,9 +132,17 @@ export interface BodyData {
   chest?: string;
   abdomen?: string;
   arm?: string;
+  armRight?: string;
+  armLeft?: string;
   forearm?: string;
+  forearmRight?: string;
+  forearmLeft?: string;
   thigh?: string;
+  thighRight?: string;
+  thighLeft?: string;
   calf?: string;
+  calfRight?: string;
+  calfLeft?: string;
   notes?: string;
   skinfoldChest?: string;
   skinfoldAbdominal?: string;

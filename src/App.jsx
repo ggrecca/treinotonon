@@ -1105,6 +1105,10 @@ function App(){
   }
 
   function openProfileBodyEditor(){
+    const latestRecord = personalBody[0];
+    if(latestRecord){
+      setSelectedBodyRecord({scope:"profile",record:latestRecord,index:0,editing:true});
+    }
     setShowProfileBodyEditor(true);
     restoreFormDraft("profile-body", "profile-body-form", "current");
   }
@@ -2036,13 +2040,16 @@ function App(){
     const form = e.currentTarget;
     return runPendingAction("save-profile-body", async()=>{
     const f = new FormData(form);
-    const record = buildBodyRecordFromForm(f, {fallbackAge: profile.age});
+    const editingRecord = selectedBodyRecord?.editing && selectedBodyRecord.scope === "profile" ? selectedBodyRecord.record : null;
+    const record = buildBodyRecordFromForm(f, {fallbackAge: profile.age, record:editingRecord});
     const age = String(record.age || "").trim();
     const effectiveAge = age || String(profile.age || "").trim();
     record.age = effectiveAge;
-    const b=[record, ...personalBody];
+    const nextPersonalBody = editingRecord?.id
+      ? personalBody.map(item => item.id === editingRecord.id ? record : item)
+      : [record, ...personalBody];
     const personalBodyIds = new Set(personalBody.map(item => item.id).filter(Boolean));
-    const nextBody = [...b, ...body.filter(item => item.id && !personalBodyIds.has(item.id))];
+    const nextBody = [...nextPersonalBody, ...body.filter(item => item.id && !personalBodyIds.has(item.id))];
     setBodyMessage("");
     try{
       if(age && age !== String(profile.age || "")){
@@ -2053,6 +2060,8 @@ function App(){
       await dataService.saveValue("body", dataMode === "cloud" ? [record] : nextBody);
       setBody(nextBody);
       form?.reset?.();
+      setSelectedBodyRecord(null);
+      setShowProfileBodyEditor(false);
       clearDirty("profile-body");
       removeEditorDraft(globalThis.localStorage, currentDraftKey("profile-body", "current"));
       setBodyMessage("Dados corporais salvos.");
@@ -2091,8 +2100,8 @@ function App(){
       ? (bfResult.final || bfResult.calculated || "")
       : useManual && manualBf ? manualBf : (bfResult.final || bfResult.calculated || manualBf);
     return {
-      id:makeId(),
-      date:String(f.get("date") || today()).trim() || today(),
+      id:target.record?.id || makeId(),
+      date:String(f.get("date") || target.record?.date || today()).trim() || today(),
       sex:draftRecord.sex,
       age:draftRecord.age,
       peso:String(f.get("peso") || "").trim(),
@@ -2112,10 +2121,18 @@ function App(){
       hip:draftRecord.hip,
       chest:String(f.get("chest") || "").trim(),
       abdomen:draftRecord.abdomen,
-      arm:String(f.get("arm") || "").trim(),
-      forearm:String(f.get("forearm") || "").trim(),
-      thigh:String(f.get("thigh") || "").trim(),
-      calf:String(f.get("calf") || "").trim(),
+      arm:String(f.get("arm") || target.record?.arm || "").trim(),
+      armRight:String(f.get("armRight") || "").trim(),
+      armLeft:String(f.get("armLeft") || "").trim(),
+      forearm:String(f.get("forearm") || target.record?.forearm || "").trim(),
+      forearmRight:String(f.get("forearmRight") || "").trim(),
+      forearmLeft:String(f.get("forearmLeft") || "").trim(),
+      thigh:String(f.get("thigh") || target.record?.thigh || "").trim(),
+      thighRight:String(f.get("thighRight") || "").trim(),
+      thighLeft:String(f.get("thighLeft") || "").trim(),
+      calf:String(f.get("calf") || target.record?.calf || "").trim(),
+      calfRight:String(f.get("calfRight") || "").trim(),
+      calfLeft:String(f.get("calfLeft") || "").trim(),
       notes:String(f.get("notes") || "").trim(),
       skinfoldChest:draftRecord.skinfoldChest,
       skinfoldAbdominal:draftRecord.skinfoldAbdominal,
@@ -2149,20 +2166,24 @@ function App(){
     }
     const form = e.currentTarget;
     return runPendingAction(`save-student-body:${student.studentId}`, async()=>{
+    const editingRecord = selectedBodyRecord?.editing && selectedBodyRecord.scope === "student" ? selectedBodyRecord.record : null;
     const record = buildBodyRecordFromForm(new FormData(form), student.isSelf ? {
-      fallbackAge:student.age || profile.age || ""
+      fallbackAge:student.age || profile.age || "",
+      record:editingRecord,
     } : {
       studentId:student.studentId,
       studentName:student.studentName,
       studentEmail:student.studentEmail,
-      fallbackAge:student.age || ""
+      fallbackAge:student.age || "",
+      record:editingRecord,
     });
-    const nextBody = [record, ...body];
+    const nextBody = editingRecord?.id ? body.map(item => item.id === editingRecord.id ? record : item) : [record, ...body];
     setStudentMessage("");
     try{
       await dataService.saveValue("body", dataMode === "cloud" ? [record] : nextBody);
       setBody(nextBody);
       form.reset();
+      setSelectedBodyRecord(null);
       clearDirty("student-body");
       removeEditorDraft(globalThis.localStorage, currentDraftKey("student-body", student.id || "student"));
       setShowStudentBodyForm(false);
@@ -2240,10 +2261,18 @@ function App(){
       ["Quadril", record.hip],
       ["Peito/tórax", record.chest],
       ["Abdômen", record.abdomen],
-      ["Braço", record.arm],
-      ["Antebraço", record.forearm],
-      ["Coxa", record.thigh],
-      ["Panturrilha", record.calf],
+      ["Braço direito", record.armRight],
+      ["Braço esquerdo", record.armLeft],
+      ["Braço", !record.armRight && !record.armLeft ? record.arm : ""],
+      ["Antebraço direito", record.forearmRight],
+      ["Antebraço esquerdo", record.forearmLeft],
+      ["Antebraço", !record.forearmRight && !record.forearmLeft ? record.forearm : ""],
+      ["Coxa direita", record.thighRight],
+      ["Coxa esquerda", record.thighLeft],
+      ["Coxa", !record.thighRight && !record.thighLeft ? record.thigh : ""],
+      ["Panturrilha direita", record.calfRight],
+      ["Panturrilha esquerda", record.calfLeft],
+      ["Panturrilha", !record.calfRight && !record.calfLeft ? record.calf : ""],
       ["Peitoral", record.skinfoldChest],
       ["Abdominal", record.skinfoldAbdominal],
       ["Coxa dobra", record.skinfoldThigh],
@@ -2359,8 +2388,18 @@ function App(){
       confirmLabel:"Cancelar convite",
     });
     if(!confirmed) return;
-    const saved = await runPendingAction(`cancel-invite:${link.id}`, ()=>updateStudentStatus(link, "inactive"));
-    if(saved) notify("Convite cancelado.", "info");
+    const removed = await runPendingAction(`cancel-invite:${link.id}`, async()=>{
+      try {
+        await dataService.deleteCoachStudent(link.id);
+        setCoachStudents(current => current.filter(item => item.id !== link.id));
+        return true;
+      } catch(error) {
+        console.error("Erro ao cancelar convite:", error);
+        notify(error?.message || "Não foi possível cancelar o convite.", "error");
+        return false;
+      }
+    });
+    if(removed) notify("Convite cancelado.", "info");
   }
 
   function openInviteResponder(link){
@@ -6172,20 +6211,20 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
     {renderScreen==="alunos" && appMode === "treinador" && <main className="studentsScreen">
       {selectedStudentProfile ? <>
-        {openSession?.items ? renderOpenSessionDetail(openSession) : selectedBodyRecord ? <section className="studentProfile internalDetail compactStudentProfile">
+        {openSession?.items ? renderOpenSessionDetail(openSession) : selectedBodyRecord && !selectedBodyRecord.editing ? <section className="studentProfile internalDetail compactStudentProfile">
           <section className="studentSection compactStudentSection">
             <h3>Registro corporal</h3>
             {bodyRecordDetailLines(selectedBodyRecord.record).map(([label,value])=><div className="recordLine" key={label}><b>{label}</b><span>{value}</span></div>)}
-            {canManageBodyRecord(selectedBodyRecord.record) && <button type="button" className="danger" disabled={isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`)} aria-busy={isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`)} onClick={async ()=>{
+            {canManageBodyRecord(selectedBodyRecord.record) && <div className="actions"><button type="button" className="ghost" onClick={()=>setSelectedBodyRecord(current=>({...current, editing:true}))}><Edit3 size={16}/> Editar registro</button><button type="button" className="danger" disabled={isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`)} aria-busy={isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`)} onClick={async ()=>{
               if(await deleteBodyRecord(selectedBodyRecord.record, selectedBodyRecord.index)) closeSelectedBodyRecord();
-            }}>{isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`) ? "Excluindo…" : "Excluir registro"}</button>}
+            }}>{isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`) ? "Excluindo…" : "Excluir registro"}</button></div>}
           </section>
-        </section> : showStudentBodyForm || studentDetailView === "bodyForm" ? <section className="studentProfile internalDetail compactStudentProfile">
+        </section> : showStudentBodyForm || studentDetailView === "bodyForm" || selectedBodyRecord?.editing ? <section className="studentProfile internalDetail compactStudentProfile">
           <section className="studentSection compactStudentSection">
             <h3>Dados corporais</h3>
             <form id="student-body-form" className="accountForm bodyRecordForm" onSubmit={event=>addStudentBody(event, selectedStudentProfile)} onInputCapture={()=>markDirty("student-body")} onChangeCapture={()=>markDirty("student-body")} aria-busy={isActionPending(`save-student-body:${selectedStudentProfile.studentId}`)}>
               <input type="hidden" name="bodyFatOverrideMode" value="methodOnly" />
-              <BodyRecordFields profileBodyEditor />
+              <BodyRecordFields key={selectedBodyRecord?.record?.id || "new-student-body"} profileBodyEditor initialValues={selectedBodyRecord?.editing ? selectedBodyRecord.record : undefined} />
               <button disabled={isActionPending(`save-student-body:${selectedStudentProfile.studentId}`)}>
                 {isActionPending(`save-student-body:${selectedStudentProfile.studentId}`) ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Save size={18}/>}
                 {isActionPending(`save-student-body:${selectedStudentProfile.studentId}`) ? "Salvando…" : "Salvar registro corporal"}
@@ -7117,20 +7156,20 @@ function exerciseCatalogToWorkoutItem(ex={}){
     </main>}
 
     {renderScreen==="dados" && <main>
-      {selectedBodyRecord ? <>
+      {selectedBodyRecord && !selectedBodyRecord.editing ? <>
         <section className="formCard">
           <h3>Registro corporal</h3>
           {bodyRecordDetailLines(selectedBodyRecord.record).map(([label,value])=><div className="recordLine" key={label}><b>{label}</b><span>{value}</span></div>)}
-          {canManageBodyRecord(selectedBodyRecord.record) && <button type="button" className="danger" disabled={isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`)} aria-busy={isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`)} onClick={async ()=>{
+          {canManageBodyRecord(selectedBodyRecord.record) && <div className="actions"><button type="button" className="ghost" onClick={()=>setSelectedBodyRecord(current=>({...current, editing:true}))}><Edit3 size={16}/> Editar registro</button><button type="button" className="danger" disabled={isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`)} aria-busy={isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`)} onClick={async ()=>{
             if(await deleteBodyRecord(selectedBodyRecord.record, selectedBodyRecord.index)) closeSelectedBodyRecord();
-          }}>{isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`) ? "Excluindo…" : "Excluir registro"}</button>}
+          }}>{isActionPending(`delete-body:${selectedBodyRecord.record?.id || selectedBodyRecord.index}`) ? "Excluindo…" : "Excluir registro"}</button></div>}
         </section>
-      </> : showProfileBodyEditor ? <>
+      </> : (showProfileBodyEditor || selectedBodyRecord?.editing) ? <>
         <section className="formCard">
           <h3>Dados corporais</h3>
           <form id="profile-body-form" className="accountForm" onSubmit={addBody} onInputCapture={()=>markDirty("profile-body")} onChangeCapture={()=>markDirty("profile-body")} aria-busy={isActionPending("save-profile-body")}>
             <input type="hidden" name="bodyFatOverrideMode" value="methodOnly" />
-            <BodyRecordFields includeDate={false} profileBodyEditor />
+            <BodyRecordFields key={selectedBodyRecord?.record?.id || "new-profile-body"} includeDate={false} profileBodyEditor initialValues={selectedBodyRecord?.editing ? selectedBodyRecord.record : undefined} />
             <button disabled={isActionPending("save-profile-body")}>
               {isActionPending("save-profile-body") && <LoaderCircle className="buttonSpinner" aria-hidden="true"/>}
               {isActionPending("save-profile-body") ? "Salvando…" : "Salvar dados corporais"}
@@ -7323,12 +7362,14 @@ function exerciseCatalogToWorkoutItem(ex={}){
   </div>
 }
 
-function BodyRecordFields({includeDate=false, profileBodyEditor=false}){
-  const [values,setValues] = useState({bodyFatMethod:"manual", sex:"male", useManualBodyFat:false});
+function BodyRecordFields({includeDate=false, profileBodyEditor=false, initialValues}){
+  const [values,setValues] = useState(()=>({bodyFatMethod:"manual", sex:"male", useManualBodyFat:false, ...(initialValues || {})}));
   const patch = event => {
     const target = event.currentTarget;
     setValues(current => ({...current, [target.name]:target.type === "checkbox" ? target.checked : target.value}));
   };
+  const numericField = (name, placeholder) => <Input name={name} type="text" inputMode="decimal" value={values[name] ?? ""} onChange={patch} placeholder={placeholder} aria-label={placeholder} />;
+  const textField = (name, placeholder) => <Textarea name={name} value={values[name] ?? ""} onChange={patch} placeholder={placeholder} aria-label={placeholder} />;
   const bfResult = calculateBodyFat(values);
   const showManual = values.bodyFatMethod === "manual" || (!profileBodyEditor && values.useManualBodyFat);
   const Section = ({title, children}) => <section className="skinfoldBox">
@@ -7344,38 +7385,40 @@ function BodyRecordFields({includeDate=false, profileBodyEditor=false}){
           <option value="male">Masculino</option>
           <option value="female">Feminino</option>
         </Select>
-        <Input name="age" placeholder="Idade" inputMode="numeric" onChange={patch} />
-        <Input name="peso" placeholder="Peso (kg)" inputMode="decimal" onChange={patch} />
-        <Input name="height" placeholder="Altura (cm)" inputMode="decimal" onChange={patch} />
+        <Input name="age" type="text" inputMode="numeric" value={values.age ?? ""} onChange={patch} placeholder="Idade" aria-label="Idade" />
+        {numericField("peso", "Peso (kg)")}
+        {numericField("height", "Altura (cm)")}
       </div>
     </Section>
     <Section title="Medidas">
       <div className="formGrid">
-        <Input name="neck" placeholder="Pescoço (cm)" inputMode="decimal" onChange={patch} />
-        <Input name="shoulder" placeholder="Ombro (cm)" inputMode="decimal" onChange={patch} />
-        <Input name="cintura" placeholder="Cintura (cm)" inputMode="decimal" onChange={patch} />
-        <Input name="hip" placeholder="Quadril (cm)" inputMode="decimal" onChange={patch} />
-        <Input name="chest" placeholder="Peito/tórax (cm)" inputMode="decimal" onChange={patch} />
-        <Input name="abdomen" placeholder="Abdômen (cm)" inputMode="decimal" onChange={patch} />
-        <Input name="arm" placeholder="Braço (cm)" inputMode="decimal" onChange={patch} />
-        <Input name="forearm" placeholder="Antebraço (cm)" inputMode="decimal" onChange={patch} />
-        <Input name="thigh" placeholder="Coxa (cm)" inputMode="decimal" onChange={patch} />
-        <Input name="calf" placeholder="Panturrilha (cm)" inputMode="decimal" onChange={patch} />
+        {numericField("neck", "Pescoço (cm)")}
+        {numericField("shoulder", "Ombro (cm)")}
+        {numericField("cintura", "Cintura (cm)")}
+        {numericField("hip", "Quadril (cm)")}
+        {numericField("chest", "Peito/tórax (cm)")}
+        {numericField("abdomen", "Abdômen (cm)")}
       </div>
-      <Textarea name="notes" placeholder="Observações do registro" />
+      <div className="bodyLateralMeasures" aria-label="Medidas laterais">
+        <div><b>Braço</b><div className="formGrid">{numericField("armRight", "Direito (cm)")}{numericField("armLeft", "Esquerdo (cm)")}</div></div>
+        <div><b>Antebraço</b><div className="formGrid">{numericField("forearmRight", "Direito (cm)")}{numericField("forearmLeft", "Esquerdo (cm)")}</div></div>
+        <div><b>Coxa</b><div className="formGrid">{numericField("thighRight", "Direita (cm)")}{numericField("thighLeft", "Esquerda (cm)")}</div></div>
+        <div><b>Panturrilha</b><div className="formGrid">{numericField("calfRight", "Direita (cm)")}{numericField("calfLeft", "Esquerda (cm)")}</div></div>
+      </div>
+      {textField("notes", "Observações do registro")}
     </Section>
     <Section title="Dobras cutâneas / Adipômetro">
       <div className="formGrid">
-        <Input name="skinfoldChest" placeholder="Peitoral (mm)" inputMode="decimal" onChange={patch} />
-        <Input name="skinfoldAbdominal" placeholder="Abdominal (mm)" inputMode="decimal" onChange={patch} />
-        <Input name="skinfoldThigh" placeholder="Coxa (mm)" inputMode="decimal" onChange={patch} />
-        <Input name="skinfoldTriceps" placeholder="Tríceps (mm)" inputMode="decimal" onChange={patch} />
-        <Input name="skinfoldSubscapular" placeholder="Subescapular (mm)" inputMode="decimal" onChange={patch} />
-        <Input name="skinfoldSuprailiac" placeholder="Supra-ilíaca (mm)" inputMode="decimal" onChange={patch} />
-        <Input name="skinfoldMidaxillary" placeholder="Axilar média (mm)" inputMode="decimal" onChange={patch} />
-        <Input name="skinfoldCalf" placeholder="Panturrilha (mm)" inputMode="decimal" onChange={patch} />
+        {numericField("skinfoldChest", "Peitoral (mm)")}
+        {numericField("skinfoldAbdominal", "Abdominal (mm)")}
+        {numericField("skinfoldThigh", "Coxa (mm)")}
+        {numericField("skinfoldTriceps", "Tríceps (mm)")}
+        {numericField("skinfoldSubscapular", "Subescapular (mm)")}
+        {numericField("skinfoldSuprailiac", "Supra-ilíaca (mm)")}
+        {numericField("skinfoldMidaxillary", "Axilar média (mm)")}
+        {numericField("skinfoldCalf", "Panturrilha (mm)")}
       </div>
-      <Textarea name="skinfoldNotes" placeholder="Observações do teste de adipômetro" />
+      {textField("skinfoldNotes", "Observações do teste de adipômetro")}
     </Section>
     <Section title="Percentual de gordura (BF)" defaultOpen>
       <Select name="bodyFatMethod" value={values.bodyFatMethod || "manual"} onChange={patch}>
@@ -7390,7 +7433,7 @@ function BodyRecordFields({includeDate=false, profileBodyEditor=false}){
       </label>
       {values.bodyFatMethod === "manual" && <label>
           <span>BF manual</span>
-          <Input name="bodyFatManual" placeholder="BF manual (%)" inputMode="decimal" onChange={patch} />
+          {numericField("bodyFatManual", "BF manual (%)")}
           <small>Informe o BF manual para salvar o valor final.</small>
         </label>}
       <p className="bfPreview">
