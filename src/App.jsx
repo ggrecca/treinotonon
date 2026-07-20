@@ -28,6 +28,7 @@ import { buildExerciseEvolution, buildExerciseSummary, buildTrainerAnalytics, se
 import { enqueueToast } from "./utils/toasts";
 import { executeAssignmentBatch, mergeAssignmentsById } from "./utils/assignmentBatch";
 import { buildInviteDeepLink, buildInviteMailtoHref, buildInviteShareText, cleanInviteDeepLink, deriveInviteExpiresAt, deriveInviteStatus, getInviteStatusMeta, readInviteDeepLink } from "./utils/invitations";
+import { bodyFatMethodLabel as bfMethodLabel, calculateBodyFat } from "./utils/bodyFat";
 import { athleteOnboardingSteps, finishOnboarding, mergeOnboardingProgress, readOnboardingState, trainerOnboardingSteps } from "./utils/onboarding";
 import { mergeUiHistoryState, readUiHistoryState, uiHistoryDirection } from "./utils/uiHistory";
 import { registerPwa } from "./pwa/registerPwa";
@@ -84,60 +85,6 @@ function firstFilled(...values){
 }
 function bodyFatValue(record){
   return firstFilled(record?.bodyFatFinal, record?.bf, record?.bodyFatCalculated, record?.bodyFatManual);
-}
-function decimalText(value){
-  const n = Number(value);
-  return Number.isFinite(n) ? String(Math.round(n * 10) / 10).replace(".", ",") : "";
-}
-function bfMethodLabel(method){
-  if(method === "jp3") return "Jackson & Pollock 3 dobras";
-  if(method === "jp7") return "Jackson & Pollock 7 dobras";
-  if(method === "navy") return "Navy / Circunferências";
-  return "Manual";
-}
-function calculateBodyFat(data){
-  const method = data.bodyFatMethod || "manual";
-  const sex = data.sex || "";
-  const age = numericValue(data.age);
-  const skinfold = key => numericValue(data[key]);
-  const measure = key => numericValue(data[key]);
-  if(method === "manual") return {method, label:bfMethodLabel(method), message:""};
-  if(!sex) return {method, label:bfMethodLabel(method), message:"Informe o sexo para calcular o BF."};
-  if((method === "jp3" || method === "jp7") && !age) return {method, label:bfMethodLabel(method), message:"Informe a idade para calcular o BF."};
-  let sum = 0;
-  let density = 0;
-  if(method === "jp3"){
-    const keys = sex === "female" ? ["skinfoldTriceps","skinfoldSuprailiac","skinfoldThigh"] : ["skinfoldChest","skinfoldAbdominal","skinfoldThigh"];
-    const values = keys.map(skinfold);
-    if(values.some(value => !value)) return {method, label:bfMethodLabel(method), message:"Preencha as medidas necessárias para este método."};
-    sum = values.reduce((total,value)=>total + value, 0);
-    density = sex === "female"
-      ? 1.0994921 - 0.0009929 * sum + 0.0000023 * (sum ** 2) - 0.0001392 * age
-      : 1.10938 - 0.0008267 * sum + 0.0000016 * (sum ** 2) - 0.0002574 * age;
-  }
-  if(method === "jp7"){
-    const values = ["skinfoldChest","skinfoldMidaxillary","skinfoldTriceps","skinfoldSubscapular","skinfoldAbdominal","skinfoldSuprailiac","skinfoldThigh"].map(skinfold);
-    if(values.some(value => !value)) return {method, label:bfMethodLabel(method), message:"Preencha as medidas necessárias para este método."};
-    sum = values.reduce((total,value)=>total + value, 0);
-    density = sex === "female"
-      ? 1.097 - 0.00046971 * sum + 0.00000056 * (sum ** 2) - 0.00012828 * age
-      : 1.112 - 0.00043499 * sum + 0.00000055 * (sum ** 2) - 0.00028826 * age;
-  }
-  if(method === "navy"){
-    const height = measure("height") / 2.54;
-    const neck = measure("neck") / 2.54;
-    const waist = (measure("abdomen") || measure("cintura")) / 2.54;
-    const hip = measure("hip") / 2.54;
-    const girth = sex === "female" ? waist + hip - neck : waist - neck;
-    if(!height || !neck || !waist || (sex === "female" && !hip) || girth <= 0) return {method, label:bfMethodLabel(method), message:"Preencha as medidas necessárias para este método."};
-    const bodyFat = sex === "female"
-      ? 163.205 * Math.log10(girth) - 97.684 * Math.log10(height) - 78.387
-      : 86.010 * Math.log10(girth) - 70.041 * Math.log10(height) + 36.76;
-    return {method, label:bfMethodLabel(method), calculated:decimalText(bodyFat), final:decimalText(bodyFat), message:""};
-  }
-  if(!density) return {method, label:bfMethodLabel(method), message:"Preencha as medidas necessárias para este método."};
-  const bodyFat = 495 / density - 450;
-  return {method, label:bfMethodLabel(method), calculated:decimalText(bodyFat), final:decimalText(bodyFat), density:decimalText(density), skinfoldSum:decimalText(sum), message:""};
 }
 function plannedSetCount(v){ return Math.max(1, Math.min(12, Math.round(numericValue(v) || 1))); }
 function plannedReps(v){ return String(numericValue(v) || "").trim(); }
