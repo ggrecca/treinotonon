@@ -5,11 +5,16 @@ import { describe, expect, it } from "vitest";
 const projectFile = name => readFileSync(resolve(process.cwd(), name), "utf8");
 
 describe("dados corporais e convites", () => {
-  it("mantém campos decimais controlados e inclui lateralidade", () => {
+  it("mantém campos decimais controlados, sem seção recriada, e inclui lateralidade", () => {
     const app = projectFile("src/App.jsx");
+    const draft = projectFile("src/utils/bodyRecordDraft.js");
     const css = projectFile("src/style.css");
 
     expect(app).toContain('type="text" inputMode="decimal" value={values[name] ?? ""}');
+    expect(app).toContain("function BodyRecordSection({title, children})");
+    expect(app).not.toContain("const Section = ({title, children})");
+    expect(app).toContain("patchBodyRecordDraft(current, target)");
+    expect(draft).toContain('String(value ?? "")');
     expect(app).toContain('numericField("armRight", "Direito (cm)")');
     expect(app).toContain('numericField("calfLeft", "Esquerda (cm)")');
     expect(app).toContain('record:latestRecord,index:0,editing:true');

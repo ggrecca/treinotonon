@@ -29,6 +29,7 @@ import { enqueueToast } from "./utils/toasts";
 import { executeAssignmentBatch, mergeAssignmentsById } from "./utils/assignmentBatch";
 import { buildInviteDeepLink, buildInviteMailtoHref, buildInviteShareText, cleanInviteDeepLink, deriveInviteExpiresAt, deriveInviteStatus, getInviteStatusMeta, readInviteDeepLink } from "./utils/invitations";
 import { bodyFatMethodLabel as bfMethodLabel, calculateBodyFat } from "./utils/bodyFat";
+import { createBodyRecordDraft, patchBodyRecordDraft } from "./utils/bodyRecordDraft";
 import { athleteOnboardingSteps, finishOnboarding, mergeOnboardingProgress, readOnboardingState, trainerOnboardingSteps } from "./utils/onboarding";
 import { mergeUiHistoryState, readUiHistoryState, uiHistoryDirection } from "./utils/uiHistory";
 import { registerPwa } from "./pwa/registerPwa";
@@ -7309,23 +7310,26 @@ function exerciseCatalogToWorkoutItem(ex={}){
   </div>
 }
 
+function BodyRecordSection({title, children}){
+  return <section className="skinfoldBox">
+    <h4>{title}</h4>
+    {children}
+  </section>;
+}
+
 function BodyRecordFields({includeDate=false, profileBodyEditor=false, initialValues}){
-  const [values,setValues] = useState(()=>({bodyFatMethod:"manual", sex:"male", useManualBodyFat:false, ...(initialValues || {})}));
+  const [values,setValues] = useState(()=>createBodyRecordDraft(initialValues));
   const patch = event => {
     const target = event.currentTarget;
-    setValues(current => ({...current, [target.name]:target.type === "checkbox" ? target.checked : target.value}));
+    setValues(current => patchBodyRecordDraft(current, target));
   };
   const numericField = (name, placeholder) => <Input name={name} type="text" inputMode="decimal" value={values[name] ?? ""} onChange={patch} placeholder={placeholder} aria-label={placeholder} />;
   const textField = (name, placeholder) => <Textarea name={name} value={values[name] ?? ""} onChange={patch} placeholder={placeholder} aria-label={placeholder} />;
   const bfResult = calculateBodyFat(values);
   const showManual = values.bodyFatMethod === "manual" || (!profileBodyEditor && values.useManualBodyFat);
-  const Section = ({title, children}) => <section className="skinfoldBox">
-    <h4>{title}</h4>
-    {children}
-  </section>;
   if(profileBodyEditor) return <>
     {includeDate && <Input name="date" type="date" defaultValue={today()} />}
-    <Section title="Dados básicos" defaultOpen>
+    <BodyRecordSection title="Dados básicos">
       <div className="formGrid">
         <Select name="sex" value={values.sex || ""} onChange={patch}>
           <option value="">Sexo</option>
@@ -7336,8 +7340,8 @@ function BodyRecordFields({includeDate=false, profileBodyEditor=false, initialVa
         {numericField("peso", "Peso (kg)")}
         {numericField("height", "Altura (cm)")}
       </div>
-    </Section>
-    <Section title="Medidas">
+    </BodyRecordSection>
+    <BodyRecordSection title="Medidas">
       <div className="formGrid">
         {numericField("neck", "Pescoço (cm)")}
         {numericField("shoulder", "Ombro (cm)")}
@@ -7353,8 +7357,8 @@ function BodyRecordFields({includeDate=false, profileBodyEditor=false, initialVa
         <div><b>Panturrilha</b><div className="formGrid">{numericField("calfRight", "Direita (cm)")}{numericField("calfLeft", "Esquerda (cm)")}</div></div>
       </div>
       {textField("notes", "Observações do registro")}
-    </Section>
-    <Section title="Dobras cutâneas / Adipômetro">
+    </BodyRecordSection>
+    <BodyRecordSection title="Dobras cutâneas / Adipômetro">
       <div className="formGrid">
         {numericField("skinfoldChest", "Peitoral (mm)")}
         {numericField("skinfoldAbdominal", "Abdominal (mm)")}
@@ -7366,8 +7370,8 @@ function BodyRecordFields({includeDate=false, profileBodyEditor=false, initialVa
         {numericField("skinfoldCalf", "Panturrilha (mm)")}
       </div>
       {textField("skinfoldNotes", "Observações do teste de adipômetro")}
-    </Section>
-    <Section title="Percentual de gordura (BF)" defaultOpen>
+    </BodyRecordSection>
+    <BodyRecordSection title="Percentual de gordura (BF)">
       <Select name="bodyFatMethod" value={values.bodyFatMethod || "manual"} onChange={patch}>
         <option value="manual">Manual</option>
         <option value="jp3">Jackson & Pollock 3 dobras</option>
@@ -7390,7 +7394,7 @@ function BodyRecordFields({includeDate=false, profileBodyEditor=false, initialVa
             ? `BF calculado: ${bfResult.calculated}%${bfResult.skinfoldSum ? ` · soma ${bfResult.skinfoldSum} mm` : ""}${bfResult.density ? ` · densidade ${bfResult.density}` : ""}`
             : bfResult.message || "Preencha as medidas necessárias para este método."}
       </p>
-    </Section>
+    </BodyRecordSection>
   </>;
   return <>
     {includeDate && <Input name="date" type="date" defaultValue={today()} />}
