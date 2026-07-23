@@ -8,6 +8,7 @@ import type {
   Workout,
   WorkoutSession,
 } from "./types";
+import { normalizeExerciseName, resolveExerciseName } from "../../utils/exerciseLibrary";
 
 const KEYS = {
   athletes: "athletes",
@@ -113,7 +114,7 @@ function normalizeExercise(value: unknown): Exercise {
   return withEntityFields({
     ...item,
     userId: String(item.userId || LOCAL_USER_ID),
-    name: String(item.name || ""),
+    name: resolveExerciseName(item),
     sets: String(item.sets || "3"),
     reps: String(item.reps || "10"),
     load: String(item.load || ""),
@@ -305,10 +306,10 @@ export const localDataService = {
   async saveExercise(exercise: Exercise): Promise<void> {
     const normalized = normalizeExercise(exercise);
     const normalizedId = String(normalized.id || "").toLowerCase();
-    const normalizedName = String(normalized.name || "").toLowerCase();
+    const normalizedName = normalizeExerciseName(normalized);
     const exercises = (await this.getExercises()).filter(item => {
       const itemId = String(item.id || "").toLowerCase();
-      const itemName = String(item.name || "").toLowerCase();
+      const itemName = normalizeExerciseName(item);
       if(normalizedId && itemId === normalizedId) return false;
       if(itemName === normalizedName) return false;
       return true;
