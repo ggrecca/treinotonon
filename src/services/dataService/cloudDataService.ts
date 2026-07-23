@@ -16,6 +16,7 @@ import type {
   WorkoutSessionExercise,
   WorkoutSet,
 } from "./types";
+import { resolveExerciseName } from "../../utils/exerciseLibrary";
 
 const DEFAULT_PROFILE = {name: "Usuario", age: ""};
 const DEFAULT_TIMER_SECONDS = 50;
@@ -300,7 +301,7 @@ function exerciseFromLibraryRow(row: JsonRecord): Exercise {
     userId: cleanText(row.owner_id),
     createdAt: cleanText(row.created_at || nowIso()),
     updatedAt: cleanText(row.updated_at || nowIso()),
-    name: cleanText(row.name),
+    name: cleanText(resolveExerciseName(row)),
     group,
     muscleGroup: cleanText(row.muscle_group || group),
     category,
@@ -897,6 +898,8 @@ export const cloudDataService = {
     const user = await requireUser();
     const client = requireClient();
     const id = isUuid(exercise.id) ? cleanText(exercise.id) : makeId();
+    const name = cleanText(resolveExerciseName(exercise));
+    if(!name) throw new Error("Informe o nome do exercício.");
     const primaryGroup = cleanText(exercise.primaryGroup || exercise.muscleGroup || exercise.group || "Outro");
     const category = cleanText(exercise.category || exercise.muscleGroup || exercise.group || "Outro");
     const secondaryGroups = cleanTextArray(exercise.secondaryGroups || exercise.secondary_groups);
@@ -906,7 +909,7 @@ export const cloudDataService = {
     const {error} = await client.from("exercise_library").upsert({
       id,
       owner_id: user.id,
-      name: cleanText(exercise.name || "Exercicio"),
+      name,
       muscle_group: primaryGroup,
       category,
       primary_group: primaryGroup,

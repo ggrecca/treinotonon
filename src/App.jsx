@@ -30,6 +30,7 @@ import { executeAssignmentBatch, mergeAssignmentsById } from "./utils/assignment
 import { buildInviteDeepLink, buildInviteMailtoHref, buildInviteShareText, cleanInviteDeepLink, deriveInviteExpiresAt, deriveInviteStatus, getInviteStatusMeta, readInviteDeepLink } from "./utils/invitations";
 import { bodyFatMethodLabel as bfMethodLabel, calculateBodyFat } from "./utils/bodyFat";
 import { createBodyRecordDraft, patchBodyRecordDraft } from "./utils/bodyRecordDraft";
+import { findExactExerciseMatches, normalizeExerciseName, resolveExerciseName } from "./utils/exerciseLibrary";
 import { athleteOnboardingSteps, finishOnboarding, mergeOnboardingProgress, readOnboardingState, trainerOnboardingSteps } from "./utils/onboarding";
 import { mergeUiHistoryState, readUiHistoryState, uiHistoryDirection } from "./utils/uiHistory";
 import { registerPwa } from "./pwa/registerPwa";
@@ -184,17 +185,6 @@ function itemToTags(item){
   if(item.group) tags.push(item.group);
   if(item.type && item.type !== "NORMAL") tags.push(item.type);
   return tags;
-}
-
-function normalizeExerciseName(value){
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g,"")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g," ")
-    .replace(/\b(com|no|na|de|da|do|em)\b/g,"")
-    .replace(/\s+/g," ")
-    .trim();
 }
 
 function normalizeFilterText(value){
@@ -605,6 +595,8 @@ function App(){
   const [workoutLibraryTag,setWorkoutLibraryTag]=useState("Todos");
   const [workoutLibraryFiltersOpen,setWorkoutLibraryFiltersOpen]=useState(false);
   const [workoutLibrarySelection,setWorkoutLibrarySelection]=useState([]);
+  const [showInlineExerciseCreator,setShowInlineExerciseCreator]=useState(false);
+  const [inlineExerciseForm,setInlineExerciseForm]=useState({...blankExercise, name:""});
   const [activeSession,setActiveSession]=useState(null);
   const activeSessionHydratedRef = useRef(false);
   const activeSessionUserRef = useRef("");
@@ -2602,7 +2594,7 @@ function catalogExercise(ex={}){
   const technicalNotes = String(ex.technicalNotes || ex.technical_notes || ex.notes || ex.instructions || "").trim();
   return {
     id:String(ex.id || makeId()),
-    name:String(ex.name || "").trim(),
+    name:resolveExerciseName(ex),
     category,
     group,
     primaryGroup:group,
@@ -4355,6 +4347,61 @@ function exerciseCatalogToWorkoutItem(ex={}){
     setNewWorkout(workoutItem=>({...workoutItem, items:[...workoutItem.items, ...exercises.map(exerciseCatalogToWorkoutItem)]}));
     setWorkoutLibrarySelection([]);
     notify(`${exercises.length} exercício${exercises.length === 1 ? " adicionado" : "s adicionados"}.`, "success");
+  }
+
+  function addExerciseToWorkoutDraft(exercise){
+    const name = resolveExerciseName(exercise);
+    const normalizedName = normalizeExerciseName(name);
+    const existing = newWorkout.items.some(item =>
+      (exercise?.id && String(item.exerciseId || "") === String(exercise.id))
+      || (normalizedName && normalizeExerciseName(item) === normalizedName)
+    );
+    if(existing){
+      notify("Este exercício já está no treino.", "info");
+      return false;
+    }
+    setNewWorkout(current => ({...current, items:[...current.items, exerciseCatalogToWorkoutItem({...exercise, name})]}));
+    return true;
+  }
+
+  function startInlineExerciseCreator(){
+    setInlineExerciseForm({...blankExercise, name:resolveExerciseName(workoutLibrarySearch)});
+    setShowInlineExerciseCreator(true);
+  }
+
+  function cancelInlineExerciseCreator(){
+    setShowInlineExerciseCreator(false);
+    setInlineExerciseForm({...blankExercise, name:""});
+  }
+
+  const inlineExerciseMatches = useMemo(() => findExactExerciseMatches(fullLibrary, inlineExerciseForm.name), [fullLibrary, inlineExerciseForm.name]);
+
+  async function saveInlineExercise(event){
+    event.preventDefault();
+    if(!ensureMutationAllowed()) return;
+    const normalized = catalogExercise(inlineExerciseForm);
+    if(!normalized.name) return notify("Informe o nome do exercício.", "warning");
+    const duplicates = findExactExerciseMatches(fullLibrary, normalized.name);
+    if(duplicates.length){
+      notify("Já existe um exercício com esse nome. Selecione o item existente abaixo.", "info");
+      return;
+    }
+    return runPendingAction("save-inline-exercise", async()=>{
+      try{
+        await dataService.saveExercise(normalized);
+        const hidden = hiddenLibrary.filter(name => normalizeExerciseName(name) !== normalizeExerciseName(normalized));
+        if(hidden.length !== hiddenLibrary.length) await dataService.saveSettings({hiddenLibrary:hidden});
+        setUserLibrary(current => [...current, normalized].sort((a,b)=>resolveExerciseName(a).localeCompare(resolveExerciseName(b))));
+        setHiddenLibrary(hidden);
+        addExerciseToWorkoutDraft(normalized);
+        cancelInlineExerciseCreator();
+        setWorkoutLibrarySearch("");
+        notify("Exercício criado e adicionado ao treino.", "success");
+      } catch(error){
+        console.error("Erro ao criar exercício durante o treino:", error);
+        notify(error?.message || "Não foi possível criar o exercício. Tente novamente.", "error");
+      }
+    });
   }
 
   const exerciseChipTags = exercise => [
@@ -6698,6 +6745,41 @@ function exerciseCatalogToWorkoutItem(ex={}){
               </button>;
             }}
           />
+          {filteredLibrary.length === 0 && !showInlineExerciseCreator && <section className="inlineExerciseCreator" aria-live="polite">
+            <div>
+              <h4>Nenhum exercício encontrado</h4>
+              <p className="emptyHint">Crie o exercício sem sair da montagem deste treino.</p>
+            </div>
+            <button type="button" onClick={startInlineExerciseCreator}><PlusCircle size={18}/> {workoutLibrarySearch.trim() ? `Criar “${workoutLibrarySearch.trim()}”` : "Criar novo exercício"}</button>
+          </section>}
+          {showInlineExerciseCreator && <form className="inlineExerciseCreator" onSubmit={saveInlineExercise}>
+            <div>
+              <h4>Novo exercício</h4>
+              <p className="emptyHint">Ao salvar, ele entra automaticamente neste treino.</p>
+            </div>
+            <Input autoFocus value={inlineExerciseForm.name} onChange={event=>setInlineExerciseForm(current=>({...current, name:event.currentTarget.value}))} placeholder="Nome do exercício" aria-label="Nome do novo exercício" />
+            <div className="formGrid">
+              <Input value={inlineExerciseForm.primaryGroup || inlineExerciseForm.group || ""} onChange={event=>setInlineExerciseForm(current=>({...current, primaryGroup:event.currentTarget.value, group:event.currentTarget.value}))} placeholder="Grupo muscular" aria-label="Grupo muscular" />
+              <Input value={normalizeList(inlineExerciseForm.equipmentList || inlineExerciseForm.equipment).join(", ")} onChange={event=>setInlineExerciseForm(current=>({...current, equipmentList:normalizeList(event.currentTarget.value)}))} placeholder="Equipamento (opcional)" aria-label="Equipamento" />
+            </div>
+            {inlineExerciseMatches.length > 0 && <div className="inlineExerciseMatches" role="status">
+              <small>Já existe um exercício com esse nome:</small>
+              {inlineExerciseMatches.map(exercise=><button className="inlineExerciseMatch" type="button" key={exercise.id || libraryKey(exercise)} onClick={()=>{
+                if(addExerciseToWorkoutDraft(exercise)){
+                  cancelInlineExerciseCreator();
+                  setWorkoutLibrarySearch("");
+                  notify("Exercício existente adicionado ao treino.", "success");
+                }
+              }}>{resolveExerciseName(exercise)} · {exercise.primaryGroup || exercise.group || exercise.category || "Outro"}</button>)}
+            </div>}
+            <div className="createActions">
+              <button type="button" className="ghost" disabled={isActionPending("save-inline-exercise")} onClick={cancelInlineExerciseCreator}>Cancelar</button>
+              <button disabled={isActionPending("save-inline-exercise") || inlineExerciseMatches.length > 0} aria-busy={isActionPending("save-inline-exercise")}>
+                {isActionPending("save-inline-exercise") ? <LoaderCircle className="buttonSpinner" aria-hidden="true"/> : <Save size={18}/>}
+                {isActionPending("save-inline-exercise") ? "Salvando…" : "Criar e adicionar"}
+              </button>
+            </div>
+          </form>}
           {workoutLibrarySelection.length > 0 && <div className="librarySelectionBar" role="status" aria-live="polite">
             <b>{workoutLibrarySelection.length} selecionado{workoutLibrarySelection.length === 1 ? "" : "s"}</b>
             <button type="button" className="ghost small" onClick={()=>setWorkoutLibrarySelection([])}>Limpar</button>
