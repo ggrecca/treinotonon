@@ -2482,10 +2482,13 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
 .athleteWorkoutRecommendations small{color:var(--color-text-muted);font-size:10px;font-weight:850;text-transform:uppercase}
 .athleteWorkoutRecommendations b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
 .athleteWorkoutsScreen .workoutListCard{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:12px;
   min-height:0;
   padding:12px;
   border-radius:var(--radius-lg);
-  align-items:center;
+  align-items:end;
 }
 .athleteWorkoutsScreen .workoutListCard:hover{
   border-color:color-mix(in srgb,var(--color-primary) 40%,var(--color-border));
@@ -2498,16 +2501,44 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
   border-color:color-mix(in srgb,var(--color-info) 28%,var(--color-border));
 }
 .athleteWorkoutsScreen .workoutCardContent{
+  display:grid;
+  gap:6px;
   min-width:0;
+}
+.athleteWorkoutsScreen .workoutCardOpen{
+  width:100%;
+  min-height:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  color:inherit;
+  font:inherit;
+  text-align:left;
+}
+.athleteWorkoutsScreen .workoutCardOpen:hover{
+  border-color:transparent;
+  background:transparent;
+}
+.athleteWorkoutsScreen .workoutCardOpen:active{transform:none}
+.athleteWorkoutsScreen .workoutCardOpen:focus-visible{
+  outline:2px solid var(--tt-color-primary);
+  outline-offset:3px;
+  box-shadow:none;
 }
 .athleteWorkoutsScreen .workoutCardTitle{
   display:flex;
-  align-items:center;
+  align-items:flex-start;
+  flex-wrap:wrap;
   gap:7px;
 }
 .athleteWorkoutsScreen .workoutCardTitle strong{
+  flex:1 1 150px;
+  min-width:0;
   font-size:16px;
   line-height:1.2;
+  overflow-wrap:anywhere;
 }
 .athleteWorkoutsScreen .workoutCardTitle span{
   flex:0 0 auto;
@@ -2522,21 +2553,21 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
   background:color-mix(in srgb,var(--color-info) 12%,var(--color-card-elevated));
 }
 .athleteWorkoutsScreen .workoutCardMeta{
-  display:flex;
-  flex-wrap:wrap;
-  gap:2px 9px;
-  margin-top:5px;
+  display:grid;
+  gap:2px;
 }
 .athleteWorkoutsScreen .workoutCardMeta small{
   color:var(--color-text-secondary);
   font-size:12px;
   line-height:1.35;
 }
-.athleteWorkoutsScreen .managerActions{
-  flex:0 0 auto;
+.athleteWorkoutsScreen .athleteWorkoutCardAction{
+  min-width:0;
+  align-self:end;
+  justify-self:end;
   max-width:none;
 }
-.athleteWorkoutsScreen .managerActions button{
+.athleteWorkoutsScreen .athleteWorkoutCardAction button{
   min-height:36px;
   padding:0 11px;
 }
@@ -2545,7 +2576,7 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
 }
 @media(max-width:520px){
   .athleteWorkoutsScreen .workoutListCard{
-    display:flex;
+    grid-template-columns:minmax(0,1fr);
     gap:10px;
   }
   .athleteWorkoutsScreen .workoutCardTitle{
@@ -2554,8 +2585,14 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
   .athleteWorkoutsScreen .workoutCardTitle span{
     margin-top:1px;
   }
-  .athleteWorkoutsScreen .managerActions{
-    width:auto;
+  .athleteWorkoutsScreen .athleteWorkoutCardAction{
+    width:100%;
+    justify-self:stretch;
+    padding-top:10px;
+    border-top:1px solid var(--color-border);
+  }
+  .athleteWorkoutsScreen .athleteWorkoutCardAction button{
+    width:100%;
   }
 }
 .mode-atleta .workoutDetailScreen{

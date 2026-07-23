@@ -13,7 +13,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { authService, configurationError, isSupabaseConfigured } from "./services/authService";
 import { dataService } from "./services/dataService";
 import { EXERCISE_LIBRARY } from "./data/exerciseLibrary";
-import { buildRepPlan, expandRepTargetsForSets, isDropSetType, isRestPauseType, isSegmentedRepType, normalizeRepTargets, parseDropTargets, parseRepTargets, parseSingleRepTarget, repTargetLabelsForEditing, setRepTargetLabelForEditing, targetLabel } from "./utils/repTargets";
+import { buildRepPlan, expandRepTargetsForSets, formatExerciseRepSummary, isDropSetType, isRestPauseType, isSegmentedRepType, normalizeRepTargets, parseDropTargets, parseRepTargets, parseSingleRepTarget, repTargetLabelsForEditing, setRepTargetLabelForEditing, targetLabel } from "./utils/repTargets";
 import { Card } from "./components/Card";
 import { Badge, BottomSheet, Button, Card as DesignSystemCard, Dialog, Input, Select, Tabs, TabsContent, Textarea, ToastRegion } from "./design-system";
 import { AppDialog } from "./components/AppDialog";
@@ -431,8 +431,7 @@ function shouldSuggestRepTargets(exercise){
 }
 
 function exerciseRepSummary(exercise){
-  const separator = isSegmentedRepType(getExerciseType(exercise)) ? " + " : " / ";
-  return repTargetsForExercise(exercise).map(targetLabel).filter(Boolean).join(separator) || exercise?.reps || "";
+  return formatExerciseRepSummary({...exercise, type:getExerciseType(exercise)});
 }
 
 function methodRepHint(exercise){
@@ -6614,7 +6613,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
               {appMode === "treinador" && objective && <small>{objective}</small>}
             </div>
           </button>
-          <div className="managerActions">
+          <div className="managerActions athleteWorkoutCardAction">
             {appMode !== "treinador" && <button type="button" className="ghost small" onClick={openWorkout}>Ver treino</button>}
             {appMode === "treinador" && <button type="button" onClick={openWorkout}>Abrir</button>}
             {appMode === "treinador" && <ActionMenu id={`workout-list-${k}`} label="Ações do treino">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildRepPlan, expandRepTargetsForSets, normalizeRepTargets, parseDropTargets, parseRepTargets, setRepTargetLabelForEditing } from "../repTargets";
+import { buildRepPlan, expandRepTargetsForSets, formatExerciseRepSummary, normalizeRepTargets, parseDropTargets, parseRepTargets, setRepTargetLabelForEditing } from "../repTargets";
 
 describe("metas de repetições", () => {
   it("distribui progressivo 12 / 10 / 8 por série", () => {
@@ -37,5 +37,36 @@ describe("metas de repetições", () => {
     const plan = buildRepPlan({type:"REST PAUSE", reps:"10 + 4 + 3", setCount:2});
     expect(plan.map(set => set.drops.map(item => item.label))).toEqual([["10","4","3"],["10","4","3"]]);
     expect(plan.every(set => set.segmentKind === "rest_pause")).toBe(true);
+  });
+
+  it("separa as séries de drop set com barra e os drops internos com mais", () => {
+    expect(formatExerciseRepSummary({type:"DROP SET", sets:"3", reps:"12 + 8"}))
+      .toBe("12 + 8 / 12 + 8 / 12 + 8");
+    expect(formatExerciseRepSummary({
+      type:"DROP SET", sets:"3", reps:"12 + 8",
+      dropTargetsBySet:[
+        [{reps:"12"},{reps:"8"}],
+        [{reps:"10"},{reps:"6"}],
+        [{reps:"8"},{reps:"4"}],
+      ],
+    })).toBe("12 + 8 / 10 + 6 / 8 + 4");
+    expect(formatExerciseRepSummary({
+      type:"DROP SET", sets:"3", reps:"12 + 8",
+      targetRepsBySet:["12 + 8", "10 + 6", "8 + 4"],
+    })).toBe("12 + 8 / 10 + 6 / 8 + 4");
+  });
+
+  it("preserva os resumos de séries normal, progressiva e rest-pause", () => {
+    expect(formatExerciseRepSummary({type:"NORMAL", sets:"3", reps:"12 / 10 / 8"})).toBe("12 / 10 / 8");
+    expect(formatExerciseRepSummary({type:"PROG", sets:"3", targetRepsBySet:["12", "10", "8"]})).toBe("12 / 10 / 8");
+    expect(formatExerciseRepSummary({type:"REST PAUSE", sets:"2", reps:"10 + 4 + 3"})).toBe("10 + 4 + 3");
+  });
+
+  it("não produz separadores inválidos com dados vazios ou incompletos", () => {
+    expect(formatExerciseRepSummary({type:"DROP SET", sets:"3", reps:""})).toBe("");
+    expect(formatExerciseRepSummary({
+      type:"DROP SET", sets:"2", reps:"12 + 8",
+      dropTargetsBySet:[[ {reps:"12"}, {reps:""} ], null],
+    })).toBe("12 / 12");
   });
 });
