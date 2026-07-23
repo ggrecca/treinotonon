@@ -31,6 +31,21 @@ describe("payload transacional de treino", () => {
     expect(restPause[1].drops.map(item => item.target_reps)).toEqual(["10","4","3"]);
   });
 
+  it("mantém uma única carga por série no rest-pause", () => {
+    const sets = buildPrescribedSets({
+      name:"Rosca", type:"REST PAUSE", sets:"2", reps:"10 + 4 + 3", load:"40",
+      // Dados legados podem trazer cargas diferentes nos blocos. A nova
+      // prescrição deve normalizá-los para a carga da própria série.
+      dropTargetsBySet:[
+        [{reps:"10",load:"40"}, {reps:"4",load:"30"}, {reps:"3",load:"20"}],
+        [{reps:"8",load:"42"}, {reps:"4",load:"32"}, {reps:"3",load:"22"}],
+      ],
+    });
+    expect(sets.map(set => set.target_load)).toEqual([40, 40]);
+    expect(sets[0].drops.map(drop => drop.target_load)).toEqual([40, 40, 40]);
+    expect(sets[1].drops.map(drop => drop.target_load)).toEqual([40, 40, 40]);
+  });
+
   it("grava conjugados nas colunas próprias e mantém notas limpas", () => {
     const payload = buildWorkoutRpcPayload({
       name:"Treino conjugado",
@@ -76,6 +91,24 @@ describe("payload transacional de treino", () => {
     expect(payload.items[0].sets[0].performed_reps).toBe("12");
     expect(payload.items[0].sets[0].drops[0].performed_reps).toBe("8");
     expect(payload.snapshotWorkout).toBeNull();
+  });
+
+  it("replica a carga única da série para os blocos rest-pause no payload", () => {
+    const payload = buildSessionRpcPayload({
+      id:"55555555-5555-4555-8555-555555555555",
+      userId:USER_ID,
+      createdAt:"2026-07-11T10:00:00.000Z",
+      updatedAt:"2026-07-11T10:30:00.000Z",
+      date:"2026-07-11T10:00:00.000Z",
+      workout:STUDENT_ID,
+      workoutId:STUDENT_ID,
+      items:[{
+        exercise:"Rosca", type:"REST PAUSE",
+        sets:[{load:"40", done:true, drops:[{reps:"10", done:true}, {reps:"4", done:true}]}],
+      }],
+    }, USER_ID);
+    expect(payload.items[0].sets[0].performed_load).toBe(40);
+    expect(payload.items[0].sets[0].drops.map(drop => drop.performed_load)).toEqual([40, 40]);
   });
 
   it("inclui snapshot na mesma RPC quando a sessão é legada", () => {

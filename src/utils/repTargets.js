@@ -159,13 +159,44 @@ function dropSetLabel(values) {
 }
 
 /**
+ * Returns the individual Rest-Pause blocks without confusing them with
+ * independent sets.  The text formatter and React renderers use the same
+ * source so lists, history and print-friendly output stay consistent.
+ */
+export function restPauseRepLabels(exercise = {}) {
+  const rows = Array.isArray(exercise?.dropTargetsBySet) ? exercise.dropTargetsBySet : [];
+  const configured = rows.find(row => Array.isArray(row) && row.some(cell => cleanLabel(cell?.reps)));
+  if(configured) {
+    const labels = configured
+      .map(cell => cleanLabel(cell?.reps))
+      .filter(Boolean);
+    if(labels.length) return labels;
+  }
+
+  const reps = cleanLabel(exercise?.reps);
+  const fromReps = parseDropTargets(reps).map(targetLabel).filter(Boolean);
+  if(fromReps.length) return fromReps;
+
+  return normalizeRepTargets(exercise?.targetRepsBySet)
+    .flatMap(target => parseDropTargets(targetLabel(target)).map(targetLabel))
+    .filter(Boolean);
+}
+
+/**
  * Produz o resumo de repetições apresentado em listas e detalhes de treino.
  * Para Drop Set, `+` separa etapas da mesma série e `/` separa séries.
+ * Para Rest-Pause, o cronômetro textual mantém o significado em contextos
+ * sem React, como impressão e integrações futuras de PDF.
  */
 export function formatExerciseRepSummary(exercise = {}) {
   const type = String(exercise?.type || "").trim().toUpperCase();
   const reps = String(exercise?.reps || "").trim();
   const explicitTargets = normalizeRepTargets(exercise?.targetRepsBySet).map(targetLabel).filter(Boolean);
+
+  if(isRestPauseType(type)) {
+    const labels = restPauseRepLabels(exercise);
+    return labels.join(" ⏱ ") || reps;
+  }
 
   if(!isDropSetType(type)) {
     const targets = isSegmentedRepType(type)

@@ -56,10 +56,17 @@ describe("metas de repetições", () => {
     })).toBe("12 + 8 / 10 + 6 / 8 + 4");
   });
 
-  it("preserva os resumos de séries normal, progressiva e rest-pause", () => {
+  it("preserva os resumos de séries normal e progressiva e marca a pausa curta no rest-pause", () => {
     expect(formatExerciseRepSummary({type:"NORMAL", sets:"3", reps:"12 / 10 / 8"})).toBe("12 / 10 / 8");
     expect(formatExerciseRepSummary({type:"PROG", sets:"3", targetRepsBySet:["12", "10", "8"]})).toBe("12 / 10 / 8");
-    expect(formatExerciseRepSummary({type:"REST PAUSE", sets:"2", reps:"10 + 4 + 3"})).toBe("10 + 4 + 3");
+    expect(formatExerciseRepSummary({type:"REST PAUSE", sets:"2", reps:"10 + 4 + 3"})).toBe("10 ⏱ 4 ⏱ 3");
+  });
+
+  it("preserva o resumo rest-pause a partir dos blocos prescritos", () => {
+    expect(formatExerciseRepSummary({
+      type:"REST PAUSE", sets:"2", reps:"",
+      dropTargetsBySet:[[{reps:"10"},{reps:"5"},{reps:"5"}]],
+    })).toBe("10 ⏱ 5 ⏱ 5");
   });
 
   it("não produz separadores inválidos com dados vazios ou incompletos", () => {
