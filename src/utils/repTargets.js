@@ -144,6 +144,57 @@ export function buildRepPlan({type, reps, targets, setCount}) {
   }));
 }
 
+function plannedSetCount(value) {
+  return Math.max(1, Math.min(12, Math.round(Number(value) || 1)));
+}
+
+function dropSetLabel(values) {
+  return (Array.isArray(values) ? values : [values])
+    .map(value => {
+      if(value && typeof value === "object" && "label" in value) return targetLabel(value);
+      return targetLabel(parseSingleRepTarget(typeof value === "object" ? value?.reps : value));
+    })
+    .filter(Boolean)
+    .join(" + ");
+}
+
+/**
+ * Produz o resumo de repetições apresentado em listas e detalhes de treino.
+ * Para Drop Set, `+` separa etapas da mesma série e `/` separa séries.
+ */
+export function formatExerciseRepSummary(exercise = {}) {
+  const type = String(exercise?.type || "").trim().toUpperCase();
+  const reps = String(exercise?.reps || "").trim();
+  const explicitTargets = normalizeRepTargets(exercise?.targetRepsBySet).map(targetLabel).filter(Boolean);
+
+  if(!isDropSetType(type)) {
+    const targets = isSegmentedRepType(type)
+      ? (explicitTargets.length ? explicitTargets : parseDropTargets(reps).map(targetLabel).filter(Boolean))
+      : (explicitTargets.length ? explicitTargets : parseRepTargets(reps).map(targetLabel).filter(Boolean));
+    return targets.join(isSegmentedRepType(type) ? " + " : " / ") || reps;
+  }
+
+  const count = plannedSetCount(exercise?.sets);
+  const rows = Array.isArray(exercise?.dropTargetsBySet)
+    ? exercise.dropTargetsBySet.map(dropSetLabel)
+    : [];
+  const firstRow = rows.find(Boolean);
+  if(firstRow) {
+    return Array.from({length:count}, (_, index) => rows[index] || firstRow).join(" / ");
+  }
+
+  const perSetTargets = explicitTargets
+    .filter(label => label.includes("+"))
+    .map(label => dropSetLabel(parseDropTargets(label)));
+  if(perSetTargets.length) {
+    return Array.from({length:count}, (_, index) => perSetTargets[index] || perSetTargets[perSetTargets.length - 1]).join(" / ");
+  }
+
+  const segments = parseDropTargets(reps).map(targetLabel).filter(Boolean);
+  const fallback = dropSetLabel(segments.length ? segments : explicitTargets);
+  return fallback ? Array.from({length:count}, () => fallback).join(" / ") : reps;
+}
+
 export function repTargetsToText(targets) {
   return normalizeRepTargets(targets).map(targetLabel).filter(Boolean).join(" / ");
 }
