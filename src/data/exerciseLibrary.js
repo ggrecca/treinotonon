@@ -1,3 +1,5 @@
+import { EXERCISE_LIBRARY_VARIANTS } from "./exerciseLibraryVariants.js";
+
 // Catalogo base de exercicios do Treino Tonon.
 // Mantem apenas dados tecnicos de exercicios; prescricoes ficam nos treinos.
 
@@ -2961,7 +2963,7 @@ function slugifyExerciseName(name){
     .replace(/^-|-$/g, "");
 }
 
-export const EXERCISE_LIBRARY = EXERCISE_LIBRARY_RAW.map(exercise => ({
+export const EXERCISE_LIBRARY = [...EXERCISE_LIBRARY_RAW, ...EXERCISE_LIBRARY_VARIANTS].map(exercise => ({
   ...exercise,
   id: exercise.id || `seed-${slugifyExerciseName(exercise.name)}`,
   group: exercise.group || exercise.primaryGroup || exercise.category || "Outro",

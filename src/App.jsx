@@ -427,10 +427,10 @@ function exerciseRepSummary(exercise){
 function RestPauseRepBlocks({labels=[], className=""}){
   const values = labels.map(value=>String(value || "").trim()).filter(Boolean);
   if(!values.length) return null;
-  return <span className={`restPauseRepSummary ${className}`.trim()}>{values.map((value,index)=><React.Fragment key={`${value}-${index}`}>
+  return <span className={`restPauseRepSummary ${className}`.trim()}>{values.map((value,index)=><span className="restPauseRepPair" key={`${value}-${index}`}>
     {index > 0 && <span className="restPauseSeparator" role="img" aria-label="Pausa curta"><Timer size="1em" strokeWidth={2.3}/></span>}
     <span className="restPauseRepBlock">{value}</span>
-  </React.Fragment>)}</span>;
+  </span>)}</span>;
 }
 
 function ExerciseRepSummary({exercise, fallback="", className=""}){

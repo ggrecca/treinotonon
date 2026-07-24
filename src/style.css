@@ -3348,7 +3348,8 @@ input::placeholder,textarea::placeholder{color:var(--color-text-muted)}
 .executionDropTitle small{display:block}
 .executionDropTitle b{font-size:12px}
 .executionDropTitle small{margin-top:2px;color:var(--color-text-muted);font-size:10px}
-.restPauseRepSummary{display:inline-flex;align-items:center;flex-wrap:wrap;gap:3px;vertical-align:middle;max-width:100%}
+.restPauseRepSummary{display:inline-flex;align-items:center;flex-wrap:nowrap;gap:3px;vertical-align:middle;max-width:100%;white-space:nowrap}
+.restPauseRepPair{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
 .restPauseRepBlock{white-space:nowrap}
 .restPauseSeparator{display:inline-flex;align-items:center;justify-content:center;color:var(--color-text-muted);line-height:1;flex:0 0 auto}
 .restPauseSeparator svg{display:block}

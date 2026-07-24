@@ -1,0 +1,77 @@
+// Variações técnicas de prescrição. As tags também registram nomes usuais de academia.
+const v = (name, category, primaryGroup, secondaryGroups, equipmentList, tags, technicalNotes) => ({
+  name, category, primaryGroup, secondaryGroups, equipmentList, tags, technicalNotes, notes:""
+});
+
+export const EXERCISE_LIBRARY_VARIANTS = [
+  v("Supino Inclinado no Smith","Peito","Peitoral superior",["Tríceps","Deltoide anterior"],["smith","banco inclinado"],["bilateral","composto","empurrar","guiado"],"Escápulas estáveis e trajetória confortável."),
+  v("Crucifixo no Cabo Unilateral","Peito","Peitoral maior",["Deltoide anterior","Core"],["cabo","polia"],["unilateral","isolador","adução horizontal","crossover unilateral"],"Tronco estável e braço em arco, sem girar o ombro."),
+  v("Crossover Médio no Cabo","Peito","Peitoral maior",["Deltoide anterior"],["cabo","polia"],["bilateral","isolador","adução horizontal"],"Cruze as mãos na linha média com tensão contínua."),
+
+  v("Puxada Alta Pronada Média","Costas","Latíssimo do dorso",["Bíceps","Redondo maior"],["cabo","polia"],["bilateral","composto","puxar","pegada pronada média","pulley médio"],"Puxe à frente, com escápulas deprimidas."),
+  v("Puxada Alta Pronada Fechada","Costas","Latíssimo do dorso",["Bíceps","Romboides"],["cabo","polia"],["bilateral","composto","puxar","pegada pronada fechada","pulley fechado"],"Leve os cotovelos para baixo sem jogar o tronco para trás."),
+  v("Puxada Alta Semipronada Aberta","Costas","Latíssimo do dorso",["Bíceps","Redondo maior"],["cabo","polia"],["bilateral","composto","puxar","pegada semipronada aberta","pulley semipro aberto","pulley semi pro aberto"],"Peito alto e ombros afastados das orelhas."),
+  v("Puxada Alta Semipronada Média","Costas","Latíssimo do dorso",["Bíceps","Romboides"],["cabo","polia"],["bilateral","composto","puxar","pegada semipronada média","pulley semipro"],"Inicie deprimindo as escápulas."),
+  v("Puxada Alta Supinada Fechada","Costas","Latíssimo do dorso",["Bíceps braquial","Braquial"],["cabo","polia"],["bilateral","composto","puxar","pegada supinada fechada","pulley supinado"],"Cotovelos próximos ao corpo e tronco firme."),
+  v("Puxada Alta com Triângulo","Costas","Latíssimo do dorso",["Bíceps","Romboides"],["cabo","polia","triângulo"],["bilateral","composto","puxar","pegada neutra fechada","pulley triangulo","pulley triângulo"],"Puxe o triângulo à parte alta do peito."),
+  v("Puxada Alta Unilateral Ajoelhada","Costas","Latíssimo do dorso",["Bíceps","Core"],["cabo","polia"],["unilateral","composto","puxar","pulley unilateral"],"Leve o cotovelo ao bolso sem inclinar o tronco."),
+  v("Pulldown com Corda","Costas","Latíssimo do dorso",["Redondo maior","Tríceps"],["cabo","polia","corda"],["bilateral","isolador","puxar","pullover corda"],"Braços quase estendidos e costelas controladas."),
+  v("Remada Baixa com Triângulo","Costas","Latíssimo do dorso",["Romboides","Trapézio médio","Bíceps"],["cabo","polia","triângulo"],["bilateral","composto","puxar","remada pulley triangulo"],"Puxe ao abdômen com lombar neutra."),
+  v("Remada Baixa com Barra Reta","Costas","Romboides",["Latíssimo do dorso","Bíceps"],["cabo","polia","barra"],["bilateral","composto","puxar","remada pulley barra reta"],"Não projete os ombros à frente."),
+  v("Remada Baixa com Corda","Costas","Latíssimo do dorso",["Romboides","Bíceps"],["cabo","polia","corda"],["bilateral","composto","puxar"],"Aproxime as escápulas sem hiperestender a lombar."),
+  v("Remada Cavalinho com Triângulo","Costas","Latíssimo do dorso",["Romboides","Trapézio médio","Bíceps"],["barra","triângulo"],["bilateral","composto","puxar","t-bar triangulo"],"Coluna neutra e sem impulso do quadril."),
+  v("Remada Cavalinho Pronada","Costas","Romboides",["Latíssimo do dorso","Trapézio médio","Bíceps"],["barra"],["bilateral","composto","puxar","t-bar pronada"],"Controle o tronco na subida e na descida."),
+  v("Remada Articulada Bilateral","Costas","Latíssimo do dorso",["Romboides","Trapézio médio","Bíceps"],["máquina"],["bilateral","composto","puxar","guiado"],"Mantenha o peito apoiado e não eleve os ombros."),
+  v("Remada Articulada Pegada Neutra","Costas","Latíssimo do dorso",["Romboides","Bíceps"],["máquina"],["bilateral","composto","puxar","pegada neutra","guiado"],"Puxe os cotovelos para trás em amplitude confortável."),
+  v("Remada Curvada Supinada com Barra","Costas","Latíssimo do dorso",["Bíceps","Romboides","Lombar"],["barra"],["bilateral","composto","puxar","pegada supinada","livre"],"Barra próxima ao corpo e lombar neutra."),
+  v("Remada Meadows","Costas","Latíssimo do dorso",["Romboides","Bíceps","Core"],["barra","anilha"],["unilateral","composto","puxar","landmine"],"Puxe a barra ao quadril sem rodar o tronco."),
+  v("Face Pull com Corda","Costas","Trapézio médio",["Deltoide posterior","Manguito rotador","Romboides"],["cabo","polia","corda"],["bilateral","isolador","puxar","saúde do ombro"],"Puxe em direção ao rosto, abrindo as mãos."),
+
+  v("Agachamento Hack Invertido","Pernas","Glúteos",["Quadríceps","Posterior de coxa"],["máquina hack"],["bilateral","composto","agachar","hack invertido","reverse hack squat"],"De frente para o encosto, preserve o alinhamento dos joelhos."),
+  v("Agachamento Hack Unilateral","Pernas","Quadríceps",["Glúteos","Core"],["máquina hack"],["unilateral","composto","agachar"],"Carga moderada e quadril alinhado."),
+  v("Agachamento Hack Pés Altos","Pernas","Glúteos",["Posterior de coxa","Quadríceps"],["máquina hack"],["bilateral","composto","agachar","pés altos"],"Mantenha lombar apoiada e calcanhares firmes."),
+  v("Agachamento Hack Pés Baixos","Pernas","Quadríceps",["Glúteos"],["máquina hack"],["bilateral","composto","agachar","pés baixos"],"Use apenas amplitude confortável aos joelhos."),
+  v("Agachamento Búlgaro no Smith","Pernas","Quadríceps",["Glúteos","Posterior de coxa"],["smith","banco"],["unilateral","composto","agachar","guiado"],"Ajuste a distância dos pés antes de carregar."),
+  v("Afundo Reverso com Halteres","Pernas","Glúteos",["Quadríceps","Posterior de coxa"],["halteres"],["unilateral","composto","afundo","passada reversa"],"Dê o passo para trás com controle."),
+  v("Passada Caminhando com Halteres","Pernas","Quadríceps",["Glúteos","Posterior de coxa","Core"],["halteres"],["unilateral","composto","afundo","avanço"],"Alinhe joelho e ponta do pé a cada passo."),
+  v("Step-up com Halteres","Pernas","Quadríceps",["Glúteos","Posterior de coxa"],["halteres","caixa"],["unilateral","composto"],"Suba empurrando pela perna de apoio."),
+  v("Leg Press 45 Pés Altos","Pernas","Glúteos",["Posterior de coxa","Quadríceps"],["leg press"],["bilateral","composto","pés altos"],"Quadril e lombar apoiados o tempo todo."),
+  v("Leg Press 45 Pés Baixos","Pernas","Quadríceps",["Glúteos"],["leg press"],["bilateral","composto","pés baixos"],"Calcanhares apoiados e joelhos na linha dos pés."),
+  v("Leg Press 45 Sumô","Pernas","Adutores",["Glúteos","Quadríceps"],["leg press"],["bilateral","composto","sumô"],"Base ampla confortável e lombar apoiada."),
+  v("Terra Romeno Unilateral com Halter","Pernas","Posterior de coxa",["Glúteos","Core"],["halter"],["unilateral","composto","hinge","stiff unilateral"],"Quadris alinhados e coluna neutra."),
+  v("Mesa Flexora Unilateral","Pernas","Posterior de coxa",["Panturrilhas"],["máquina"],["unilateral","isolador","guiado"],"Mantenha o quadril pressionado no banco."),
+  v("Elevação Pélvica na Máquina","Pernas","Glúteos",["Posterior de coxa"],["máquina"],["bilateral","composto","hip thrust máquina","guiado"],"Contraia glúteos sem hiperestender a lombar."),
+  v("Coice de Glúteo no Cabo","Pernas","Glúteos",["Posterior de coxa","Core"],["cabo","polia","tornozeleira"],["unilateral","isolador","glúteo cabo"],"Pelve imóvel e extensão do quadril controlada."),
+  v("Coice de Glúteo na Máquina","Pernas","Glúteos",["Posterior de coxa"],["máquina"],["unilateral","isolador","guiado"],"Empurre com o calcanhar sem arquear a lombar."),
+  v("Abdutora com Tronco Inclinado","Pernas","Abdutores",["Glúteo máximo"],["máquina"],["bilateral","isolador","abdutora","glúteo médio"],"Mantenha pelve estável durante a abertura."),
+  v("Panturrilha em Pé Unilateral","Pernas","Panturrilhas",["Sóleo"],["máquina","degrau"],["unilateral","isolador"],"Amplitude completa, pausa no topo e descida lenta."),
+  v("Panturrilha no Leg Press Unilateral","Pernas","Panturrilhas",["Sóleo"],["leg press"],["unilateral","isolador"],"Mova somente o tornozelo."),
+  v("Tibial Anterior em Pé","Pernas","Tibial anterior",["Panturrilhas"],["peso corporal","máquina"],["bilateral","isolador"],"Eleve as pontas dos pés com calcanhares apoiados."),
+
+  v("Desenvolvimento Militar com Barra","Ombros","Deltoide anterior",["Deltoide medial","Tríceps","Core"],["barra"],["bilateral","composto","empurrar","livre"],"Abdômen firme e trajetória confortável."),
+  v("Desenvolvimento Arnold","Ombros","Deltoide anterior",["Deltoide medial","Tríceps"],["halteres"],["bilateral","composto","empurrar","rotação"],"Rotação controlada, sem dor no ombro."),
+  v("Elevação Frontal Neutra com Rotação","Ombros","Deltoide anterior",["Deltoide medial"],["halteres"],["unilateral","isolador","elevação frontal neutra","rotação"],"Suba neutro e gire apenas em amplitude confortável."),
+  v("Elevação Frontal Alternada com Halteres","Ombros","Deltoide anterior",["Deltoide medial","Core"],["halteres"],["unilateral","isolador"],"Alterne os braços sem usar impulso."),
+  v("Elevação Frontal no Cabo com Corda","Ombros","Deltoide anterior",["Deltoide medial"],["cabo","polia","corda"],["bilateral","isolador"],"Tensão contínua até a linha dos ombros."),
+  v("Elevação Lateral Unilateral no Cabo","Ombros","Deltoide medial",["Trapézio"],["cabo","polia"],["unilateral","isolador"],"Eleve sem encolher o ombro."),
+  v("Elevação Lateral Sentado com Halteres","Ombros","Deltoide medial",["Trapézio"],["halteres","banco"],["bilateral","isolador"],"Sentado para reduzir o impulso."),
+  v("Elevação Lateral Parcial","Ombros","Deltoide medial",["Trapézio"],["halteres","cabo","máquina"],["bilateral","isolador","parciais"],"Técnica avançada após amplitude completa controlada."),
+  v("Rotação Externa 90 Graus no Cabo","Ombros","Manguito rotador",["Deltoide posterior"],["cabo","polia"],["unilateral","isolador","manguito"],"Carga leve e amplitude sem dor."),
+
+  v("Rosca Alternada com Giro","Bíceps","Bíceps braquial",["Braquial","Braquiorradial"],["halteres"],["unilateral","isolador","supinação","rosca com giro"],"Inicie neutro e supine gradualmente na subida."),
+  v("Rosca Alternada Neutra","Bíceps","Braquial",["Braquiorradial","Bíceps braquial"],["halteres"],["unilateral","isolador","pegada neutra"],"Punhos neutros e sem girar o tronco."),
+  v("Rosca Martelo Cruzada","Bíceps","Braquial",["Braquiorradial","Bíceps braquial"],["halteres"],["unilateral","isolador","martelo cruzada"],"Leve o halter em diagonal ao peitoral oposto."),
+  v("Rosca Spider com Halteres","Bíceps","Bíceps braquial",["Braquial"],["halteres","banco inclinado"],["bilateral","isolador"],"Peito apoiado e cotovelos fixos."),
+  v("Rosca Inversa com Barra W","Bíceps","Braquiorradial",["Braquial","Antebraço"],["barra W"],["bilateral","isolador","pegada pronada"],"Punhos alinhados e carga moderada."),
+  v("Rosca Martelo com Corda","Bíceps","Braquial",["Braquiorradial","Bíceps braquial"],["cabo","polia","corda"],["bilateral","isolador","pegada neutra"],"Cotovelos próximos ao corpo."),
+
+  v("Tríceps Pulley com Barra W","Tríceps","Tríceps braquial",["Ancôneo"],["cabo","polia","barra W"],["bilateral","isolador","pulley"],"Cotovelos ao lado do corpo."),
+  v("Tríceps Pulley Unilateral","Tríceps","Tríceps braquial",["Ancôneo"],["cabo","polia"],["unilateral","isolador","pulley"],"Braço estável e amplitude confortável."),
+  v("Tríceps Francês com Corda","Tríceps","Tríceps braquial",["Ancôneo"],["cabo","polia","corda"],["bilateral","isolador","acima da cabeça"],"Cotovelos apontados à frente."),
+  v("Tríceps Coice com Halter","Tríceps","Tríceps braquial",["Deltoide posterior"],["halter"],["unilateral","isolador","livre"],"Mova apenas o cotovelo."),
+  v("Mergulho nas Paralelas","Tríceps","Tríceps braquial",["Peitoral inferior","Deltoide anterior"],["paralelas","peso corporal"],["bilateral","composto","empurrar"],"Use amplitude confortável para os ombros."),
+
+  v("Crunch no Cabo Ajoelhado","Abdômen","Reto abdominal",["Oblíquos"],["cabo","polia","corda"],["bilateral","isolador","core"],"Flexione a coluna pelo abdômen, sem puxar pela cabeça."),
+  v("Pallof Press no Cabo","Abdômen","Core",["Oblíquos","Glúteos"],["cabo","polia"],["unilateral","anti-rotação","core"],"Afaste a alça sem deixar o tronco girar."),
+  v("Abdominal Infra no Banco Inclinado","Abdômen","Reto abdominal",["Flexores do quadril","Core"],["banco inclinado"],["bilateral","core"],"Controle a pelve e evite balanço.")
+];
