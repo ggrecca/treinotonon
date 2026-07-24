@@ -71,13 +71,14 @@ describe("integridade do pacote de publicação", () => {
     expect(migration).toContain("set method = 'normal'");
   });
 
-  it("mantém metas de carga por série e drop no fluxo completo", () => {
+  it("mantém metas de carga por série, drop e rest-pause no fluxo completo", () => {
     const app = projectFile("src/App.jsx");
     const service = projectFile("src/services/dataService/cloudDataService.ts");
     expect(app).toContain("targetLoadsBySet");
     expect(app).toContain("dropTargetsBySet");
     expect(app).toContain("DropSetTargetsEditor");
-    expect(service).toContain("target_load: numericValue(drop.load)");
+    expect(service).toContain('method === "rest_pause" ? setLoad');
+    expect(service).toContain("numericValue(drop.load) ?? defaultLoad");
     expect(service).toContain('select("*, prescribed_sets(*, prescribed_drops(*))")');
     expect(service).toContain("performedSets.length > 0 && performedSets.every");
   });

@@ -521,10 +521,15 @@ function sessionFromRows(session: JsonRecord, sets: JsonRecord[], workout?: Json
 
   const items = Array.from(setsByExercise.entries()).map(([exerciseId, exerciseSets]) => {
     const exercise = exercises.get(exerciseId) || {};
+    const restPause = dbMethodToApp(exercise.method) === "REST PAUSE";
     const sortedSets = exerciseSets.sort((a, b) => Number(a.set_index) - Number(b.set_index));
     const prescribedSets = asArray<JsonRecord>(exercise.prescribed_sets).sort((a, b) => Number(a.set_index) - Number(b.set_index));
     const prescribedByIndex = new Map(prescribedSets.map(set => [Number(set.set_index), set]));
-    const performedSets = sortedSets.map(set => performedSetToWorkoutSet(set, prescribedByIndex.get(Number(set.set_index)) || {}));
+    const performedSets = sortedSets.map(set => {
+      const performed = performedSetToWorkoutSet(set, prescribedByIndex.get(Number(set.set_index)) || {});
+      if(restPause && !performed.load && performed.drops?.length) performed.load = performed.drops[0]?.load || "";
+      return performed;
+    });
     const reps = performedSets.reduce((sum, set) => {
       if(set.drops?.length) return sum + set.drops.reduce((dropSum, drop) => dropSum + (numericValue(drop.reps) || 0), 0);
       return sum + (numericValue(set.reps) || 0);
@@ -646,15 +651,17 @@ export function buildPrescribedSets(exercise: WorkoutExercise): Array<{set_index
     const target = targets[index] || targets[targets.length - 1] || defaultTarget;
     const configuredDrops = asArray<{reps?: string; load?: string | number}>(dropTargetsBySet[index]);
     const fallbackDrops = (parsedTargets.length ? parsedTargets : splitDropTargets(defaultTarget)).map(reps => ({reps, load:cleanText(exercise.load || "")}));
+    const setLoad = numericValue(explicitLoads[index]) ?? defaultLoad;
     const drops = segmentedMethod
       ? (configuredDrops.length ? configuredDrops : fallbackDrops).map((drop, dropIndex) => ({
         drop_index: dropIndex + 1,
         target_reps: cleanText(drop.reps || ""),
-        target_load: numericValue(drop.load) ?? defaultLoad,
+        // Rest-Pause has one load for the complete series.  The child rows
+        // retain that value only for backwards-compatible persisted history.
+        target_load: method === "rest_pause" ? setLoad : (numericValue(drop.load) ?? defaultLoad),
         notes: "",
       }))
       : [];
-    const setLoad = numericValue(explicitLoads[index]) ?? defaultLoad;
     return {
       set_index: index + 1,
       target_reps: segmentedMethod ? drops.map(drop => drop.target_reps).join(" + ") : target,
@@ -791,7 +798,9 @@ export function buildSessionRpcPayload(session: WorkoutSession, userId: string) 
   const sessionId = isUuid(session.id) ? session.id : makeId();
   const snapshotWorkout = isUuid(requestedWorkoutId) ? null : buildWorkoutSnapshotForSession(userId, session);
   const snapshotPayload = snapshotWorkout ? buildWorkoutRpcPayload(snapshotWorkout, userId) : null;
-  const items = asArray<WorkoutSessionExercise>(session.items).map((item, index) => ({
+  const items = asArray<WorkoutSessionExercise>(session.items).map((item, index) => {
+    const restPause = cleanText(item.type || item.planned?.type).toUpperCase() === "REST PAUSE";
+    return {
     workout_exercise_id: isUuid(item.workoutExerciseId || item.workout_exercise_id)
       ? cleanText(item.workoutExerciseId || item.workout_exercise_id)
       : cleanText(snapshotPayload?.exercises[index]?.id || "") || null,
@@ -807,11 +816,12 @@ export function buildSessionRpcPayload(session: WorkoutSession, userId: string) 
       student_notes: cleanText(set.studentNotes || ""),
       drops: asArray<NonNullable<WorkoutSet["drops"]>[number]>(set.drops).map(drop => ({
         performed_reps: cleanText(drop.reps || ""),
-        performed_load: numericValue(drop.load),
+        performed_load: restPause ? numericValue(set.load) : numericValue(drop.load),
         completed: !!(drop.done || drop.completed),
       })),
     })),
-  }));
+    };
+  });
 
   return {
     id: sessionId,

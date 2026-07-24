@@ -3,7 +3,7 @@ import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from "reac
 import { createRoot } from "react-dom/client";
 import { createPortal } from "react-dom";
 import {
-  Dumbbell, BarChart3, Scale, CheckCircle2, Circle, Save, Trash2, TimerReset,
+  Dumbbell, BarChart3, Scale, CheckCircle2, Circle, Save, Trash2, Timer, TimerReset,
   Play, Pause, History, PlusCircle, ClipboardList, X, Copy, Edit3, ArrowUp,
   ArrowDown, Settings2, Eye, EyeOff, Users, UserPlus, ArrowLeft, ArrowRight,
   LoaderCircle, RefreshCw, WifiOff, AlertTriangle, AlertCircle, Info, Mail,
@@ -13,7 +13,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { authService, configurationError, isSupabaseConfigured } from "./services/authService";
 import { dataService } from "./services/dataService";
 import { EXERCISE_LIBRARY } from "./data/exerciseLibrary";
-import { buildRepPlan, expandRepTargetsForSets, formatExerciseRepSummary, isDropSetType, isRestPauseType, isSegmentedRepType, normalizeRepTargets, parseDropTargets, parseRepTargets, parseSingleRepTarget, repTargetLabelsForEditing, setRepTargetLabelForEditing, targetLabel } from "./utils/repTargets";
+import { buildRepPlan, expandRepTargetsForSets, formatExerciseRepSummary, isDropSetType, isRestPauseType, isSegmentedRepType, normalizeRepTargets, parseDropTargets, parseRepTargets, parseSingleRepTarget, repTargetLabelsForEditing, restPauseRepLabels, setRepTargetLabelForEditing, targetLabel } from "./utils/repTargets";
 import { Card } from "./components/Card";
 import { Badge, BottomSheet, Button, Card as DesignSystemCard, Dialog, Input, Select, Tabs, TabsContent, Textarea, ToastRegion } from "./design-system";
 import { AppDialog } from "./components/AppDialog";
@@ -422,6 +422,23 @@ function shouldSuggestRepTargets(exercise){
 
 function exerciseRepSummary(exercise){
   return formatExerciseRepSummary({...exercise, type:getExerciseType(exercise)});
+}
+
+function RestPauseRepBlocks({labels=[], className=""}){
+  const values = labels.map(value=>String(value || "").trim()).filter(Boolean);
+  if(!values.length) return null;
+  return <span className={`restPauseRepSummary ${className}`.trim()}>{values.map((value,index)=><span className="restPauseRepPair" key={`${value}-${index}`}>
+    {index > 0 && <span className="restPauseSeparator" role="img" aria-label="Pausa curta"><Timer size="1em" strokeWidth={2.3}/></span>}
+    <span className="restPauseRepBlock">{value}</span>
+  </span>)}</span>;
+}
+
+function ExerciseRepSummary({exercise, fallback="", className=""}){
+  if(isRestPauseType(getExerciseType(exercise))) {
+    const labels = restPauseRepLabels(exercise);
+    return labels.length ? <RestPauseRepBlocks labels={labels} className={className}/> : fallback;
+  }
+  return exerciseRepSummary(exercise) || fallback;
 }
 
 function methodRepHint(exercise){
@@ -3775,26 +3792,31 @@ function exerciseCatalogToWorkoutItem(ex={}){
     const last = lastLoad(item.name);
     const suggestedLoad = draft[`${base}-load`] || item.load || latest?.sets?.[0]?.load || last?.load || "";
     const type = getExerciseType(item);
-    const plan = buildRepPlan({type, reps:item.reps, targets:item.targetRepsBySet, setCount:count});
+    const planTargets = isRestPauseType(type)
+      ? restPauseRepLabels(item).map(parseSingleRepTarget)
+      : item.targetRepsBySet;
+    const plan = buildRepPlan({type, reps:item.reps, targets:planTargets, setCount:count});
     const progressiveLoads = loadTargetFieldLabels(item);
     const dropMatrix = isDropSetType(type) ? dropTargetMatrix(item) : [];
+    const restPause = isRestPauseType(type);
     const fallback = plannedReps(item.reps);
     return Array.from({length:count},(_, setIdx)=>{
       const setPlan = plan[setIdx] || {};
       if(isSegmentedRepType(type) && setPlan.drops?.length){
         const configuredDrops = isDropSetType(type) ? (dropMatrix[setIdx] || []) : [];
+        const plannedLoad = restPause ? (progressiveLoads[setIdx] || suggestedLoad) : "";
         const drops = setPlan.drops.map((target, dropIdx)=>({
           dropIndex:dropIdx,
           load:"",
           reps:"",
-          plannedLoad:String(configuredDrops[dropIdx]?.load ?? suggestedLoad),
+          plannedLoad:restPause ? String(plannedLoad) : String(configuredDrops[dropIdx]?.load ?? suggestedLoad),
           plannedRepTarget:configuredDrops[dropIdx]?.reps ? parseSingleRepTarget(configuredDrops[dropIdx].reps) : target,
           plannedReps:String(configuredDrops[dropIdx]?.reps || targetLabel(target) || fallback)
         }));
         return {
           load:"",
           reps:"",
-          plannedLoad:drops[0]?.plannedLoad || suggestedLoad,
+          plannedLoad:restPause ? String(plannedLoad) : (drops[0]?.plannedLoad || suggestedLoad),
           plannedReps:drops.map(drop=>drop.plannedReps).filter(Boolean).join(" + "),
           drops,
           done:false
@@ -3993,7 +4015,8 @@ function exerciseCatalogToWorkoutItem(ex={}){
       const item = (activeSession?.plannedItems || currentItems)[idx] || {};
       const type = getExerciseType(item);
       if(isSegmentedRepType(type) && previous.drops?.length){
-        return {...ex, sets:[...ex.sets, {...previous, reps:"", load:"", drops:previous.drops.map(drop=>({...drop, reps:"", load:""})), done:false}]};
+        const restPause = isRestPauseType(type);
+        return {...ex, sets:[...ex.sets, {...previous, reps:"", load:restPause ? previous.load : "", drops:previous.drops.map(drop=>({...drop, reps:"", load:"", done:false})), done:false}]};
       }
       const plan = buildRepPlan({type, reps:item.reps, targets:item.targetRepsBySet, setCount:ex.sets.length + 1});
       const plannedRepTarget = plan[ex.sets.length]?.target || plan[plan.length - 1]?.target || previous.plannedRepTarget || null;
@@ -5108,7 +5131,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
       if(item){
         const sets = Array.isArray(item.sets) && item.sets.length ? item.sets : (item.load || item.reps ? [{load:item.load || "", reps:item.reps || ""}] : []);
         const volume = item.volume ?? sets.reduce((sum,set)=>sum + numericValue(set.load)*numericValue(set.reps),0);
-        return {date:session.date, workoutName:session.workoutName, sets, volume};
+        return {date:session.date, workoutName:session.workoutName, sets, volume, type:item.type || item.planned?.type || "NORMAL"};
       }
     }
     return null;
@@ -5117,8 +5140,13 @@ function exerciseCatalogToWorkoutItem(ex={}){
   function compactExecutionSummary(execution){
     if(!execution || !execution.sets?.length) return null;
     const visibleSets = execution.sets.slice(0, 5);
+    const restPause = isRestPauseType(execution.type);
     const line = visibleSets.map((set,index)=>{
       if(set.drops?.length) {
+        if(restPause) {
+          const load = String(set.load || set.drops[0]?.load || "-").trim() || "-";
+          return `S${index + 1}: ${load}kg x ${set.drops.map(drop=>String(drop.reps || "-").trim()).join(" ⏱ ")}`;
+        }
         return `S${index + 1}: ${set.drops.map((drop,dropIdx)=>`D${dropIdx + 1} ${String(drop.load || "-").trim()}kg x ${String(drop.reps || "-").trim()}`).join(" + ")}`;
       }
       const load = String(set.load || "").trim() || "-";
@@ -5126,7 +5154,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
       return `S${index + 1}: ${load}kg x ${reps}`;
     }).join(" | ");
     const extraSets = execution.sets.length - visibleSets.length;
-    const loads = execution.sets.flatMap(set=>set.drops?.length ? set.drops.map(drop=>String(drop.load || "").trim()) : [String(set.load || "").trim()]).filter(Boolean);
+    const loads = execution.sets.flatMap(set=>set.drops?.length ? (restPause ? [String(set.load || set.drops[0]?.load || "").trim()] : set.drops.map(drop=>String(drop.load || "").trim())) : [String(set.load || "").trim()]).filter(Boolean);
     const reps = execution.sets.flatMap(set=>set.drops?.length ? set.drops.map(drop=>String(drop.reps || "").trim()) : [String(set.reps || "").trim()]).filter(Boolean);
     return {
       line:`${line}${extraSets > 0 ? ` | +${extraSets} séries` : ""}`,
@@ -5728,9 +5756,11 @@ function exerciseCatalogToWorkoutItem(ex={}){
       {(session.items || []).filter(i=>i.done || (i.sets || []).length).map((i,idx)=><details className="performedDetail" key={idx} open>
         <summary>{i.exercise}</summary>
         {(i.sets || []).length ? i.sets.map((set,setIdx)=>{
+          const restPause = isRestPauseType(i.type || i.planned?.type);
           if(set.drops?.length) return <div className="historyDropGroup" key={setIdx}>
             <strong>Série {setIdx+1}</strong>
-            {set.drops.map((drop,dropIdx)=><span key={dropIdx}>Drop {dropIdx+1}: meta {drop.plannedReps || targetLabel(drop.plannedRepTarget) || "—"} | feito {drop.reps || "—"} | carga {drop.load || "—"} kg</span>)}
+            {restPause && <span>Carga única: {set.load || set.drops[0]?.load || "—"} kg</span>}
+            {set.drops.map((drop,dropIdx)=><span key={dropIdx}>{restPause ? (dropIdx === 0 ? "Série principal" : `Mini-série ${dropIdx}`) : `Drop ${dropIdx+1}`}: meta {drop.plannedReps || targetLabel(drop.plannedRepTarget) || "—"} | feito {drop.reps || "—"}{restPause ? "" : ` | carga ${drop.load || "—"} kg`}</span>)}
           </div>
           const planned = set.plannedReps || targetLabel(set.plannedRepTarget) || i.planned?.reps || i.reps || "—";
           return <span key={setIdx}>Série {setIdx+1}: meta {planned} reps | feito {set.reps || "—"} reps | {set.load || "—"} kg</span>
@@ -5837,7 +5867,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
 
         <div className="executionExerciseMeta">
           <span>{sets.length || activeExecutionItem.sets} séries</span>
-          <span>{activeExecutionTargetSummary || activeExecutionItem.reps} reps</span>
+          <span><ExerciseRepSummary exercise={activeExecutionItem} fallback={activeExecutionTargetSummary || activeExecutionItem.reps}/> reps</span>
           <span>{activeExecutionItem.rest || `${timerSetpoint}s`} descanso</span>
           {getExerciseType(activeExecutionItem) !== "NORMAL" && <span>{getExerciseType(activeExecutionItem)}</span>}
           {activeExecutionEquipment && <span>{activeExecutionEquipment}</span>}
@@ -5852,14 +5882,15 @@ function exerciseCatalogToWorkoutItem(ex={}){
           <div className="executionSetsHeader"><b>Séries</b><span>{sets.filter(set=>set.done).length}/{sets.length}</span></div>
           {sets.map((set,setIdx)=><article className={`executionSetCard ${set.done ? "done" : ""} ${setIdx === activeExecutionCurrentSetIndex ? "current" : ""}`} key={setIdx}>
             <div className="executionSetHeader">
-              <div><b>Série {setIdx + 1}</b><small>Meta: {set.plannedReps || activeExecutionItem.reps} reps{set.plannedLoad && !set.drops?.length ? ` · ${set.plannedLoad} kg` : ""}</small></div>
+              <div><b>Série {setIdx + 1}</b><small>Meta: {restPauseExecution && set.drops?.length ? <RestPauseRepBlocks labels={set.drops.map(drop=>drop.plannedReps || targetLabel(drop.plannedRepTarget))}/> : (set.plannedReps || activeExecutionItem.reps)} reps{set.plannedLoad && !set.drops?.length ? ` · ${set.plannedLoad} kg` : ""}</small></div>
               <button className="danger iconBtn" type="button" aria-label={`Excluir série ${setIdx + 1}`} onClick={()=>removePerformedSet(currentExecutionExerciseIndex,setIdx)} disabled={done || sets.length <= 1}><Trash2 size={15}/></button>
             </div>
 
-            {set.drops?.length ? <div className="executionDropList">
+            {set.drops?.length ? <div className={`executionDropList ${restPauseExecution ? "restPauseExecutionList" : ""}`}>
+              {restPauseExecution && <label className="executionRestPauseLoad"><span>Carga da série</span><div className="executionInputWithUnit"><Input inputMode="decimal" aria-label={`Carga da série ${setIdx + 1}`} placeholder="0" disabled={done} value={set.load || ""} onChange={event=>updatePerformedSet(currentExecutionExerciseIndex,setIdx,{load:event.target.value})}/><em>kg</em></div><small>Esta mesma carga vale para todos os blocos.</small></label>}
               {set.drops.map((drop,dropIdx)=><div className={`executionDropRow ${drop.done ? "done" : ""}`} key={dropIdx}>
-                <div className="executionDropTitle"><b>{restPauseExecution ? (dropIdx === 0 ? "Série principal" : `Mini-série ${dropIdx}`) : `Drop ${dropIdx + 1}`}</b><small>Meta {drop.plannedReps || targetLabel(drop.plannedRepTarget) || "—"} reps</small></div>
-                <label><span>Carga</span><div className="executionInputWithUnit"><Input inputMode="decimal" aria-label={`Carga da etapa ${dropIdx + 1}`} placeholder="0" disabled={done} value={drop.load || ""} onChange={event=>updatePerformedDrop(currentExecutionExerciseIndex,setIdx,dropIdx,{load:event.target.value})}/><em>kg</em></div></label>
+                <div className="executionDropTitle"><b>{restPauseExecution ? <>{dropIdx > 0 && <span className="restPauseInlineMarker" role="img" aria-label="Pausa curta"><Timer size={13}/></span>}{dropIdx === 0 ? "Série principal" : `Mini-série ${dropIdx}`}</> : `Drop ${dropIdx + 1}`}</b><small>Meta {drop.plannedReps || targetLabel(drop.plannedRepTarget) || "—"} reps</small></div>
+                {!restPauseExecution && <label><span>Carga</span><div className="executionInputWithUnit"><Input inputMode="decimal" aria-label={`Carga da etapa ${dropIdx + 1}`} placeholder="0" disabled={done} value={drop.load || ""} onChange={event=>updatePerformedDrop(currentExecutionExerciseIndex,setIdx,dropIdx,{load:event.target.value})}/><em>kg</em></div></label>}
                 <label><span>Reps</span><Input inputMode="numeric" aria-label={`Repetições da etapa ${dropIdx + 1}`} placeholder="0" disabled={done} value={drop.reps || ""} onChange={event=>updatePerformedDrop(currentExecutionExerciseIndex,setIdx,dropIdx,{reps:event.target.value})}/></label>
                 <button type="button" className={`executionCheckButton compact ${drop.done ? "done" : ""}`} disabled={done} onClick={()=>togglePerformedDrop(currentExecutionExerciseIndex,setIdx,dropIdx)} aria-label={drop.done ? `Reabrir ${segmentName.toLowerCase()}` : `Concluir ${segmentName.toLowerCase()}`}>{drop.done ? <CheckCircle2 size={20}/> : <Circle size={20}/>}</button>
               </div>)}
@@ -5909,13 +5940,13 @@ function exerciseCatalogToWorkoutItem(ex={}){
           <div className="exContent">
             <h3>{group.type === "conj" ? `${String.fromCharCode(65 + conjugateIndex)}. ` : ""}{exercise.name}</h3>
             <div className="badges">
-              <span>{exercise.sets} séries · {targetSummary || exercise.reps} reps · {exercise.rest || `${timerSetpoint}s`}</span>
+              <span>{exercise.sets} séries · <ExerciseRepSummary exercise={exercise} fallback={targetSummary || exercise.reps}/> reps · {exercise.rest || `${timerSetpoint}s`}</span>
               {getExerciseType(exercise) !== "NORMAL" && <span>{getExerciseType(exercise)}</span>}
               {equipment && <span>{equipment}</span>}
             </div>
             {exercise.notes && <p className="planHint">{exercise.notes}</p>}
             {lastSummary && <div className="lastExecution"><History size={15}/><div><b>Última execução</b><span>{lastSummary.line}{lastSummary.volume ? ` · volume: ${lastSummary.volume}` : ""}</span></div></div>}
-            <p className="planHint">Planejado: {exercise.sets} séries × {exercise.reps} · descanso {exercise.rest || `${timerSetpoint}s`}</p>
+            <p className="planHint">Planejado: {exercise.sets} séries × <ExerciseRepSummary exercise={exercise} fallback={exercise.reps}/> · descanso {exercise.rest || `${timerSetpoint}s`}</p>
           </div>
         </div>;
       })}
@@ -6463,7 +6494,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
                 </div>
                 <div className="workoutInfoGrid">
                   {(appMode === "treinador" || item.sets) && <div><b>Séries</b><span>{item.sets || "—"}</span></div>}
-                  {(appMode === "treinador" || exerciseRepSummary(item) || item.reps) && <div><b>Repetições</b><span>{exerciseRepSummary(item) || item.reps || "—"}</span></div>}
+                  {(appMode === "treinador" || exerciseRepSummary(item) || item.reps) && <div><b>Repetições</b><span><ExerciseRepSummary exercise={item} fallback={exerciseRepSummary(item) || item.reps || "—"}/></span></div>}
                   {(appMode === "treinador" || item.load) && <div><b>Carga</b><span>{item.load || "—"}</span></div>}
                   {(appMode === "treinador" || method) && <div><b>Método</b><span>{method || "—"}</span></div>}
                   {(appMode === "treinador" || item.rest) && <div><b>Descanso</b><span>{item.rest || "—"}</span></div>}
@@ -6532,7 +6563,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
                   <div>
                     <b>{enrichedItem.name}</b>
                     {appMode !== "treinador" && (categoryGroup || equipment) && <small>{[categoryGroup, equipment].filter(Boolean).join(" · ")}</small>}
-                    {appMode === "treinador" ? <span>{item.sets || "—"} × {exerciseRepSummary(item) || item.reps || "—"}</span> : (item.sets || exerciseRepSummary(item) || item.reps) && <span>{[item.sets && `${item.sets} séries`, (exerciseRepSummary(item) || item.reps) && `${exerciseRepSummary(item) || item.reps} repetições`].filter(Boolean).join(" · ")}</span>}
+                    {appMode === "treinador" ? <span>{item.sets || "—"} × <ExerciseRepSummary exercise={item} fallback={exerciseRepSummary(item) || item.reps || "—"}/></span> : (item.sets || exerciseRepSummary(item) || item.reps) && <span>{item.sets && `${item.sets} séries`}{item.sets && (exerciseRepSummary(item) || item.reps) ? " · " : ""}{(exerciseRepSummary(item) || item.reps) && <><ExerciseRepSummary exercise={item} fallback={exerciseRepSummary(item) || item.reps}/> repetições</>}</span>}
                     {method && method !== "NORMAL" && <small>{method}</small>}
                     {appMode !== "treinador" && item.rest && <small>Descanso: {item.rest}</small>}
                     {appMode !== "treinador" && item.notes && <small className="workoutExerciseNotes">{item.notes}</small>}
@@ -6802,7 +6833,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
               <h4>Prescrição</h4>
               <div className="exercisePrescriptionGrid">
                 <label><span>Séries</span><Input inputMode="numeric" value={exercise.sets || ""} onChange={e=>updatePreviewItem(editingWorkoutExerciseIndex,{sets:e.target.value})} placeholder="3" /></label>
-                <label><span>Carga sugerida</span><Input inputMode="decimal" value={exercise.load || ""} onChange={e=>updatePreviewItem(editingWorkoutExerciseIndex,{load:e.target.value})} placeholder="Opcional" /></label>
+                <label><span>{isRestPauseType(method) ? "Carga da série" : "Carga sugerida"}</span><Input inputMode="decimal" value={exercise.load || ""} onChange={e=>updatePreviewItem(editingWorkoutExerciseIndex,{load:e.target.value})} placeholder="Opcional" /></label>
                 <label><span>Descanso</span><Input value={exercise.rest || ""} onChange={e=>updatePreviewItem(editingWorkoutExerciseIndex,{rest:e.target.value})} placeholder="00:50" /></label>
               </div>
             </section>
@@ -6815,6 +6846,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
                 </button>)}
               </div>
               {methodRepHint(exercise) && <p className="repHint methodHint">{methodRepHint(exercise)}</p>}
+              {isRestPauseType(method) && <p className="repHint">A carga da série vale para todos os blocos; ela não é alterada após a pausa curta.</p>}
               {method === "NORMAL" && <label className="standardRepsField"><span>Repetições</span><Input value={exercise.reps || ""} onChange={e=>updatePreviewItem(editingWorkoutExerciseIndex,{reps:e.target.value})} placeholder="Ex.: 10 ou 8-12" /></label>}
               {method === "PROG" && <RepTargetsEditor
                 exercise={{...exercise, useRepTargetsBySet:true}}
@@ -6900,7 +6932,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
                   <span className="conjugateEditorLetter">{String.fromCharCode(65+position)}</span>
                   <div>
                     <b>{item.name}</b>
-                    <span>{[item.sets && `${item.sets} séries`, exerciseRepSummary(item) && `${exerciseRepSummary(item)} reps`].filter(Boolean).join(" × ") || "Prescrição não definida"}</span>
+                    <span>{item.sets && `${item.sets} séries`}{item.sets && exerciseRepSummary(item) ? " × " : ""}{exerciseRepSummary(item) ? <><ExerciseRepSummary exercise={item}/> reps</> : (!item.sets && "Prescrição não definida")}</span>
                     <small>{methodSummary(item)}{item.group ? ` · ${item.group}` : ""}</small>
                   </div>
                   <div className="exerciseEditActions">
@@ -6915,7 +6947,7 @@ function exerciseCatalogToWorkoutItem(ex={}){
                 <div className="workoutExerciseCard">
                   <div>
                     <b>{item.name}</b>
-                    <span>{[item.sets && `${item.sets} séries`, exerciseRepSummary(item) && `${exerciseRepSummary(item)} reps`].filter(Boolean).join(" × ") || "Prescrição não definida"}</span>
+                    <span>{item.sets && `${item.sets} séries`}{item.sets && exerciseRepSummary(item) ? " × " : ""}{exerciseRepSummary(item) ? <><ExerciseRepSummary exercise={item}/> reps</> : (!item.sets && "Prescrição não definida")}</span>
                     <small>{methodSummary(item)}{item.group ? ` · ${item.group}` : ""}</small>
                   </div>
                   <div className="exerciseEditActions">
@@ -7618,6 +7650,7 @@ function SegmentedRepsEditor({exercise, restPause=false, onChange, onAdd, onRemo
   const values = segmentedRepValues(exercise);
   const incomplete = values.filter(Boolean).length < 2;
   return <section className="segmentedRepsPanel">
+    {restPause && <p className="repHint restPauseEditorPreview">Blocos da mesma série: <RestPauseRepBlocks labels={values}/></p>}
     <div className="segmentedRepsGrid">
       {values.map((value,index)=><label key={index}>
         <span>{restPause ? (index === 0 ? "Série principal" : `Mini-série ${index}`) : `Drop ${index + 1}`}</span>
@@ -7667,5 +7700,3 @@ class ErrorBoundary extends React.Component {
   }
 }
 createRoot(document.getElementById("root")).render(<ErrorBoundary><App /></ErrorBoundary>);
-
-
